@@ -1,0 +1,645 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit}
+
+\geometry{margin=2cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\textbf{STA211 — Méta-algorithmes — Fiche récapitulative}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\definecolor{codegreen}{rgb}{0.2,0.6,0.2}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{Méta-algorithmes}} \\
+\vspace{0.2cm}
+{\large \textit{Bagging, Forêts aléatoires, Boosting, Stacking}} \\
+\vspace{0.3cm}
+STA211 — Apprentissage supervisé — Fiche récapitulative \\
+6 juin 2026
+\end{center}
+
+\vspace{0.3cm}
+\rule{\textwidth}{0.4pt}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Présentation}
+% ============================================================
+
+Les \textbf{méta-algorithmes} (ou méthodes d'ensemble) combinent plusieurs modèles faibles (\textit{weak learners}) pour obtenir un prédicteur plus stable et plus performant. L'idée est qu'un groupe de modèles décide mieux qu'un seul.
+
+\paragraph{Principe général :}
+\begin{itemize}
+    \item On entraîne $B$ modèles de base $\hat{f}_1, \ldots, \hat{f}_B$ sur des versions perturbées des données.
+    \item La prédiction finale agrège les $B$ prédictions.
+\end{itemize}
+
+\paragraph{Agrégation :}
+\begin{itemize}
+    \item \textbf{Régression :} $\displaystyle \hat{f}_{\text{ens}}(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B} \hat{f}_b(\mathbf{x})$ \hfill (moyenne)
+    \item \textbf{Classification :} $\displaystyle \hat{f}_{\text{ens}}(\mathbf{x}) = \arg\max_k \sum_{b=1}^{B} \mathbf{1}_{\{\hat{f}_b(\mathbf{x}) = k\}}$ \hfill (vote majoritaire)
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1cm and 1.5cm,
+    data/.style={rectangle, draw, minimum width=2.5cm, minimum height=0.7cm, align=center, font=\bfseries, fill=orange!15},
+    base/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=0.6cm, align=center, fill=blue!8, font=\small},
+    agg/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=0.7cm, align=center, fill=green!15, font=\bfseries},
+    edge/.style={draw, -{Stealth[scale=1]}, thick},
+    dash/.style={draw, -{Stealth[scale=1]}, thick, dashed}
+]
+
+\node[data] (D) {Données d'entraînement};
+
+\node[base, below left=of D] (m1) {Modèle 1};
+\node[base, below=of D] (m2) {Modèle 2};
+\node[base, below right=of D] (m3) {Modèle $B$};
+
+\draw[edge] (D) -- (m1);
+\draw[edge] (D) -- (m2);
+\draw[edge] (D) -- (m3);
+
+\node[agg, below right=of m2, xshift=1cm] (ens) {Agrégation};
+
+\draw[edge] (m1) -- ++(0,-0.6) -| (ens);
+\draw[edge] (m2) -- (ens);
+\draw[edge] (m3) -- ++(0,-0.6) -| (ens);
+
+\node[below=of ens, font=\small] {Prédiction finale};
+
+\end{tikzpicture}
+\end{center}
+
+\paragraph{Principales méthodes :}
+
+\begin{tabular}{lll}
+\toprule
+\textbf{Méthode} & \textbf{Perturbation} & \textbf{Modèles de base} \\
+\midrule
+Bagging & Bootstrap (échantillonnage) & Arbres profonds (peu élagués) \\
+Forêts aléatoires & Bootstrap + sous-échantillonnage des variables & Arbres profonds \\
+Boosting & Pondération des individus & Arbres peu profonds (souches) \\
+Stacking & Partitionnement des données & Modèles variés \\
+\bottomrule
+\end{tabular}
+
+\newpage
+
+% ============================================================
+\section{Bagging}
+% ============================================================
+
+\subsection{Principe}
+
+Le \textbf{Bagging} (\textit{Bootstrap AGGregatING}) — Breiman, 1996 — consiste à :
+\begin{enumerate}
+    \item Générer $B$ échantillons bootstrap (tirage avec remise de $n$ individus parmi $n$) à partir des données originales.
+    \item Entraîner un modèle $\hat{f}_b$ sur chaque échantillon.
+    \item Agréger les $B$ prédictions (moyenne ou vote).
+\end{enumerate}
+
+\subsection{Propriétés}
+
+\begin{itemize}
+    \item \textbf{Réduction de la variance :} pour des modèles identiquement distribués avec variance $\sigma^2$ et corrélation deux à deux $\rho$,
+    \[
+    \mathbb{V}\!\left[\frac{1}{B}\sum_{b=1}^B \hat{f}_b\right] = \rho\sigma^2 + \frac{1-\rho}{B}\sigma^2
+    \]
+    Quand $B \to \infty$, la variance tend vers $\rho\sigma^2$.
+    \item Le bagging est surtout efficace pour des modèles \textbf{instables} (forte variance, faible biais) comme les arbres CART non élagués.
+    \item Chaque arbre bootstrap utilise environ $63{,}2\,\%$ des données (probabilité de tirage de chaque individu). Les $36{,}8\,\%$ restants sont les \textbf{Out-Of-Bag (OOB)}.
+\end{itemize}
+
+\subsection{Erreur OOB}
+
+On estime l'erreur de généralisation sans validation croisée :
+\[
+\text{Err}_{\text{OOB}} = \frac{1}{n}\sum_{i=1}^n \mathcal{L}\!\left(y_i,\; \frac{1}{|\mathcal{B}_i|}\sum_{b \in \mathcal{B}_i} \hat{f}_b(\mathbf{x}_i)\right)
+\]
+où $\mathcal{B}_i$ est l'ensemble des arbres pour lesquels l'individu $i$ est OOB.
+
+\subsection{Vote majoritaire}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.8cm and 1.2cm,
+    tree/.style={rectangle, draw, minimum width=1.8cm, minimum height=0.5cm, align=center, font=\small, fill=blue!8},
+    vote/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=0.6cm, align=center, fill=green!15, font=\small},
+    edge/.style={draw, -{Stealth[scale=1]}, thick}
+]
+
+\node[tree] (t1) {Arbre 1};
+\node[tree, right=of t1] (t2) {Arbre 2};
+\node[tree, right=of t2] (t3) {Arbre $B$};
+
+\node[vote, below=of t2, yshift=-0.5cm] (v) {Vote majoritaire / Moyenne};
+
+\draw[edge] (t1) -- (v);
+\draw[edge] (t2) -- (v);
+\draw[edge] (t3) -- (v);
+
+\node[below=of v, yshift=0.3cm, font=\bfseries] {Prédiction finale};
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+% ============================================================
+\section{Forêts aléatoires}
+% ============================================================
+
+\subsection{Principe}
+
+Les \textbf{forêts aléatoires} (\textit{Random Forests}) — Breiman, 2001 — améliorent le bagging en \textbf{décorrélant} les arbres. En plus du bootstrap sur les individus, on tire aléatoirement un sous-ensemble de $m$ variables candidates à chaque division.
+
+\paragraph{Algorithme :}
+\begin{enumerate}
+    \item Pour $b = 1, \ldots, B$ :
+    \begin{enumerate}
+        \item Tirer un échantillon bootstrap $\mathcal{D}_b$ de taille $n$.
+        \item Construire un arbre CART profond (non élagué) sur $\mathcal{D}_b$ :
+        \begin{itemize}
+            \item À chaque nœud, sélectionner $m$ variables parmi $p$ au hasard.
+            \item Choisir la meilleure division parmi ces $m$ variables.
+        \end{itemize}
+    \end{enumerate}
+    \item Agréger les $B$ arbres (moyenne pour régression, vote pour classification).
+\end{enumerate}
+
+\subsection{Choix des hyperparamètres}
+
+\begin{tabular}{lll}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur typique} & \textbf{Effet} \\
+\midrule
+$B$ (nombre d'arbres) & $100$ -- $1000$ & Plus grand $\Rightarrow$ plus stable \\
+$m$ (variables par nœud) & $\sqrt{p}$ (classif.) / $p/3$ (régr.) & Petit $\Rightarrow$ décorrélation \\
+Profondeur max & Illimitée (default) & Arbres profonds = faible biais \\
+Taille minimale des feuilles & 1 -- 5 & Évite le surajustement \\
+\bottomrule
+\end{tabular}
+
+\subsection{Importance des variables}
+
+On mesure l'importance d'une variable $X_j$ en cumulant la baisse de critère (Gini ou RSS) dans tous les nœuds où $X_j$ est utilisée :
+
+\[
+\text{Imp}(X_j) = \sum_{\text{nœuds } t \text{ divisés par } X_j} \Delta_t
+\]
+
+où $\Delta_t$ est la réduction d'hétérogénéité apportée par la division au nœud $t$.
+
+\newpage
+
+% ============================================================
+\section{Boosting}
+% ============================================================
+
+\subsection{Principe général}
+
+Le \textbf{boosting} est une approche \textbf{séquentielle} : on entraîne les modèles les uns après les autres, chaque nouveau modèle corrigeant les erreurs du précédent.
+
+Contrairement au bagging (parallélisable), le boosting est \textbf{séquentiel} et donc plus lent.
+
+\subsection{AdaBoost}
+
+\textit{Freund \& Schapire, 1997.} AdaBoost (\textit{Adaptive Boosting}) pondère les individus par leur difficulté :
+
+\paragraph{Algorithme (classification binaire $y_i \in \{-1, 1\}$) :}
+\begin{enumerate}
+    \item Initialiser les poids : $w_i^{(1)} = 1/n$ pour $i = 1, \ldots, n$.
+    \item Pour $b = 1, \ldots, B$ :
+    \begin{enumerate}
+        \item Entraîner un classifieur faible $\hat{f}_b$ sur les données pondérées par $\mathbf{w}^{(b)}$.
+        \item Calculer l'erreur pondérée : $\displaystyle \varepsilon_b = \frac{\sum_{i=1}^n w_i^{(b)} \mathbf{1}_{\{\hat{f}_b(\mathbf{x}_i) \neq y_i\}}}{\sum_{i=1}^n w_i^{(b)}}$
+        \item Calculer le poids du classifieur : $\displaystyle \alpha_b = \frac{1}{2}\log\!\left(\frac{1-\varepsilon_b}{\varepsilon_b}\right)$
+        \item Mettre à jour les poids : $w_i^{(b+1)} = w_i^{(b)} \exp\!\big[-\alpha_b \, y_i \, \hat{f}_b(\mathbf{x}_i)\big]$, puis normaliser.
+    \end{enumerate}
+    \item Prédiction finale : $\displaystyle \hat{f}(\mathbf{x}) = \text{signe}\!\left(\sum_{b=1}^B \alpha_b \hat{f}_b(\mathbf{x})\right)$
+\end{enumerate}
+
+Les poids augmentent pour les individus mal classés, forçant le prochain classifieur à se concentrer sur les cas difficiles.
+
+\subsection{Gradient Boosting}
+
+\textit{Friedman, 2001.} Le Gradient Boosting généralise AdaBoost à n'importe quelle fonction de perte différentiable.
+
+\paragraph{Algorithme :}
+\begin{enumerate}
+    \item Initialiser : $\displaystyle \hat{f}^{(0)}(\mathbf{x}) = \arg\min_\gamma \sum_{i=1}^n \mathcal{L}(y_i, \gamma)$
+    \item Pour $b = 1, \ldots, B$ :
+    \begin{enumerate}
+        \item Calculer les résidus (gradient négatif) :
+        \[
+        r_i^{(b)} = -\left.\frac{\partial \mathcal{L}(y_i, f(\mathbf{x}_i))}{\partial f(\mathbf{x}_i)}\right|_{f = \hat{f}^{(b-1)}}
+        \]
+        \item Ajuster un arbre faible $\hat{f}_b$ aux résidus $\{(\mathbf{x}_i, r_i^{(b)})\}_{i=1}^n$.
+        \item Mettre à jour : $\hat{f}^{(b)}(\mathbf{x}) = \hat{f}^{(b-1)}(\mathbf{x}) + \eta \cdot \hat{f}_b(\mathbf{x})$, où $\eta$ est le taux d'apprentissage.
+    \end{enumerate}
+\end{enumerate}
+
+\paragraph{Hyperparamètres importants :}
+\begin{itemize}
+    \item $B$ : nombre d'itérations (arbres).
+    \item $\eta$ (taux d'apprentissage) : typiquement $0{,}01$ -- $0{,}3$. Plus $\eta$ est petit, plus il faut d'arbres.
+    \item Profondeur des arbres : souvent $1$--$3$ (arbres peu profonds = faible variance).
+\end{itemize}
+
+\subsection{XGBoost, LightGBM, CatBoost}
+
+Ce sont des implémentations optimisées du Gradient Boosting :
+
+\begin{tabular}{lll}
+\toprule
+\textbf{Méthode} & \textbf{Caractéristique} & \textbf{Avantage} \\
+\midrule
+XGBoost & Régularisation L1/L2, pruning & Généralisation, rapidité \\
+LightGBM & Feuilles (\textit{leaf-wise}) & Très rapide, grandes données \\
+CatBoost & Variables catégorielles & Pas de prétraitement \\
+\bottomrule
+\end{tabular}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1cm and 1.5cm,
+    m/.style={rectangle, draw, rounded corners, minimum width=2.5cm, minimum height=0.5cm, align=center, fill=blue!8, font=\small},
+    wt/.style={rectangle, draw, minimum width=2cm, minimum height=0.4cm, align=center, font=\tiny, fill=yellow!10},
+    edge/.style={draw, -{Stealth[scale=1]}, thick},
+    dash/.style={draw, -{Stealth[scale=1]}, thick, dashed, gray}
+]
+
+\node (start) {Données initiales};
+
+\node[m, below=of start, yshift=-0.3cm] (m1) {Modèle 1};
+\node[wt, below left=of m1, xshift=-0.3cm] (w1) {poids $w_i^{(1)}$};
+\node[wt, below right=of m1, xshift=0.3cm] (e1) {erreur $\varepsilon_1$};
+
+\node[m, below=of m1, yshift=-0.8cm] (m2) {Modèle 2};
+\node[wt, below left=of m2, xshift=-0.3cm] (w2) {poids $w_i^{(2)}$};
+\node[wt, below right=of m2, xshift=0.3cm] (e2) {erreur $\varepsilon_2$};
+
+\node[below=of m2, yshift=-0.3cm, font=\small] (dots) {$\vdots$};
+
+\node[m, below=of dots] (mB) {Modèle $B$};
+
+\draw[edge] (start) -- (m1);
+\draw[edge] (m1) -- (w1);
+\draw[edge] (m1) -- (e1);
+\draw[dash] (w1) -| (m2);
+\draw[dash] (e1) -| (m2);
+\draw[edge] (m2) -- (w2);
+\draw[edge] (m2) -- (e2);
+\draw[dash] (w2) -| (dots);
+\draw[dash] (e2) -| (dots);
+
+\node[below=of mB, font=\small, text width=4cm, align=center] {Prédiction pondérée \\ $\sum \alpha_b \hat{f}_b(\mathbf{x})$};
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+% ============================================================
+\section{Stacking}
+% ============================================================
+
+\subsection{Principe}
+
+Le \textbf{Stacking} (\textit{Stacked Generalization}) — Wolpert, 1992 — combine des modèles \textbf{de nature différente} en utilisant un \textbf{méta-modèle} qui apprend à agréger leurs prédictions.
+
+\paragraph{Niveaux :}
+\begin{itemize}
+    \item \textbf{Niveau 0} (base) : $K$ modèles différents $\hat{f}_1, \ldots, \hat{f}_K$ (ex. : arbre, régression logistique, SVM, kNN).
+    \item \textbf{Niveau 1} (méta) : un modèle $\hat{g}$ qui prend en entrée les prédictions du niveau 0 et apprend à les combiner.
+\end{itemize}
+
+\subsection{Procédure}
+
+Pour éviter le surajustement, on utilise la \textbf{validation croisée} pour générer les entrées du méta-modèle :
+
+\begin{enumerate}
+    \item Diviser les données en $V$ plis.
+    \item Pour chaque pli $v$ :
+    \begin{enumerate}
+        \item Entraîner les $K$ modèles de base sur les $V-1$ autres plis.
+        \item Prédire sur le pli $v$ avec ces $K$ modèles.
+    \end{enumerate}
+    \item On obtient une matrice $\mathbf{Z}$ de taille $n \times K$ : prédictions (hors-échantillon) de chaque modèle de base.
+    \item Entraîner le méta-modèle $\hat{g}$ sur $(\mathbf{Z}, \mathbf{y})$.
+\end{enumerate}
+
+\subsection{Choix du méta-modèle}
+
+Le méta-modèle est souvent simple pour éviter le surajustement :
+\begin{itemize}
+    \item Régression logistique (classification)
+    \item Régression linéaire (régression)
+    \item Un petit arbre
+\end{itemize}
+
+\newpage
+
+% ============================================================
+\section{Comparaison des méthodes}
+% ============================================================
+
+\begin{tabular}{lp{3.5cm}p{3.5cm}p{3.5cm}}
+\toprule
+\textbf{Critère} & \textbf{Bagging / RF} & \textbf{Boosting} & \textbf{Stacking} \\
+\midrule
+Entraînement & Parallèle & Séquentiel & Parallèle (base) + méta \\
+Risque de surajustement & Faible (RF) & Élevé si $B$ trop grand & Modéré ($K$ pas trop grand) \\
+Interprétabilité & Faible & Faible & Très faible \\
+Performance & Bonne & Très bonne & Potentiellement meilleure \\
+Popularité & Très utilisé & Très utilisé & Peu utilisé \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.8cm and 0.1cm,
+    box/.style={rectangle, draw, minimum width=6cm, minimum height=0.5cm, align=center, font=\small},
+    lbl/.style={font=\bfseries, align=right}
+]
+
+\node[lbl] at (-3.5,0) (bias) {Biais};
+\node[box, fill=blue!8, right=0cm of bias] (bbias) {Bagging / RF \hfill \textbf{Biais élevé, variance faible}};
+\node[lbl, below=0.3cm of bias] (var) {Variance};
+\node[box, fill=green!8, right=0cm of var] (bvar) {Boosting \hfill \textbf{Biais faible, variance élevée}};
+
+\end{tikzpicture}
+\end{center}
+
+\newpage
+
+% ============================================================
+\section{Code Python}
+% ============================================================
+
+\begin{lstlisting}[language=Python, caption=Bagging, Forêts aléatoires, Gradient Boosting avec scikit-learn]
+from sklearn.ensemble import (
+    BaggingRegressor, RandomForestRegressor,
+    GradientBoostingRegressor, StackingRegressor
+)
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
+from sklearn.model_selection import train_test_split, cross_val_predict
+from sklearn.metrics import mean_squared_error
+import numpy as np, pandas as pd
+
+# --- Données ---
+np.random.seed(42)
+X = np.random.randn(200, 5)
+y = X[:, 0] + 2 * X[:, 1] + np.sin(X[:, 2]) + 0.5 * np.random.randn(200)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+# --- Bagging ---
+bag = BaggingRegressor(
+    estimator=DecisionTreeRegressor(max_depth=None),
+    n_estimators=100, random_state=42
+)
+bag.fit(X_train, y_train)
+print(f"Bagging RMSE: {mean_squared_error(y_test, bag.predict(X_test), squared=False):.3f}")
+
+# --- Forets aleatoires ---
+rf = RandomForestRegressor(
+    n_estimators=200, max_depth=None,
+    max_features='sqrt', random_state=42
+)
+rf.fit(X_train, y_train)
+print(f"RF RMSE: {mean_squared_error(y_test, rf.predict(X_test), squared=False):.3f}")
+print(f"Importance: {rf.feature_importances_.round(3)}")
+
+# --- Gradient Boosting ---
+gb = GradientBoostingRegressor(
+    n_estimators=200, learning_rate=0.1,
+    max_depth=3, random_state=42
+)
+gb.fit(X_train, y_train)
+print(f"GB RMSE: {mean_squared_error(y_test, gb.predict(X_test), squared=False):.3f}")
+
+# --- Stacking ---
+base_models = [
+    ('rf', RandomForestRegressor(n_estimators=100, random_state=42)),
+    ('svr', SVR(kernel='rbf')),
+    ('lr', LinearRegression())
+]
+meta = LinearRegression()
+stack = StackingRegressor(
+    estimators=base_models, final_estimator=meta,
+    cv=5
+)
+stack.fit(X_train, y_train)
+print(f"Stacking RMSE: {mean_squared_error(y_test, stack.predict(X_test), squared=False):.3f}")
+\end{lstlisting}
+
+\newpage
+
+% ============================================================
+\section{Code R}
+% ============================================================
+
+\begin{lstlisting}[language=R, caption=Bagging, Forêts aléatoires, Boosting avec R]
+library(rpart)
+library(randomForest)
+library(gbm)
+library(caret)
+
+# --- Donnees ---
+set.seed(42)
+n <- 200
+X <- matrix(rnorm(n * 5), n, 5)
+colnames(X) <- paste0("X", 1:5)
+y <- X[,1] + 2*X[,2] + sin(X[,3]) + 0.5*rnorm(n)
+dat <- data.frame(y, X)
+
+# --- Bagging (rpart avec bootstrap manuel ou caret) ---
+bag <- train(y ~ ., data = dat, method = "treebag",
+             trControl = trainControl(method = "boot", number = 50))
+print(bag)
+
+# --- Foret aleatoire ---
+rf <- randomForest(y ~ ., data = dat, ntree = 200, importance = TRUE)
+print(rf)
+importance(rf)
+
+# --- Gradient Boosting ---
+gb <- gbm(y ~ ., data = dat, distribution = "gaussian",
+          n.trees = 200, interaction.depth = 3,
+          shrinkage = 0.1, cv.folds = 5)
+best <- gb.perf(gb, method = "cv")
+summary(gb, n.trees = best)
+\end{lstlisting}
+
+\newpage
+
+% ============================================================
+\section{QCM}
+% ============================================================
+
+\begin{enumerate}
+    \item \textbf{Quel est le principal avantage du bagging par rapport à un seul arbre CART ?}
+    \begin{enumerate}
+        \item Réduction du biais
+        \item Réduction de la variance
+        \item Meilleure interprétabilité
+        \item Entraînement plus rapide
+    \end{enumerate}
+
+    \item \textbf{Dans une forêt aléatoire, le paramètre $m$ (nombre de variables candidates par nœud) permet de :}
+    \begin{enumerate}
+        \item Réduire le biais
+        \item Dé corréler les arbres
+        \item Accélérer l'entraînement
+        \item Éviter le surajustement par élagage
+    \end{enumerate}
+
+    \item \textbf{En classification, la valeur typique de $m$ dans une forêt aléatoire est :}
+    \begin{enumerate}
+        \item $m = p$
+        \item $m = \sqrt{p}$
+        \item $m = p/3$
+        \item $m = \log_2 p$
+    \end{enumerate}
+
+    \item \textbf{Contrairement au bagging, le boosting est un algorithme :}
+    \begin{enumerate}
+        \item Parallélisable
+        \item Séquentiel
+        \item Non supervisé
+        \item Basé sur des réseaux de neurones
+    \end{enumerate}
+
+    \item \textbf{Dans AdaBoost, le poids $\alpha_b$ d'un classifieur dépend :}
+    \begin{enumerate}
+        \item Du nombre d'arbres $B$
+        \item De son erreur pondérée $\varepsilon_b$
+        \item De la profondeur de l'arbre
+        \item Du taux d'apprentissage $\eta$
+    \end{enumerate}
+
+    \item \textbf{Le Gradient Boosting diffère d'AdaBoost car il :}
+    \begin{enumerate}
+        \item Utilise des arbres profonds
+        \item Généralise à toute fonction de perte différentiable via le gradient
+        \item Est parallélisable
+        \item N'utilise pas de pondération des individus
+    \end{enumerate}
+
+    \item \textbf{Dans le stacking, le méta-modèle est entraîné sur :}
+    \begin{enumerate}
+        \item Les données originales
+        \item Les prédictions des modèles de base (hors-échantillon)
+        \item Les résidus du meilleur modèle
+        \item Les variables les plus importantes
+    \end{enumerate}
+
+    \item \textbf{L'erreur OOB (Out-Of-Bag) est calculée sur :}
+    \begin{enumerate}
+        \item Les données de test
+        \item Les individus non tirés dans chaque échantillon bootstrap
+        \item L'échantillon d'apprentissage complet
+        \item Les feuilles de l'arbre
+    \end{enumerate}
+
+    \item \textbf{Parmi ces implémentations du Gradient Boosting, laquelle régularise avec les normes L1/L2 ?}
+    \begin{enumerate}
+        \item CatBoost
+        \item LightGBM
+        \item XGBoost
+        \item AdaBoost
+    \end{enumerate}
+
+    \item \textbf{Pourquoi les forêts aléatoires fonctionnent-elles mieux que le simple bagging d'arbres ?}
+    \begin{enumerate}
+        \item Parce qu'elles utilisent plus d'arbres
+        \item Parce qu'elles décorrèlent les arbres en sous-échantillonnant les variables
+        \item Parce qu'elles élaguent les arbres
+        \item Parce qu'elles utilisent un méta-modèle
+    \end{enumerate}
+\end{enumerate}
+
+% ============================================================
+\newpage
+\begin{center}
+{\Large\textbf{Réponses au QCM}}
+\end{center}
+
+\medskip
+
+\begin{tabular}{cp{2cm}p{9cm}}
+\toprule
+\textbf{N°} & \textbf{Réponse} & \textbf{Explication} \\
+\midrule
+1 & \textbf{b} & Le bagging réduit la variance en moyennant des modèles entraînés sur des bootstrap. \\
+2 & \textbf{b} & $m < p$ force les arbres à utiliser des variables différentes, ce qui les décorrèle. \\
+3 & \textbf{b} & $m = \sqrt{p}$ est la valeur par défaut recommandée pour la classification. \\
+4 & \textbf{b} & Le boosting est séquentiel : chaque modèle corrige les erreurs du précédent. \\
+5 & \textbf{b} & $\alpha_b = \frac12 \log((1-\varepsilon_b)/\varepsilon_b)$ : plus l'erreur est faible, plus le poids est grand. \\
+6 & \textbf{b} & Le Gradient Boosting utilise le gradient négatif de n'importe quelle fonction de perte. \\
+7 & \textbf{b} & Le méta-modèle apprend à combiner les prédictions de base obtenues par CV. \\
+8 & \textbf{b} & L'erreur OOB utilise les $36{,}8\,\%$ d'individus non tirés dans chaque bootstrap. \\
+9 & \textbf{c} & XGBoost ajoute une régularisation L1/L2 dans sa fonction objectif. \\
+10 & \textbf{b} & Le sous-échantillonnage des variables ($m < p$) décorrèle les arbres, réduisant la variance de l'ensemble. \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5cm}
+
+\begin{center}
+\rule{0.6\textwidth}{0.4pt}
+\vspace{0.3cm}
+\textit{Fin de la fiche.}
+\end{center}
+
+\end{document}

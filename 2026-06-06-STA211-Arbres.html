@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Arbres de régression et classification</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+.code-block .kc { color: #569cd6; }
+
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+
+.formula {
+    text-align: center;
+    font-size: 1.05rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+ul, ol { margin: 0.5rem 0 0.5rem 1.8rem; }
+li { margin-bottom: 0.3rem; }
+
+.note {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.alert {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.math { font-family: 'Cambria', 'Times New Roman', serif; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+.card {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+.card h4 { color: #1a73e8; margin-bottom: 0.3rem; }
+
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+
+.tree-viz {
+    font-family: monospace;
+    white-space: pre;
+    line-height: 1.4;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-align: center;
+}
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]]
+  },
+  svg: {
+    fontCache: "global"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>Arbres de régression et de classification</h1>
+<p class="subtitle">CART — Classification And Regression Trees — STA211 — 6 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Présentation</a></li>
+    <li><a href="#archi">Architecture</a></li>
+    <li><a href="#algo">Algorithme de construction</a></li>
+    <li><a href="#pruning">Élagage</a></li>
+    <li><a href="#exemple">Exemple numérique pas à pas</a></li>
+    <li><a href="#python">Code Python</a></li>
+    <li><a href="#r">Code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Présentation</h2>
+
+<p>Les <strong>arbres CART</strong> (Breiman et al., 1984) sont des méthodes supervisées non-paramétriques qui partitionnent l'espace des variables explicatives en régions et associent une prédiction simple à chaque région.</p>
+
+<div class="grid">
+<div class="card">
+<h4>✅ Avantages</h4>
+<ul>
+    <li>Interprétabilité (règles lisibles)</li>
+    <li>Gère variables mixtes (quantitatives + qualitatives)</li>
+    <li>Pas d'hypothèse sur la distribution</li>
+</ul>
+</div>
+<div class="card">
+<h4>⚠️ Inconvénients</h4>
+<ul>
+    <li>Forte variance (instabilité)</li>
+    <li>Biais de prédiction</li>
+    <li>Nécessite élagage pour généraliser</li>
+</ul>
+</div>
+</div>
+
+<div class="note">
+<strong>💡 Types :</strong> <strong>Régression</strong> (Y quantitative → moyenne) &bull; <strong>Classification</strong> (Y qualitative → mode)
+</div>
+
+<!-- ============================================ -->
+<h2 id="archi">2. Architecture</h2>
+
+<p>Un arbre est composé de la <strong>racine</strong> (tous les individus), de <strong>nœuds internes</strong> (divisions), et de <strong>feuilles</strong> (régions terminales).</p>
+
+<div class="formula">
+Prédiction : \( f(\mathbf{x}) = \sum_{m=1}^{M} \hat{y}_{R_m} \cdot \mathbb{1}_{\{\mathbf{x} \in R_m\}} \)
+</div>
+
+<div class="formula">
+Régression : \(\hat{y}_{R_m} = \frac{1}{n_m}\sum_{i \in R_m} y_i\) &ensp;|&ensp; Classification : \(\hat{y}_{R_m} = \arg\max_k \hat{p}_{mk}\)
+</div>
+
+<!-- ============================================ -->
+<h2 id="algo">3. Algorithme de construction</h2>
+
+<h3>3.1 Partitionnement récursif binaire</h3>
+<ol>
+    <li>Partir de la racine (tous les individus).</li>
+    <li>Pour chaque nœud, trouver la variable \(X_j\) et le seuil \(s\) minimisant l'hétérogénéité.</li>
+    <li>Diviser en deux fils selon \(X_j < s\) et \(X_j \ge s\).</li>
+    <li>Répéter jusqu'à un critère d'arrêt.</li>
+</ol>
+
+<h3>3.2 Critères de division</h3>
+
+<div class="grid">
+<div class="card">
+<h4>📈 Régression (RSS)</h4>
+<p>Minimiser : \(\sum_{i: x_{ij} < s} (y_i - \bar{y}_g)^2 + \sum_{i: x_{ij} \ge s} (y_i - \bar{y}_d)^2\)</p>
+</div>
+<div class="card">
+<h4>🏷️ Classification</h4>
+<p><strong>Gini :</strong> \(G = 1 - \sum_k \hat{p}_{mk}^2\)<br>
+<strong>Entropie :</strong> \(D = -\sum_k \hat{p}_{mk} \log \hat{p}_{mk}\)</p>
+</div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="pruning">4. Élagage (pruning)</h2>
+
+<p>Un arbre complet surajuste. L'<strong>élagage par coût-complexité</strong> pénalise le nombre de feuilles :</p>
+
+<div class="formula">
+Critère\(_\alpha(A)\) = Erreur(\(A\)) + \(\alpha \cdot |A|\)
+</div>
+
+<p>où \(|A|\) = nombre de feuilles, \(\alpha \ge 0\) choisi par <strong>validation croisée</strong>.</p>
+
+<div class="success">
+<strong>🔑</strong> \(\alpha = 0\) → arbre complet. \(\alpha\) grand → arbre simple. On sélectionne \(\alpha\) par 10-fold CV.
+</div>
+
+<!-- ============================================ -->
+<h2 id="exemple">5. Exemple numérique pas à pas</h2>
+
+<h3>5.1 Données</h3>
+
+<table>
+<tr><th>X</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+<tr><td>Y</td><td>2</td><td>3</td><td>8</td><td>9</td><td>4</td><td>5</td></tr>
+</table>
+
+<h3>5.2 Première division</h3>
+
+<p>On teste tous les seuils <em>s</em> possibles :</p>
+
+<table>
+<tr><th>Seuil</th><th>Gauche</th><th>\(\bar{y}_g\)</th><th>Droite</th><th>\(\bar{y}_d\)</th><th>RSS total</th></tr>
+<tr><td>s=2</td><td>{1}</td><td>2,0</td><td>{2,3,4,5,6}</td><td>5,8</td><td>26,8</td></tr>
+<tr><td><strong>s=3</strong></td><td>{1,2}</td><td><strong>2,5</strong></td><td>{3,4,5,6}</td><td><strong>6,5</strong></td><td><strong>17,5</strong></td></tr>
+<tr><td>s=4</td><td>{1,2,3}</td><td>4,33</td><td>{4,5,6}</td><td>6,0</td><td>34,67</td></tr>
+<tr><td>s=5</td><td>{1,2,3,4}</td><td>5,5</td><td>{5,6}</td><td>4,5</td><td>29,5</td></tr>
+</table>
+
+<div class="success"><strong>✓ Meilleur seuil :</strong> s = 3 (RSS = 17,5). Division : X &lt; 3 et X ≥ 3.</div>
+
+<h3>5.3 Division suivante (nœud droit X ≥ 3)</h3>
+
+<table>
+<tr><th>Seuil</th><th>Gauche</th><th>\(\bar{y}_g\)</th><th>Droite</th><th>\(\bar{y}_d\)</th><th>RSS</th></tr>
+<tr><td><strong>s=5</strong></td><td>{3,4}</td><td><strong>8,5</strong></td><td>{5,6}</td><td><strong>4,5</strong></td><td><strong>1,0</strong></td></tr>
+</table>
+
+<p>Division retenue : X &lt; 5 et X ≥ 5.</p>
+
+<h3>5.4 Arbre final</h3>
+
+<div class="tree-viz">
+              ┌──────────────────┐
+              │     X &lt; 3 ?      │
+              │    (n = 6)       │
+              └────────┬─────────┘
+                      /  \
+                     /    \
+          ┌──────────┐    ┌──────────────────┐
+          │  Y = 2,5 │    │    X &lt; 5 ?       │
+          │(ind 1,2) │    │    (n = 4)       │
+          └──────────┘    └────────┬─────────┘
+                                  /  \
+                                 /    \
+                    ┌──────────┐       ┌──────────┐
+                    │ Y = 8,5  │       │ Y = 4,5  │
+                    │(ind 3,4) │       │(ind 5,6) │
+                    └──────────┘       └──────────┘
+</div>
+
+<div class="formula">
+\[
+\hat{y} = \begin{cases}
+2,5 & \text{si } X < 3 \\
+8,5 & \text{si } 3 \le X < 5 \\
+4,5 & \text{si } X \ge 5
+\end{cases}
+\]
+</div>
+
+<!-- ============================================ -->
+<h2 id="python">6. Code Python</h2>
+
+<div class="code-block">
+<pre><span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeRegressor, DecisionTreeClassifier
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> plot_tree
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_iris
+
+<span class="cm"># Arbre de classification (Iris)</span>
+iris = load_iris()
+X_train, X_test, y_train, y_test = train_test_split(
+    iris.data, iris.target, test_size=<span class="num">0.3</span>, random_state=<span class="num">42</span>)
+
+tree = DecisionTreeClassifier(max_depth=<span class="num">4</span>,
+                               criterion=<span class="str">'gini'</span>,
+                               min_samples_leaf=<span class="num">5</span>)
+tree.fit(X_train, y_train)
+y_pred = tree.predict(X_test)
+
+<span class="cm"># Importance des variables</span>
+<span class="kw">for</span> name, imp <span class="kw">in</span> <span class="fn">zip</span>(iris.feature_names, tree.feature_importances_):
+    <span class="fn">print</span>(f<span class="str">"{name}: {imp:.3f}"</span>)
+
+<span class="cm"># Elagage par cout-complexite</span>
+path = tree.cost_complexity_pruning_path(X_train, y_train)
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> GridSearchCV
+grid = GridSearchCV(
+    DecisionTreeClassifier(random_state=<span class="num">42</span>),
+    {<span class="str">'ccp_alpha'</span>: path.ccp_alphas}, cv=<span class="num">5</span>)
+grid.fit(X_train, y_train)
+best = grid.best_estimator_
+<span class="fn">print</span>(f<span class="str">"Meilleur alpha: {grid.best_params_['ccp_alpha']:.4f}"</span>)
+<span class="fn">print</span>(f<span class="str">"Feuilles: {best.get_n_leaves()}"</span>)
+</pre>
+</div>
+
+<!-- ============================================ -->
+<h2 id="r">7. Code R</h2>
+
+<div class="code-block">
+<pre><span class="kw">library</span>(rpart)
+<span class="kw">library</span>(rpart.plot)
+
+<span class="cm"># Arbre de classification (Iris)</span>
+data(iris)
+idx &lt;- <span class="fn">sample</span>(<span class="num">1</span>:nrow(iris), <span class="num">0.7</span> * nrow(iris))
+train &lt;- iris[idx, ]
+test  &lt;- iris[-idx, ]
+
+arbre &lt;- <span class="fn">rpart</span>(Species ~ ., data = train,
+              method = <span class="str">"class"</span>,
+              control = <span class="fn">rpart.control</span>(minsplit = <span class="num">5</span>,
+                                       maxdepth = <span class="num">4</span>,
+                                       cp = <span class="num">0.01</span>))
+<span class="fn">rpart.plot</span>(arbre, type = <span class="num">2</span>, extra = <span class="num">104</span>)
+
+<span class="cm"># Elagage par cp</span>
+best_cp &lt;- arbre$cptable[<span class="fn">which.min</span>(arbre$cptable[, <span class="str">"xerror"</span>]), <span class="str">"CP"</span>]
+arbre_elague &lt;- <span class="fn">prune</span>(arbre, cp = best_cp)
+<span class="fn">rpart.plot</span>(arbre_elague, type = <span class="num">2</span>, extra = <span class="num">104</span>)
+
+<span class="cm"># Arbre de regression</span>
+X &lt;- <span class="fn">seq</span>(<span class="num">0</span>, <span class="num">10</span>, length.out = <span class="num">100</span>)
+y &lt;- <span class="fn">sin</span>(X) + <span class="fn">rnorm</span>(<span class="num">100</span>, sd = <span class="num">0.1</span>)
+tree_reg &lt;- <span class="fn">rpart</span>(y ~ X, method = <span class="str">"anova"</span>)
+<span class="fn">rpart.plot</span>(tree_reg, type = <span class="num">2</span>)
+</pre>
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">8. QCM interactif</h2>
+
+<p>Testez vos connaissances sur les arbres CART.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">📋 Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; margin:0.8rem 0;">
+    <button id="qcmRecapBtn" style="padding:0.4rem 1rem; border:1px solid #1a73e8; background:#1a73e8; color:#fff; border-radius:4px; cursor:pointer; font-size:0.85rem;">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn" style="padding:0.4rem 1rem; border:1px solid #1a73e8; background:#fff; color:#1a73e8; border-radius:4px; cursor:pointer; font-size:0.85rem;">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">— Fin de la fiche interactive —</p>
+
+</div>
+
+<script>
+const qcmData = [
+    { q: "CART est l'acronyme de :",
+      options: ["Classification And Regression Trees", "Categorical Automatic Rule Testing", "Clustering And Recursive Trees", "Continuous Asymptotic Regression Trees"],
+      correct: 0, expl: "CART = Classification And Regression Trees (Breiman et al., 1984)." },
+    { q: "La construction d'un arbre CART procède par :",
+      options: ["divisions aléatoires de l'espace", "partitionnement récursif binaire descendant", "fusion ascendante de régions", "optimisation globale par programmation dynamique"],
+      correct: 1, expl: "CART divise récursivement chaque nœud en deux, de la racine vers les feuilles (top-down)." },
+    { q: "En régression, le critère de division est :",
+      options: ["l'indice de Gini", "l'entropie croisée", "la somme des carrés résiduels (RSS)", "le R²"],
+      correct: 2, expl: "On minimise le RSS (Residual Sum of Squares) dans les nœuds fils." },
+    { q: "En classification, le critère par défaut de CART est :",
+      options: ["l'erreur de classification", "l'indice de Gini", "l'entropie croisée", "l'AIC"],
+      correct: 1, expl: "Le Gini (1 - Σ p̂²) est le critère par défaut de CART pour la classification." },
+    { q: "L'élagage par coût-complexité vise à :",
+      options: ["augmenter le nombre de feuilles", "réduire la variance en pénalisant la complexité", "accélérer l'apprentissage", "équilibrer les classes"],
+      correct: 1, expl: "La pénalité α·|A| réduit le surajustement en limitant le nombre de feuilles." },
+    { q: "Dans le critère coût-complexité, |A| représente :",
+      options: ["le nombre de nœuds internes", "le nombre de feuilles", "la profondeur", "le nombre de variables"],
+      correct: 1, expl: "|A| est le nombre de feuilles (nœuds terminaux)." },
+    { q: "Pour choisir le paramètre α d'élagage, on utilise :",
+      options: ["un test de Student", "la validation croisée", "l'AIC", "le test du chi-deux"],
+      correct: 1, expl: "On choisit α qui minimise l'erreur par validation croisée (souvent 10-fold)." },
+    { q: "Les arbres CART sont non-paramétriques car :",
+      options: ["ils n'ont pas de paramètres", "aucune hypothèse sur la distribution", "paramètres non linéaires", "pas d'apprentissage nécessaire"],
+      correct: 1, expl: "Aucune hypothèse sur la distribution des données n'est nécessaire." },
+    { q: "Un inconvénient majeur des arbres CART est :",
+      options: ["leur forte variance (instabilité)", "l'incapacité à gérer les variables qualitatives", "le temps d'apprentissage très long", "le manque d'interprétabilité"],
+      correct: 0, expl: "Un petit changement dans les données peut complètement modifier l'arbre." },
+    { q: "Quel package R implémente les arbres CART ?",
+      options: ["randomForest", "rpart", "ggplot2", "caret"],
+      correct: 1, expl: "rpart (Recursive Partitioning) implémente les arbres CART en R." }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const letters = ['a', 'b', 'c', 'd'];
+        const answered = qcmLocked[i];
+        const isCorrect = answered && userAnswers[i] === item.correct;
+        const borderColor = answered ? (isCorrect ? '#28a745' : '#dc3545') : '#e0e0e0';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<div style="font-weight:bold; margin-bottom:0.4rem;">Question ${i+1}. ${item.q}</div>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : '')) : '';
+            const disabled = answered ? 'disabled' : '';
+            html += `<label class="qcm-option ${cls}" style="display:block;padding:0.25rem 0.5rem;border-radius:3px;cursor:${disabled?'default':'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `<span>${letters[j]}) ${item.options[j]}</span></label>`;
+        }
+        if (answered) {
+            html += `<div style="margin-top:0.4rem;font-size:0.85rem;padding:0.4rem 0.6rem;border-radius:3px;background:${isCorrect?'#d4edda':'#f8d7da'};">`;
+            html += isCorrect ? '✓ <strong>Correct !</strong>' : `✗ <strong>Incorrect.</strong> Réponse : <strong>${letters[item.correct]}) ${item.options[item.correct]}</strong>.`;
+            html += `<br><span style="color:#555;">${item.expl}</span></div>`;
+        }
+        html += '</div>';
+    }
+    qcmContainer.innerHTML = html;
+    document.getElementById('qcmAnswered').textContent = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (e.target.type !== 'radio') return;
+    const idx = parseInt(e.target.name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    userAnswers[idx] = parseInt(e.target.value);
+    qcmLocked[idx] = true;
+    renderQCM();
+    const el = document.querySelector(`.qcm-question[data-idx="${idx}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const a = qcmLocked.filter(Boolean).length;
+    if (a < qcmData.length && !confirm(`Répondu à ${a}/${qcmData.length}. Afficher quand même ?`)) return;
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            const l = ['a','b','c','d'];
+            errors.push({n: i+1, q: qcmData[i].q,
+                u: userAnswers[i] !== null ? `${l[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de réponse',
+                c: `${l[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                e: qcmData[i].expl});
+        }
+    }
+    const content = document.getElementById('qcmRecapContent');
+    if (errors.length === 0) {
+        content.innerHTML = '<p style="color:#28a745;font-weight:bold;">🎉 Aucune erreur !</p>';
+    } else {
+        let h = `<p><strong>${errors.length}</strong> erreur(s) :</p><ol>`;
+        for (const e of errors) {
+            h += `<li style="margin-bottom:0.5rem;"><strong>Q${e.n} :</strong> ${e.q}<br>
+                <span style="color:#dc3545;">Votre réponse : ${e.u}</span><br>
+                <span style="color:#28a745;">Bonne réponse : ${e.c}</span><br>
+                <span style="color:#555;font-size:0.9rem;">${e.e}</span></li>`;
+        }
+        h += '</ol>';
+        content.innerHTML = h;
+    }
+    document.getElementById('qcmRecap').style.display = 'block';
+    document.getElementById('qcmRecap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+</body>
+</html>
