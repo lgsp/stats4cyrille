@@ -1,0 +1,586 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc}
+
+\geometry{margin=2cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\textbf{STA211 — Arbres de régression et classification — Fiche récapitulative}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\definecolor{codegreen}{rgb}{0.2,0.6,0.2}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{Arbres de régression et de classification}} \\
+\vspace{0.2cm}
+{\large \textit{CART — Classification And Regression Trees}} \\
+\vspace{0.3cm}
+STA211 — Apprentissage supervisé — Fiche récapitulative \\
+6 juin 2026
+\end{center}
+
+\vspace{0.3cm}
+\rule{\textwidth}{0.4pt}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Présentation}
+% ============================================================
+
+Les \textbf{arbres CART} (Breiman et al., 1984) sont des méthodes d'apprentissage \textbf{supervisé non-paramétriques}. Ils partitionnent l'espace des variables explicatives $\mathcal{X}$ en régions et associent une prédiction simple (moyenne ou mode) à chaque région.
+
+\paragraph{Types d'arbres :}
+\begin{itemize}
+    \item \textbf{Arbre de régression} : $Y$ quantitative → prédiction = moyenne des $Y$ dans la région.
+    \item \textbf{Arbre de classification} : $Y$ qualitative → prédiction = modalité majoritaire dans la région.
+\end{itemize}
+
+\paragraph{Avantages :}
+\begin{itemize}
+    \item Interprétabilité (règles de décision lisibles)
+    \item Gère naturellement les variables mixtes (quantitatives + qualitatives)
+    \item Pas d'hypothèse sur la distribution des données
+\end{itemize}
+
+\paragraph{Inconvénients :}
+\begin{itemize}
+    \item Forte variance (instabilité) : un petit changement dans les données peut complètement changer l'arbre
+    \item Biais de prédiction (souvent moins performant que forêts aléatoires / boosting)
+\end{itemize}
+
+% ============================================================
+\section{Architecture d'un arbre}
+% ============================================================
+
+Un arbre est composé de :
+\begin{itemize}
+    \item \textbf{Racine} : premier nœud contenant tous les individus.
+    \item \textbf{Nœuds internes (fils)} : division selon une variable $X_j$ et un seuil $s$.
+    \item \textbf{Feuilles (nœuds terminaux)} : régions $R_1, \ldots, R_M$ de l'espace des entrées.
+\end{itemize}
+
+La valeur prédite dans une région $R_m$ est :
+\[
+\text{Régression : } \hat{y}_{R_m} = \frac{1}{n_m}\sum_{i \in R_m} y_i,\qquad
+\text{Classification : } \hat{y}_{R_m} = \arg\max_k \hat{p}_{mk}
+\]
+où $\hat{p}_{mk}$ est la proportion d'individus de classe $k$ dans la région $R_m$.
+
+Le modèle s'écrit :
+\[
+f(\mathbf{x}) = \sum_{m=1}^{M} \hat{y}_{R_m} \cdot \mathbf{1}_{\{\mathbf{x} \in R_m\}}
+\]
+
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.85, transform shape,
+    node distance=1.2cm and 2cm,
+    dec/.style={rectangle, draw, rounded corners, minimum width=2.2cm, minimum height=0.6cm, align=center, font=\bfseries, fill=blue!10},
+    leaf/.style={rectangle, draw, minimum width=2.4cm, minimum height=0.55cm, align=center, font=\small, fill=green!10},
+    edge/.style={draw, -{Stealth[scale=1.2]}, thick},
+    sn/.style={font=\small, sloped, above}
+]
+
+\node[dec] (r) {$X_j \le s$};
+
+\node[dec, below left=of r] (a) {$X_k \le t$};
+\node[dec, below right=of r] (b) {$X_\ell \le u$};
+
+\node[leaf, below left=of a] (l1) {$R_1{:}\; \hat{y}_{R_1}$};
+\node[leaf, below right=of a] (l2) {$R_2{:}\; \hat{y}_{R_2}$};
+\node[leaf, below left=of b] (l3) {$R_3{:}\; \hat{y}_{R_3}$};
+\node[leaf, below right=of b] (l4) {$R_4{:}\; \hat{y}_{R_4}$};
+
+\draw[edge] (r) -- node[sn]{oui} (a);
+\draw[edge] (r) -- node[sn]{non} (b);
+\draw[edge] (a) -- node[sn]{oui} (l1);
+\draw[edge] (a) -- node[sn]{non} (l2);
+\draw[edge] (b) -- node[sn]{oui} (l3);
+\draw[edge] (b) -- node[sn]{non} (l4);
+
+\end{tikzpicture}
+\end{center}
+
+% ============================================================
+\section{Algorithme de construction}
+% ============================================================
+
+\subsection{Principe du partitionnement récursif}
+
+On procède \textbf{de haut en bas}, par divisions binaires successives (\textit{recursive binary splitting}) :
+\begin{enumerate}
+    \item Partir de la racine (tous les individus).
+    \item Pour chaque nœud, chercher la variable $X_j$ et le seuil $s$ qui minimisent le \textbf{critère d'hétérogénéité}.
+    \item Diviser le nœud en deux fils selon $X_j < s$ et $X_j \ge s$.
+    \item Répéter sur chaque nœud fils jusqu'à un critère d'arrêt (homogénéité, taille minimale, profondeur max).
+\end{enumerate}
+
+\subsection{Critères de division}
+
+\subsubsection{Régression (critère des moindres carrés)}
+On minimise la somme des carrés résiduels (RSS) dans les deux nœuds fils :
+\[
+\min_{j,s} \Bigg[ \sum_{i: x_{ij} < s} (y_i - \bar{y}_{g})^2 + \sum_{i: x_{ij} \ge s} (y_i - \bar{y}_{d})^2 \Bigg]
+\]
+où $\bar{y}_{g}$ et $\bar{y}_{d}$ sont les moyennes dans les nœuds gauche et droit.
+
+\subsubsection{Classification}
+On maximise la \textbf{pureté} des nœuds fils. Critères courants :
+\begin{itemize}
+    \item \textbf{Erreur de classification :} $1 - \max_k \hat{p}_{mk}$
+    \item \textbf{Indice de Gini :} $\displaystyle G_m = \sum_{k \neq k'} \hat{p}_{mk} \hat{p}_{mk'} = 1 - \sum_k \hat{p}_{mk}^2$
+    \item \textbf{Entropie croisée :} $\displaystyle D_m = -\sum_k \hat{p}_{mk} \log \hat{p}_{mk}$
+\end{itemize}
+
+Le \textbf{Gini} est le plus utilisé (CART). La division optimale minimise la moyenne pondérée du critère :
+\[
+\min_{j,s} \left[ n_g \cdot G_g + n_d \cdot G_d \right]
+\]
+
+% ============================================================
+\section{Élagage (pruning)}
+% ============================================================
+
+Un arbre complet (\textit{full-grown tree}) surajuste presque toujours. On utilise l'\textbf{élagage par coût-complexité} (\textit{cost-complexity pruning}) :
+
+\[
+\text{Critère}_{\alpha}(A) = \underbrace{\sum_{m=1}^{|A|} \sum_{i \in R_m} (y_i - \hat{y}_{R_m})^2}_{\text{Erreur d'apprentissage}} + \alpha \cdot |A|
+\]
+
+où $|A|$ est le nombre de feuilles de l'arbre $A$ et $\alpha \ge 0$ un paramètre de régularisation.
+
+\begin{itemize}
+    \item $\alpha = 0$ : arbre complet (max de feuilles).
+    \item $\alpha$ grand : arbre simple (peu de feuilles).
+    \item On choisit $\alpha$ par \textbf{validation croisée} (souvent 10-fold CV).
+\end{itemize}
+
+% ============================================================
+\section{Exemple numérique pas à pas}
+% ============================================================
+
+\subsection{Données}
+Considérons $n = 6$ individus avec une variable explicative $X$ et une réponse $Y$ (régression) :
+
+\begin{center}
+\begin{tabular}{c|c}
+$X$ & $Y$ \\
+\hline
+1 & 2 \\
+2 & 3 \\
+3 & 8 \\
+4 & 9 \\
+5 & 4 \\
+6 & 5 \\
+\end{tabular}
+\end{center}
+
+\subsection{Recherche de la première division}
+
+On teste chaque seuil $s$ possible (entre 1 et 6).
+
+\paragraph{Seuil $s = 1$ (X < 1 vs X $\ge$ 1) :}
+\begin{itemize}
+    \item Nœud gauche : $\emptyset$ (impossible — nœud vide)
+    \item Nœud droit : tous les individus
+\end{itemize}
+Ce seuil n'est pas admissible (nœud vide).
+
+\paragraph{Seuil $s = 2$ (X < 2 vs X $\ge$ 2) :}
+\begin{itemize}
+    \item Gauche : $\{1\}$, $\bar{y}_g = 2$, RSS$_g = 0$
+    \item Droite : $\{2,3,4,5,6\}$, $\bar{y}_d = \frac{3+8+9+4+5}{5} = 5{,}8$, RSS$_d = (3-5{,}8)^2 + (8-5{,}8)^2 + (9-5{,}8)^2 + (4-5{,}8)^2 + (5-5{,}8)^2$
+    \item RSS$_d = 7{,}84 + 4{,}84 + 10{,}24 + 3{,}24 + 0{,}64 = 26{,}8$
+    \item RSS total = $0 + 26{,}8 = 26{,}8$
+\end{itemize}
+
+\paragraph{Seuil $s = 3$ (X < 3 vs X $\ge$ 3) :}
+\begin{itemize}
+    \item Gauche : $\{1,2\}$, $\bar{y}_g = 2{,}5$, RSS$_g = (2-2{,}5)^2 + (3-2{,}5)^2 = 0{,}5$
+    \item Droite : $\{3,4,5,6\}$, $\bar{y}_d = \frac{8+9+4+5}{4} = 6{,}5$, RSS$_d = (8-6{,}5)^2 + (9-6{,}5)^2 + (4-6{,}5)^2 + (5-6{,}5)^2$
+    \item RSS$_d = 2{,}25 + 6{,}25 + 6{,}25 + 2{,}25 = 17$
+    \item RSS total = $0{,}5 + 17 = 17{,}5$
+\end{itemize}
+
+\paragraph{Seuil $s = 4$ (X < 4 vs X $\ge$ 4) :}
+\begin{itemize}
+    \item Gauche : $\{1,2,3\}$, $\bar{y}_g = \frac{2+3+8}{3} \approx 4{,}33$, RSS$_g \approx 20{,}67$
+    \item Droite : $\{4,5,6\}$, $\bar{y}_d = \frac{9+4+5}{3} = 6$, RSS$_d = 14$
+    \item RSS total $\approx 34{,}67$
+\end{itemize}
+
+\paragraph{Seuil $s = 5$ (X < 5 vs X $\ge$ 5) :}
+\begin{itemize}
+    \item Gauche : $\{1,2,3,4\}$, $\bar{y}_g = 5{,}5$, RSS$_g = 29$
+    \item Droite : $\{5,6\}$, $\bar{y}_d = 4{,}5$, RSS$_d = 0{,}5$
+    \item RSS total = $29{,}5$
+\end{itemize}
+
+\paragraph{Bilan :} Le seuil optimal est $s = 3$ (RSS minimal = 17{,}5). La première division est donc $X < 3$ vs $X \ge 3$.
+
+\subsection{Division suivante}
+
+On répète le processus sur chaque nœud fils.
+
+\paragraph{Nœud gauche (individus 1, 2) :} $\bar{y} = 2{,}5$, variance intra = 0{,}25. Pas de gain significatif à diviser (trop petit). On s'arrête.
+
+\paragraph{Nœud droit (individus 3, 4, 5, 6) :} On teste $s = 5$ (seuil optimal après calculs).
+\begin{itemize}
+    \item Gauche : $\{3,4\}$, $\bar{y}=8{,}5$, RSS = 0{,}5
+    \item Droite : $\{5,6\}$, $\bar{y}=4{,}5$, RSS = 0{,}5
+    \item RSS total = 1
+\end{itemize}
+Division retenue : $X < 5$ vs $X \ge 5$.
+
+\subsection{Arbre final}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.8cm and 2.5cm,
+    dec/.style={rectangle, draw, rounded corners, minimum width=2cm, minimum height=0.7cm, align=center, font=\bfseries, fill=blue!10},
+    leaf/.style={rectangle, draw, minimum width=2.2cm, minimum height=0.7cm, align=center, font=\normalsize, fill=green!10},
+    edge/.style={draw, -{Stealth[scale=1.2]}, thick},
+    sn/.style={font=\small, above, sloped}
+]
+
+\node[dec] (root) {$X < 3$};
+
+\node[leaf, below left=of root] (left1) {$Y = 2{,}5$ \\ \small (ind. 1, 2)};
+
+\node[dec, below right=of root] (right1) {$X < 5$};
+
+\node[leaf, below left=of right1] (left2) {$Y = 8{,}5$ \\ \small (ind. 3, 4)};
+
+\node[leaf, below right=of right1] (right2) {$Y = 4{,}5$ \\ \small (ind. 5, 6)};
+
+\draw[edge] (root) -- node[sn]{oui} (left1);
+\draw[edge] (root) -- node[sn]{non} (right1);
+\draw[edge] (right1) -- node[sn]{oui} (left2);
+\draw[edge] (right1) -- node[sn]{non} (right2);
+
+\end{tikzpicture}
+\end{center}
+
+Prédictions :
+\[
+\hat{y} = 
+\begin{cases}
+2{,}5 & \text{si } X < 3 \\
+8{,}5 & \text{si } 3 \le X < 5 \\
+4{,}5 & \text{si } X \ge 5
+\end{cases}
+\]
+
+% ============================================================
+\section{Code Python}
+% ============================================================
+
+\begin{lstlisting}[language=Python, caption=Arbre de régression/classification avec scikit-learn]
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.tree import plot_tree
+from sklearn.model_selection import cross_val_score
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# --- Arbre de regression ---
+np.random.seed(42)
+X = np.linspace(0, 10, 100).reshape(-1, 1)
+y = np.sin(X).ravel() + np.random.randn(100) * 0.1
+
+tree_reg = DecisionTreeRegressor(max_depth=3, min_samples_leaf=5)
+tree_reg.fit(X, y)
+
+# Visualisation
+plt.figure(figsize=(12, 6))
+plot_tree(tree_reg, filled=True, feature_names=['X'])
+plt.title("Arbre de regression")
+plt.show()
+
+# Prediction
+X_new = np.array([[5.5]])
+print(f"Prediction : {tree_reg.predict(X_new)[0]:.3f}")
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=Arbre de classification — Iris]
+from sklearn.datasets import load_iris
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, classification_report
+
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# Separation train/test
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42)
+
+# Arbre (Gini par defaut, profondeur max 4)
+tree_clf = DecisionTreeClassifier(
+    max_depth=4, criterion='gini', min_samples_leaf=5)
+tree_clf.fit(X_train, y_train)
+
+# Predictions
+y_pred = tree_clf.predict(X_test)
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred,
+      target_names=iris.target_names))
+
+# Importance des variables
+for name, imp in zip(iris.feature_names, tree_clf.feature_importances_):
+    print(f"{name}: {imp:.3f}")
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=Élagage par coût-complexité]
+# Chemin d'elagage (cost complexity pruning path)
+path = tree_clf.cost_complexity_pruning_path(X_train, y_train)
+ccp_alphas, impurities = path.ccp_alphas, path.impurities
+
+# Selection par validation croisee
+from sklearn.model_selection import GridSearchCV
+
+param_grid = {'ccp_alpha': ccp_alphas}
+grid = GridSearchCV(
+    DecisionTreeClassifier(random_state=42),
+    param_grid, cv=5
+)
+grid.fit(X_train, y_train)
+
+print(f"Meilleur alpha : {grid.best_params_['ccp_alpha']:.4f}")
+print(f"Meilleur score : {grid.best_score_:.3f}")
+
+# Arbre elague optimal
+best_tree = grid.best_estimator_
+print(f"Nombre de feuilles : {best_tree.get_n_leaves()}")
+\end{lstlisting}
+
+\newpage
+% ============================================================
+\section{Code R}
+% ============================================================
+
+\begin{lstlisting}[language=R, caption=Arbre de classification avec rpart]
+# install.packages("rpart")
+# install.packages("rpart.plot")
+library(rpart)
+library(rpart.plot)
+
+# Arbre de classification sur iris
+data(iris)
+set.seed(42)
+
+# Separation train/test
+idx <- sample(1:nrow(iris), 0.7 * nrow(iris))
+train <- iris[idx, ]
+test <- iris[-idx, ]
+
+# Modele
+arbre <- rpart(Species ~ ., data = train,
+               method = "class",
+               control = rpart.control(minsplit = 5,
+                                       maxdepth = 4,
+                                       cp = 0.01))
+
+# Visualisation
+rpart.plot(arbre, type = 2, extra = 104,
+           main = "Arbre de classification (Iris)")
+
+# Predictions
+pred <- predict(arbre, test, type = "class")
+table(pred, test$Species)
+
+# Elagage par cp (complexity parameter)
+print(arbre$cptable)  # table cout-complexite
+best_cp <- arbre$cptable[which.min(arbre$cptable[, "xerror"]), "CP"]
+arbre_elague <- prune(arbre, cp = best_cp)
+rpart.plot(arbre_elague, type = 2, extra = 104,
+           main = "Arbre elague optimal")
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Arbre de régression]
+# Arbre de regression
+X <- seq(0, 10, length.out = 100)
+y <- sin(X) + rnorm(100, sd = 0.1)
+data_reg <- data.frame(X = X, Y = y)
+
+tree_reg <- rpart(Y ~ X, data = data_reg,
+                  method = "anova",
+                  control = rpart.control(minsplit = 5,
+                                          cp = 0.001))
+rpart.plot(tree_reg, type = 2, main = "Arbre de regression")
+
+# Prediction
+predict(tree_reg, newdata = data.frame(X = 5.5))
+\end{lstlisting}
+
+\newpage
+% ============================================================
+\section*{QCM — Vérifiez vos connaissances}
+% ============================================================
+
+\medskip
+\textit{Pour chaque question, choisissez la bonne réponse. Les réponses sont en page \pageref{reponses-tree}.}
+
+\begin{enumerate}
+
+    \item CART est l'acronyme de :
+    \begin{enumerate}
+        \item Classification And Regression Trees
+        \item Categorical Automatic Rule Testing
+        \item Clustering And Recursive Trees
+        \item Continuous Asymptotic Regression Trees
+    \end{enumerate}
+
+    \item La construction d'un arbre CART procède par :
+    \begin{enumerate}
+        \item divisions aléatoires de l'espace
+        \item partitionnement récursif binaire descendant
+        \item fusion ascendante de régions
+        \item optimisation globale par programmation dynamique
+    \end{enumerate}
+
+    \item En régression, le critère de division est :
+    \begin{enumerate}
+        \item l'indice de Gini
+        \item l'entropie croisée
+        \item la somme des carrés résiduels (RSS)
+        \item le R²
+    \end{enumerate}
+
+    \item En classification, le critère de division le plus utilisé dans CART est :
+    \begin{enumerate}
+        \item l'erreur de classification
+        \item l'indice de Gini
+        \item l'entropie croisée
+        \item le critère d'Akaike (AIC)
+    \end{enumerate}
+
+    \item L'élagage par coût-complexité vise à :
+    \begin{enumerate}
+        \item augmenter le nombre de feuilles
+        \item réduire la variance en pénalisant la complexité
+        \item accélérer l'apprentissage
+        \item équilibrer les classes
+    \end{enumerate}
+
+    \item Dans le critère coût-complexité $\text{Err}(A) + \alpha|A|$, $|A|$ représente :
+    \begin{enumerate}
+        \item le nombre de nœuds internes
+        \item le nombre de feuilles
+        \item la profondeur de l'arbre
+        \item le nombre de variables
+    \end{enumerate}
+
+    \item Pour choisir le paramètre d'élagage $\alpha$, on utilise :
+    \begin{enumerate}
+        \item un test de Student
+        \item la validation croisée
+        \item le critère AIC
+        \item le test du chi-deux
+    \end{enumerate}
+
+    \item Les arbres CART sont dits \textbf{non-paramétriques} car :
+    \begin{enumerate}
+        \item ils n'ont pas de paramètres
+        \item ils ne font pas d'hypothèse sur la distribution des données
+        \item ils utilisent des paramètres non linéaires
+        \item ils ne nécessitent pas d'apprentissage
+    \end{enumerate}
+
+    \item Un inconvénient majeur des arbres CART est :
+    \begin{enumerate}
+        \item leur forte variance (instabilité)
+        \item leur incapacité à gérer les variables qualitatives
+        \item leur temps d'apprentissage très long
+        \item leur manque d'interprétabilité
+    \end{enumerate}
+
+    \item Quel package R implémente les arbres CART ?
+    \begin{enumerate}
+        \item randomForest
+        \item rpart
+        \item ggplot2
+        \item caret
+    \end{enumerate}
+
+\end{enumerate}
+
+\newpage
+\label{reponses-tree}
+
+\begin{center}
+{\Large\textbf{Réponses au QCM}}
+\end{center}
+
+\medskip
+
+\begin{tabular}{cp{2cm}p{9cm}}
+\toprule
+\textbf{N°} & \textbf{Réponse} & \textbf{Explication} \\
+\midrule
+1 & \textbf{a} & CART = Classification And Regression Trees (Breiman et al., 1984). \\
+2 & \textbf{b} & L'algorithme divise récursivement chaque nœud en deux, de la racine vers les feuilles. \\
+3 & \textbf{c} & En régression, on minimise la somme des carrés résiduels (RSS) dans les nœuds fils. \\
+4 & \textbf{b} & L'indice de Gini $1 - \sum \hat{p}_{mk}^2$ est le critère par défaut de CART pour la classification. \\
+5 & \textbf{b} & L'élagage réduit la variance en pénalisant un grand nombre de feuilles (contrôle du surajustement). \\
+6 & \textbf{b} & $|A|$ est le nombre de feuilles (nœuds terminaux) de l'arbre. \\
+7 & \textbf{b} & On choisit $\alpha$ par validation croisée (10-fold CV typiquement). \\
+8 & \textbf{b} & Aucune hypothèse sur la distribution des données n'est nécessaire (contrairement à la régression linéaire). \\
+9 & \textbf{a} & Un petit changement dans les données peut complètement modifier l'arbre (forte variance). \\
+10 & \textbf{b} & Le package \texttt{rpart} implémente les arbres CART en R. \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5cm}
+
+\begin{center}
+\rule{0.6\textwidth}{0.4pt}
+\vspace{0.3cm}
+\textit{Fin de la fiche.}
+\end{center}
+
+\end{document}

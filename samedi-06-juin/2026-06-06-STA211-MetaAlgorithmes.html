@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Méta-algorithmes — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.note {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 4px;
+}
+
+/* QCM */
+.qcm-question {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 0.6rem 0;
+    background: #fafafa;
+}
+.qcm-question p { font-weight: 600; margin-bottom: 0.3rem; }
+.qcm-option {
+    display: block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.qcm-option:hover { background: #e8f0fe; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-expl { font-size: 0.85rem; color: #555; margin-top: 0.3rem; padding: 0.3rem; border-radius: 3px; }
+.qcm-expl-ok { background: #d4edda; }
+.qcm-expl-ko { background: #f8d7da; }
+
+.qcm-footer {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.qcm-footer button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+#qcmRecapBtn { background: #1a73e8; color: #fff; }
+#qcmResetBtn { background: #6c757d; color: #fff; }
+#qcmRecap {
+    display: none;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 2px solid #dc3545;
+    border-radius: 6px;
+    background: #fff5f5;
+}
+#qcmRecapContent ol { margin-left: 1.5rem; }
+#qcmRecapContent li { margin-bottom: 0.3rem; }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]]
+  },
+  svg: {
+    fontCache: "global"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>Méta-algorithmes</h1>
+<p class="subtitle">Bagging, Forêts aléatoires, Boosting, Stacking — STA211 — 6 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Présentation</a></li>
+    <li><a href="#bagging">Bagging</a></li>
+    <li><a href="#rf">Forêts aléatoires</a></li>
+    <li><a href="#boosting">Boosting</a></li>
+    <li><a href="#stacking">Stacking</a></li>
+    <li><a href="#python">Code Python</a></li>
+    <li><a href="#r">Code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Présentation</h2>
+<!-- ============================================ -->
+
+<p>Les <strong>méta-algorithmes</strong> (méthodes d'ensemble) combinent plusieurs modèles faibles (<em>weak learners</em>) pour obtenir un prédicteur plus stable et plus performant.</p>
+
+<p><strong>Principe :</strong> on entraîne \(B\) modèles de base \(\hat{f}_1, \dots, \hat{f}_B\) sur des versions perturbées des données, puis on agrège leurs prédictions.</p>
+
+<div class="formula">
+\( \text{Régression : } \displaystyle \hat{f}_{\text{ens}}(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B} \hat{f}_b(\mathbf{x}) \qquad \text{Classification : } \displaystyle \hat{f}_{\text{ens}}(\mathbf{x}) = \arg\max_k \sum_{b=1}^{B} \mathbf{1}_{\{\hat{f}_b(\mathbf{x}) = k\}} \)
+</div>
+
+<table>
+<tr><th>Méthode</th><th>Perturbation</th><th>Modèles de base</th></tr>
+<tr><td>Bagging</td><td>Bootstrap (échantillonnage)</td><td>Arbres profonds</td></tr>
+<tr><td>Forêts aléatoires</td><td>Bootstrap + sous-échantillonnage variables</td><td>Arbres profonds</td></tr>
+<tr><td>Boosting</td><td>Pondération des individus</td><td>Arbres peu profonds (souches)</td></tr>
+<tr><td>Stacking</td><td>Partitionnement des données</td><td>Modèles variés</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="bagging">2. Bagging</h2>
+<!-- ============================================ -->
+
+<p><strong>Principe</strong> (Breiman, 1996) : générer \(B\) échantillons bootstrap, entraîner un modèle sur chacun, agréger par moyenne/vote.</p>
+
+<h3>2.1 Propriétés</h3>
+
+<ul>
+    <li><strong>Réduction de la variance :</strong> pour des modèles identiquement distribués avec variance \(\sigma^2\) et corrélation \(\rho\),</li>
+</ul>
+
+<div class="formula">
+\( \displaystyle \mathbb{V}\!\left[\frac{1}{B}\sum_{b=1}^B \hat{f}_b\right] = \rho\sigma^2 + \frac{1-\rho}{B}\sigma^2 \)
+</div>
+
+<ul>
+    <li>Quand \(B \to \infty\), variance tend vers \(\rho\sigma^2\).</li>
+    <li>Efficace pour modèles <strong>instables</strong> (forte variance, faible biais).</li>
+    <li>Chaque bootstrap utilise \( \approx 63{,}2\% \) des données ; les \(36{,}8\%\) restants sont <strong>OOB</strong>.</li>
+</ul>
+
+<h3>2.2 Erreur OOB</h3>
+
+<div class="formula">
+\( \displaystyle \text{Err}_{\text{OOB}} = \frac{1}{n}\sum_{i=1}^n \mathcal{L}\!\left(y_i,\; \frac{1}{|\mathcal{B}_i|}\sum_{b \in \mathcal{B}_i} \hat{f}_b(\mathbf{x}_i)\right) \)
+</div>
+
+<p>où \(\mathcal{B}_i\) = arbres pour lesquels l'individu \(i\) est OOB.</p>
+
+<!-- ============================================ -->
+<h2 id="rf">3. Forêts aléatoires</h2>
+<!-- ============================================ -->
+
+<p><strong>Random Forests</strong> (Breiman, 2001) : bagging + sous-échantillonnage des variables. À chaque nœud, on tire \(m\) variables parmi \(p\).</p>
+
+<h3>3.1 Hyperparamètres</h3>
+
+<table>
+<tr><th>Paramètre</th><th>Valeur typique</th><th>Effet</th></tr>
+<tr><td>\(B\) (nombre d'arbres)</td><td>100-1000</td><td>Plus grand → plus stable</td></tr>
+<tr><td>\(m\) (variables/nœud)</td><td>\(\sqrt{p}\) (classif.) / \(p/3\) (régr.)</td><td>Petit → décorrélation</td></tr>
+<tr><td>Profondeur max</td><td>Illimitée</td><td>Arbres profonds = faible biais</td></tr>
+<tr><td>Taille min. feuilles</td><td>1–5</td><td>Évite surajustement</td></tr>
+</table>
+
+<h3>3.2 Importance des variables</h3>
+
+<div class="formula">
+\( \displaystyle \text{Imp}(X_j) = \sum_{\text{nœuds } t \text{ divisés par } X_j} \Delta_t \)
+</div>
+
+<p>où \(\Delta_t\) = réduction d'hétérogénéité (Gini ou RSS) au nœud \(t\).</p>
+
+<!-- ============================================ -->
+<h2 id="boosting">4. Boosting</h2>
+<!-- ============================================ -->
+
+<p>Approche <strong>séquentielle</strong> : chaque nouveau modèle corrige les erreurs du précédent.</p>
+
+<h3>4.1 AdaBoost</h3>
+
+<p>Freund & Schapire, 1997. Pondère les individus par leur difficulté :</p>
+
+<ol>
+    <li>Initialiser \(w_i^{(1)} = 1/n\).</li>
+    <li>Pour \(b = 1, \dots, B\) :
+        <ol>
+            <li>Entraîner \(\hat{f}_b\) sur données pondérées par \(\mathbf{w}^{(b)}\).</li>
+            <li>Erreur pondérée : \(\displaystyle \varepsilon_b = \frac{\sum_i w_i^{(b)} \mathbf{1}_{\{\hat{f}_b(\mathbf{x}_i) \neq y_i\}}}{\sum_i w_i^{(b)}}\)</li>
+            <li>Poids du classifieur : \(\displaystyle \alpha_b = \frac12\log\!\left(\frac{1-\varepsilon_b}{\varepsilon_b}\right)\)</li>
+            <li>Mettre à jour : \(w_i^{(b+1)} = w_i^{(b)} \exp[-\alpha_b y_i \hat{f}_b(\mathbf{x}_i)]\), normaliser.</li>
+        </ol>
+    </li>
+    <li>Prédiction : \(\displaystyle \hat{f}(\mathbf{x}) = \text{signe}\!\left(\sum_{b=1}^B \alpha_b \hat{f}_b(\mathbf{x})\right)\)</li>
+</ol>
+
+<h3>4.2 Gradient Boosting</h3>
+
+<p>Friedman, 2001. Généralise AdaBoost à toute fonction de perte différentiable :</p>
+
+<ol>
+    <li>Initialiser \(\displaystyle \hat{f}^{(0)}(\mathbf{x}) = \arg\min_\gamma \sum_i \mathcal{L}(y_i, \gamma)\).</li>
+    <li>Pour \(b = 1, \dots, B\) :
+        <ol>
+            <li>Résidus (gradient négatif) : \(\displaystyle r_i^{(b)} = -\frac{\partial \mathcal{L}(y_i, f(\mathbf{x}_i))}{\partial f(\mathbf{x}_i)}\big|_{f = \hat{f}^{(b-1)}}\)</li>
+            <li>Ajuster un arbre \(\hat{f}_b\) aux résidus \(\{(\mathbf{x}_i, r_i^{(b)})\}\).</li>
+            <li>Mettre à jour : \(\hat{f}^{(b)}(\mathbf{x}) = \hat{f}^{(b-1)}(\mathbf{x}) + \eta \cdot \hat{f}_b(\mathbf{x})\).</li>
+        </ol>
+    </li>
+</ol>
+
+<p><strong>Hyperparamètres :</strong> \(B\) (arbres), \(\eta \in [0{,}01; 0{,}3]\) (taux d'apprentissage), profondeur 1–3.</p>
+
+<h3>4.3 XGBoost, LightGBM, CatBoost</h3>
+
+<table>
+<tr><th>Méthode</th><th>Caractéristique</th><th>Avantage</th></tr>
+<tr><td>XGBoost</td><td>Régularisation L1/L2, pruning</td><td>Généralisation, rapidité</td></tr>
+<tr><td>LightGBM</td><td>Feuilles (leaf-wise)</td><td>Très rapide, grandes données</td></tr>
+<tr><td>CatBoost</td><td>Variables catégorielles</td><td>Pas de prétraitement</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="stacking">5. Stacking</h2>
+<!-- ============================================ -->
+
+<p><strong>Stacked Generalization</strong> (Wolpert, 1992) : combine des modèles de nature différente via un méta-modèle.</p>
+
+<p><strong>Niveau 0</strong> (base) : \(K\) modèles \(\hat{f}_1, \dots, \hat{f}_K\) (arbre, régression logistique, SVM, kNN…).<br>
+<strong>Niveau 1</strong> (méta) : modèle \(\hat{g}\) qui apprend à combiner les prédictions du niveau 0.</p>
+
+<p><strong>Procédure</strong> (validation croisée pour éviter le surajustement) :</p>
+<ol>
+    <li>Diviser les données en \(V\) plis.</li>
+    <li>Pour chaque pli \(v\) : entraîner les \(K\) modèles sur les \(V-1\) autres plis, prédire sur le pli \(v\).</li>
+    <li>Matrice \(\mathbf{Z}\) (\(n \times K\)) des prédictions hors-échantillon.</li>
+    <li>Entraîner \(\hat{g}\) sur \((\mathbf{Z}, \mathbf{y})\).</li>
+</ol>
+
+<p>Le méta-modèle est souvent simple : régression logistique, régression linéaire, petit arbre.</p>
+
+<!-- ============================================ -->
+<h2 id="python">6. Code Python</h2>
+<!-- ============================================ -->
+
+<div class="code-block">
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> (
+    BaggingRegressor, RandomForestRegressor,
+    GradientBoostingRegressor, StackingRegressor
+)
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeRegressor
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+<span class="kw">from</span> sklearn.svm <span class="kw">import</span> SVR
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> mean_squared_error
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Donnees synthetiques</span>
+np.random.seed(<span class="num">42</span>)
+X = np.random.randn(<span class="num">200</span>, <span class="num">5</span>)
+y = X[:, <span class="num">0</span>] + <span class="num">2</span> * X[:, <span class="num">1</span>] + np.sin(X[:, <span class="num">2</span>]) + <span class="num">0.5</span> * np.random.randn(<span class="num">200</span>)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="num">0.2</span>)
+
+<span class="cm"># Bagging</span>
+bag = BaggingRegressor(
+    estimator=DecisionTreeRegressor(max_depth=<span class="kw">None</span>),
+    n_estimators=<span class="num">100</span>
+).fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"Bagging RMSE: {mean_squared_error(y_test, bag.predict(X_test), squared=False):.3f}"</span>)
+
+<span class="cm"># Foret aleatoire</span>
+rf = RandomForestRegressor(
+    n_estimators=<span class="num">200</span>, max_features=<span class="str">'sqrt'</span>
+).fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"RF RMSE: {mean_squared_error(y_test, rf.predict(X_test), squared=False):.3f}"</span>)
+
+<span class="cm"># Gradient Boosting</span>
+gb = GradientBoostingRegressor(
+    n_estimators=<span class="num">200</span>, learning_rate=<span class="num">0.1</span>, max_depth=<span class="num">3</span>
+).fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"GB RMSE: {mean_squared_error(y_test, gb.predict(X_test), squared=False):.3f}"</span>)
+
+<span class="cm"># Stacking</span>
+stack = StackingRegressor(
+    estimators=[
+        (<span class="str">'rf'</span>, RandomForestRegressor(n_estimators=<span class="num">100</span>)),
+        (<span class="str">'svr'</span>, SVR(kernel=<span class="str">'rbf'</span>)),
+        (<span class="str">'lr'</span>, LinearRegression())
+    ],
+    final_estimator=LinearRegression(), cv=<span class="num">5</span>
+).fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"Stacking RMSE: {mean_squared_error(y_test, stack.predict(X_test), squared=False):.3f}"</span>)
+</div>
+
+<!-- ============================================ -->
+<h2 id="r">7. Code R</h2>
+<!-- ============================================ -->
+
+<div class="code-block">
+<span class="kw">library</span>(rpart)
+<span class="kw">library</span>(randomForest)
+<span class="kw">library</span>(gbm)
+<span class="kw">library</span>(caret)
+
+<span class="cm"># Donnees</span>
+set.seed(<span class="num">42</span>)
+n &lt;- <span class="num">200</span>
+X &lt;- matrix(rnorm(n * <span class="num">5</span>), n, <span class="num">5</span>)
+y &lt;- X[,<span class="num">1</span>] + <span class="num">2</span>*X[,<span class="num">2</span>] + sin(X[,<span class="num">3</span>]) + <span class="num">0.5</span>*rnorm(n)
+dat &lt;- data.frame(y, X)
+
+<span class="cm"># Foret aleatoire</span>
+rf &lt;- randomForest(y ~ ., data = dat, ntree = <span class="num">200</span>, importance = <span class="kw">TRUE</span>)
+<span class="kw">print</span>(rf)
+importance(rf)
+
+<span class="cm"># Gradient Boosting</span>
+gb &lt;- gbm(y ~ ., data = dat, distribution = <span class="str">"gaussian"</span>,
+          n.trees = <span class="num">200</span>, interaction.depth = <span class="num">3</span>,
+          shrinkage = <span class="num">0.1</span>, cv.folds = <span class="num">5</span>)
+best &lt;- gb.perf(gb, method = <span class="str">"cv"</span>)
+summary(gb, n.trees = best)
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">8. QCM interactif</h2>
+<!-- ============================================ -->
+
+<div id="qcmRecap"></div>
+
+<div id="qcmQuestions"></div>
+
+<div class="qcm-footer">
+    <span id="qcmAnswered">0</span>/<span id="qcmTotal">0</span> questions répondues
+    <button id="qcmRecapBtn">📋 Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn">🔄 Réinitialiser</button>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const qcmData = [
+    {
+        q: "Quel est le principal avantage du bagging par rapport à un seul arbre CART ?",
+        options: ["Réduction du biais", "Réduction de la variance", "Meilleure interprétabilité", "Entraînement plus rapide"],
+        correct: 1,
+        expl: "Le bagging réduit la variance en moyennant des modèles entraînés sur des bootstrap."
+    },
+    {
+        q: "Dans une forêt aléatoire, le paramètre m (variables candidates par nœud) permet de :",
+        options: ["Réduire le biais", "Décorréler les arbres", "Accélérer l'entraînement", "Éviter le surajustement par élagage"],
+        correct: 1,
+        expl: "m < p force les arbres à utiliser des variables différentes, ce qui les décorrèle."
+    },
+    {
+        q: "En classification, la valeur typique de m dans une forêt aléatoire est :",
+        options: ["m = p", "m = √p", "m = p/3", "m = log₂(p)"],
+        correct: 1,
+        expl: "m = √p est la valeur par défaut recommandée pour la classification."
+    },
+    {
+        q: "Contrairement au bagging, le boosting est un algorithme :",
+        options: ["Parallélisable", "Séquentiel", "Non supervisé", "Basé sur des réseaux de neurones"],
+        correct: 1,
+        expl: "Le boosting est séquentiel : chaque modèle corrige les erreurs du précédent."
+    },
+    {
+        q: "Dans AdaBoost, le poids α_b d'un classifieur dépend de :",
+        options: ["Du nombre d'arbres B", "De son erreur pondérée ε_b", "De la profondeur de l'arbre", "Du taux d'apprentissage η"],
+        correct: 1,
+        expl: "α_b = ½ log((1-ε_b)/ε_b) : plus l'erreur est faible, plus le poids est grand."
+    },
+    {
+        q: "Le Gradient Boosting diffère d'AdaBoost car il :",
+        options: [
+            "Utilise des arbres profonds",
+            "Généralise à toute fonction de perte différentiable via le gradient",
+            "Est parallélisable",
+            "N'utilise pas de pondération des individus"
+        ],
+        correct: 1,
+        expl: "Le Gradient Boosting utilise le gradient négatif de n'importe quelle fonction de perte."
+    },
+    {
+        q: "Dans le stacking, le méta-modèle est entraîné sur :",
+        options: [
+            "Les données originales",
+            "Les prédictions des modèles de base (hors-échantillon)",
+            "Les résidus du meilleur modèle",
+            "Les variables les plus importantes"
+        ],
+        correct: 1,
+        expl: "Le méta-modèle apprend à combiner les prédictions de base obtenues par CV."
+    },
+    {
+        q: "L'erreur OOB (Out-Of-Bag) est calculée sur :",
+        options: [
+            "Les données de test",
+            "Les individus non tirés dans chaque échantillon bootstrap",
+            "L'échantillon d'apprentissage complet",
+            "Les feuilles de l'arbre"
+        ],
+        correct: 1,
+        expl: "≈ 36,8 % d'individus non tirés dans chaque bootstrap servent à estimer l'erreur."
+    },
+    {
+        q: "Parmi ces implémentations du Gradient Boosting, laquelle régularise avec les normes L1/L2 ?",
+        options: ["CatBoost", "LightGBM", "XGBoost", "AdaBoost"],
+        correct: 2,
+        expl: "XGBoost ajoute une régularisation L1/L2 dans sa fonction objectif."
+    },
+    {
+        q: "Pourquoi les forêts aléatoires fonctionnent-elles mieux que le simple bagging d'arbres ?",
+        options: [
+            "Parce qu'elles utilisent plus d'arbres",
+            "Parce qu'elles décorrèlent les arbres en sous-échantillonnant les variables",
+            "Parce qu'elles élaguent les arbres",
+            "Parce qu'elles utilisent un méta-modèle"
+        ],
+        correct: 1,
+        expl: "Le sous-échantillonnage des variables (m < p) décorrèle les arbres, réduisant la variance."
+    }
+];
+
+const container = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const isCorrect = answered && userAnswers[i] === item.correct;
+        const borderColor = answered ? (isCorrect ? '#28a745' : '#dc3545') : '#ddd';
+
+        html += `<div class="qcm-question" data-idx="${i}" style="border-left: 4px solid ${borderColor};">`;
+        html += `<p>${i + 1}. ${item.q}</p>`;
+
+        for (let j = 0; j < item.options.length; j++) {
+            const checked = userAnswers[i] === j;
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (checked && j !== item.correct ? 'qcm-wrong' : ''))
+                : '';
+            const disabled = answered ? 'disabled' : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${answered ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="q_${i}" value="${j}" ${checked ? 'checked' : ''} ${disabled}> `;
+            html += item.options[j];
+            html += `</label>`;
+        }
+
+        if (answered) {
+            html += `<div class="qcm-expl ${isCorrect ? 'qcm-expl-ok' : 'qcm-expl-ko'}">`;
+            html += isCorrect ? '✅ Correct ! ' : '❌ ' + item.expl;
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+    }
+    container.innerHTML = html;
+    document.getElementById('qcmAnswered').textContent = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+container.addEventListener('change', (e) => {
+    if (e.target.type !== 'radio') return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    userAnswers[idx] = parseInt(e.target.value);
+    qcmLocked[idx] = true;
+    renderQCM();
+    const qDiv = document.querySelector(`.qcm-question[data-idx="${idx}"]`);
+    if (qDiv) qDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez répondu qu'à ${answered}/${qcmData.length} questions. Afficher quand même ?`)) return;
+    }
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({ num: i + 1, q: qcmData[i].q, expl: qcmData[i].expl });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const content = document.getElementById('qcmRecapContent') || document.createElement('div');
+
+    if (errors.length === 0) {
+        recapDiv.style.border = '2px solid #28a745';
+        recapDiv.style.background = '#f0fff4';
+        recapDiv.innerHTML = '<strong>✅ Aucune erreur !</strong>';
+    } else {
+        recapDiv.style.border = '2px solid #dc3545';
+        recapDiv.style.background = '#fff5f5';
+        let h = `<p><strong>${errors.length}</strong> erreur(s) :</p><ol>`;
+        for (const e of errors) {
+            h += `<li><strong>Q${e.num} :</strong> ${e.q}<br><em>${e.expl}</em></li>`;
+        }
+        h += '</ol>';
+        recapDiv.innerHTML = h;
+    }
+    recapDiv.style.display = 'block';
+    recapDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+</body>
+</html>

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Analyse multi-blocs — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+
+.formula {
+    text-align: center;
+    font-size: 1.05rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-family: 'Cambria', 'Times New Roman', serif;
+}
+
+ul, ol { margin: 0.5rem 0 0.5rem 1.8rem; }
+li { margin-bottom: 0.3rem; }
+
+.note {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.math { font-family: 'Cambria', 'Times New Roman', serif; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+.card {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+.card h4 { color: #1a73e8; margin-bottom: 0.3rem; }
+
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]]
+  },
+  svg: {
+    fontCache: "global"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>Analyse multi-blocs</h1>
+<p class="subtitle">DACP, STATIS, AFM — STA211 — 8 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Présentation</a></li>
+    <li><a href="#phases">Les 4 phases</a></li>
+    <li><a href="#methodes">Méthodes (DACP, STATIS, AFM)</a></li>
+    <li><a href="#exemple">Exemple : criminalité en France</a></li>
+    <li><a href="#python">Code Python</a></li>
+    <li><a href="#r">Code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Présentation</h2>
+
+<p>L'<strong>analyse multi-blocs</strong> regroupe des méthodes factorielles pour analyser simultanément plusieurs tableaux décrivant les mêmes individus. Chaque tableau est un <strong>bloc</strong>.</p>
+
+<div class="grid">
+<div class="card">
+<h4>📊 Contexte</h4>
+<p>\(N\) tableaux \(\mathbf{X}_1 \ldots \mathbf{X}_N\), mêmes \(n\) individus, variables possiblement différentes (\(p_1 \ldots p_N\)).</p>
+</div>
+<div class="card">
+<h4>🎯 Objectifs</h4>
+<ul>
+    <li>Comparer les groupes de variables</li>
+    <li>Trouver un compromis commun</li>
+    <li>Visualiser l'évolution (trajectoires)</li>
+    <li>Réduire la dimension</li>
+</ul>
+</div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="phases">2. Les 4 phases de l'analyse multi-blocs</h2>
+
+<ol>
+    <li><strong>Interstructure</strong> : on résume chaque bloc par un objet (centre de gravité, matrice de produits scalaires…) et on les compare.</li>
+    <li><strong>Compromis</strong> : on cherche un espace commun maximisant l'inertie projetée de tous les nuages.</li>
+    <li><strong>Intrastructure</strong> : on analyse le compromis (cercles des corrélations, contributions…).</li>
+    <li><strong>Trajectoires</strong> : on projette les individus de chaque bloc dans le plan du compromis.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="methodes">3. Méthodes</h2>
+
+<h3>3.1 Double ACP (DACP)</h3>
+<p><strong>Quand :</strong> mêmes variables, mêmes individus (ex. données temporelles).</p>
+<p><strong>Compromis :</strong> matrice \(\mathbf{V} = \sum_t \mathbf{V}_t\) (somme des matrices de variance-covariance).</p>
+
+<h3>3.2 STATIS</h3>
+<p><strong>Quand :</strong> mêmes individus, variables différentes selon les blocs.</p>
+<p><strong>Interstructure :</strong> matrices de produits scalaires \(\mathbf{W}_t = \mathbf{X}_t \mathbf{M}_t \mathbf{X}_t^\top\) (dimension \(n \times n\)).</p>
+
+<h3>3.3 AFM (Analyse Factorielle Multiple)</h3>
+<p><strong>Quand :</strong> mêmes individus, variables de types potentiellement différents. Chaque bloc est pondéré par l'inverse de sa première valeur propre.</p>
+
+<div class="note">
+<strong>💡 Résumé :</strong> DACP = ACP sur centres de gravité puis ACP sur la somme des covariances. STATIS = ACP sur matrices de produits scalaires. AFM = ACP pondérée par bloc.
+</div>
+
+<!-- ============================================ -->
+<h2 id="exemple">4. Exemple : criminalité en France (DACP)</h2>
+
+<p><strong>Données :</strong> 94 départements, 9 variables de criminalité, 20 années (1974–1993).</p>
+
+<h3>4.1 Interstructure</h3>
+
+<p>ACP sur les centres de gravité des années (20 × 9) :</p>
+
+<table>
+<tr><th>Axe</th><th>Valeur propre</th><th>% inertie cumulé</th></tr>
+<tr><td>1</td><td>6,83</td><td>75,9 %</td></tr>
+<tr><td>2</td><td>1,69</td><td>94,7 %</td></tr>
+<tr><td>3</td><td>0,24</td><td>97,4 %</td></tr>
+</table>
+
+<p><strong>Axe 1 :</strong> corrélé avec VO, DD, ET, FX, CR, ST → effet taille. Les années s'alignent : la criminalité augmente de 1974 à 1993.</p>
+<p><strong>Axe 2 :</strong> lié à CH et DF → criminalité financière.</p>
+
+<h3>4.2 Intrastructure</h3>
+
+<table>
+<tr><th>Axe</th><th>Valeur propre</th><th>% inertie</th></tr>
+<tr><td>1</td><td>4,18</td><td>32,2 %</td></tr>
+<tr><td>2</td><td>2,36</td><td>18,2 %</td></tr>
+</table>
+
+<p><strong>Axe 1 :</strong> oppose criminalité contre les biens (VO, DD, CH) aux crimes contre les personnes.</p>
+<p><strong>Axe 2 :</strong> oppose criminalité financière (DF, FX) à la délinquance de voie publique.</p>
+
+<h3>4.3 Trajectoires</h3>
+<p>Projection des départements de chaque année dans le plan 1–2 : chaque département a une trajectoire montrant son évolution.</p>
+
+<div class="success">
+<strong>🔑 Résultat clé :</strong> la criminalité (vols, stupéfiants, escroqueries) a fortement augmenté entre 1974 et 1993, avec une accélération dans les années 1980.
+</div>
+
+<!-- ============================================ -->
+<h2 id="python">5. Code Python</h2>
+
+<div class="code-block">
+<pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> PCA
+
+<span class="kw">def</span> <span class="fn">dacp</span>(list_of_dfs):
+    n_blocs = len(list_of_dfs)
+    p = list_of_dfs[<span class="num">0</span>].shape[<span class="num">1</span>]
+
+    <span class="cm"># Interstructure : ACP sur les centres de gravite</span>
+    centers = np.array([df.mean(axis=<span class="num">0</span>).values <span class="kw">for</span> df <span class="kw">in</span> list_of_dfs])
+    pca_inter = PCA().fit(centers)
+
+    <span class="cm"># Compromis : somme des matrices de covariance</span>
+    V_sum = np.zeros((p, p))
+    <span class="kw">for</span> df <span class="kw">in</span> list_of_dfs:
+        c = df - df.mean(axis=<span class="num">0</span>)
+        V_sum += c.T @ c / (len(df) - <span class="num">1</span>)
+    V_sum /= n_blocs
+
+    eigvals, eigvecs = np.linalg.eigh(V_sum)
+    idx = np.argsort(eigvals)[::-<span class="num">1</span>]
+    eigvals, eigvecs = eigvals[idx], eigvecs[:, idx]
+
+    <span class="kw">return</span> eigvals, eigvecs, pca_inter
+
+<span class="cm"># AFM avec prince</span>
+<span class="cm"># pip install prince</span>
+<span class="kw">from</span> prince <span class="kw">import</span> MFA
+
+X = pd.concat([bloc1, bloc2], axis=<span class="num">1</span>)
+mfa = MFA(groups=[<span class="num">3</span>, <span class="num">2</span>], n_components=<span class="num">3</span>)
+mfa.fit(X)
+</pre>
+</div>
+
+<!-- ============================================ -->
+<h2 id="r">6. Code R</h2>
+
+<div class="code-block">
+<pre><span class="kw">library</span>(FactoMineR)
+
+<span class="cm"># AFM</span>
+X &lt;- cbind(bloc1, bloc2)
+res.afm &lt;- <span class="fn">MFA</span>(X, group = c(<span class="num">3</span>, <span class="num">2</span>),
+               type = c(<span class="str">"s"</span>, <span class="str">"s"</span>),
+               name.group = c(<span class="str">"Bloc1"</span>, <span class="str">"Bloc2"</span>))
+
+<span class="cm"># Resultats</span>
+<span class="fn">print</span>(res.afm$eig)
+<span class="fn">plot</span>(res.afm, choix = <span class="str">"var"</span>)   <span class="cm"># cercle des correlations</span>
+<span class="fn">plot</span>(res.afm, choix = <span class="str">"ind"</span>)   <span class="cm"># carte des individus</span>
+
+<span class="cm"># DACP manuelle</span>
+centers &lt;- t(sapply(blocs, colMeans))
+pca_inter &lt;- <span class="fn">PCA</span>(centers, graph = FALSE)
+
+V_sum &lt;- Reduce(`+`, lapply(blocs, cov))
+eig &lt;- eigen(V_sum)
+</pre>
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">7. QCM interactif</h2>
+
+<p>Testez vos connaissances sur l'analyse multi-blocs.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">📋 Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center; margin:0.8rem 0;">
+    <button id="qcmRecapBtn" style="padding:0.4rem 1rem; border:1px solid #1a73e8; background:#1a73e8; color:#fff; border-radius:4px; cursor:pointer; font-size:0.85rem;">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn" style="padding:0.4rem 1rem; border:1px solid #1a73e8; background:#fff; color:#1a73e8; border-radius:4px; cursor:pointer; font-size:0.85rem;">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">— Fin de la fiche interactive —</p>
+
+</div>
+
+<script>
+// ============================================================
+// QCM Data
+// ============================================================
+const qcmData = [
+    {
+        q: "Que signifie l'acronyme DACP ?",
+        options: [
+            "Double Analyse en Composantes Principales",
+            "Discrimination par Analyse en Composantes Principales",
+            "Décomposition en Axes Canoniques Principaux",
+            "Analyse Dynamique en Composantes Principales"
+        ],
+        correct: 0,
+        expl: "DACP = Double Analyse en Composantes Principales (Double PCA)."
+    },
+    {
+        q: "Combien de phases comporte une analyse multi-blocs ?",
+        options: ["2", "3", "4", "5"],
+        correct: 2,
+        expl: "4 phases : interstructure, compromis, intrastructure, trajectoires."
+    },
+    {
+        q: "La phase d'interstructure consiste à :",
+        options: [
+            "analyser la structure interne de chaque bloc séparément",
+            "comparer les blocs entre eux via leurs centres de gravité ou matrices de produits scalaires",
+            "calculer les trajectoires des individus",
+            "effectuer une classification hiérarchique"
+        ],
+        correct: 1,
+        expl: "L'interstructure compare les objets (centres de gravité, matrices W) associés à chaque bloc."
+    },
+    {
+        q: "Dans la DACP, la matrice de variance-covariance compromis V s'obtient par :",
+        options: [
+            "V = Σ V_t",
+            "V = Π V_t",
+            "V = (1/N) \\sum V_t",
+            "V = Σ V_t^{-1}"
+        ],
+        correct: 0,
+        expl: "V = \\sum_{t=1}^N V_t (somme des matrices de variance-covariance)."
+    },
+    {
+        q: "La méthode STATIS utilise pour l'interstructure :",
+        options: [
+            "les centres de gravité de chaque tableau",
+            "les matrices de produits scalaires W_t = X_t M_t X_t^T",
+            "les matrices de corrélation",
+            "les valeurs propres de chaque tableau"
+        ],
+        correct: 1,
+        expl: "STATIS utilise les matrices W_t (n × n) représentant les proximités entre individus."
+    },
+    {
+        q: "La DACP s'applique quand :",
+        options: [
+            "les individus sont différents d'un tableau à l'autre",
+            "les variables sont différentes d'un tableau à l'autre",
+            "les mêmes variables sont mesurées sur les mêmes individus",
+            "les données sont qualitatives"
+        ],
+        correct: 2,
+        expl: "DACP : mêmes variables (p_t = p) sur les mêmes n individus (typiquement : données temporelles)."
+    },
+    {
+        q: "L'AFM (Analyse Factorielle Multiple) pondère chaque bloc par :",
+        options: [
+            "la somme de ses valeurs propres",
+            "l'inverse de sa première valeur propre",
+            "le nombre de variables du bloc",
+            "le nombre d'individus"
+        ],
+        correct: 1,
+        expl: "L'AFM pondère par 1/λ₁^{(t)} pour équilibrer l'influence de chaque bloc."
+    },
+    {
+        q: "Dans l'exemple DACP sur les données de criminalité, le 1er axe de l'interstructure représente :",
+        options: [
+            "l'opposition entre crimes violents et délits financiers",
+            "un effet taille de la criminalité qui augmente avec le temps",
+            "la différence entre zones urbaines et rurales",
+            "la saisonnalité des crimes"
+        ],
+        correct: 1,
+        expl: "Axe 1 = effet taille (corrélé avec VO, DD, ET, FX, CR, ST) : la criminalité a augmenté de 1974 à 1993."
+    },
+    {
+        q: "La phase de trajectoires permet de :",
+        options: [
+            "visualiser l'évolution de chaque individu au fil des blocs",
+            "tracer la frontière entre clusters",
+            "estimer la qualité de la représentation",
+            "déterminer le nombre optimal d'axes"
+        ],
+        correct: 0,
+        expl: "Les trajectoires projettent les individus de chaque bloc dans le plan du compromis."
+    },
+    {
+        q: "Quel package R permet de réaliser une AFM ?",
+        options: ["ggplot2", "FactoMineR", "kohonen", "randomForest"],
+        correct: 1,
+        expl: "FactoMineR (fonction MFA) implémente l'AFM en R."
+    }
+];
+
+// ============================================================
+// QCM Rendering
+// ============================================================
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const letters = ['a', 'b', 'c', 'd'];
+        const answered = qcmLocked[i];
+        const isCorrect = answered && userAnswers[i] === item.correct;
+        const isWrong = answered && userAnswers[i] !== item.correct;
+        const borderColor = answered
+            ? (isCorrect ? '#28a745' : '#dc3545')
+            : '#e0e0e0';
+
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<div style="font-weight:bold; margin-bottom:0.4rem;">Question ${i+1}. ${item.q}</div>`;
+
+        for (let j = 0; j < item.options.length; j++) {
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            const disabled = answered ? 'disabled' : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `<span>${letters[j]}) ${item.options[j]}</span>`;
+            html += `</label>`;
+        }
+
+        if (answered) {
+            const correct = isCorrect;
+            html += `<div style="margin-top:0.4rem; font-size:0.85rem; padding:0.4rem 0.6rem; border-radius:3px; background:${correct ? '#d4edda' : '#f8d7da'};">`;
+            html += correct
+                ? '✓ <strong>Correct !</strong>'
+                : `✗ <strong>Incorrect.</strong> La bonne réponse était <strong>${letters[item.correct]}) ${item.options[item.correct]}</strong>.`;
+            html += `<br><span style="color:#555;">${item.expl}</span>`;
+            html += '</div>';
+        }
+
+        html += '</div>';
+    }
+    qcmContainer.innerHTML = html;
+    document.getElementById('qcmAnswered').textContent = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (e.target.type !== 'radio') return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+
+    userAnswers[idx] = parseInt(e.target.value);
+    qcmLocked[idx] = true;
+    renderQCM();
+
+    const qDiv = document.querySelector(`.qcm-question[data-idx="${idx}"]`);
+    if (qDiv) qDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez répondu qu'à ${answered}/${qcmData.length} questions. Afficher quand même ?`)) return;
+    }
+
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            const l = ['a','b','c','d'];
+            errors.push({
+                num: i+1, q: qcmData[i].q,
+                u: userAnswers[i] !== null ? `${l[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de réponse',
+                c: `${l[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                e: qcmData[i].expl
+            });
+        }
+    }
+
+    const recapDiv = document.getElementById('qcmRecap');
+    const content = document.getElementById('qcmRecapContent');
+
+    if (errors.length === 0) {
+        content.innerHTML = '<p style="color:#28a745;font-weight:bold;">🎉 Aucune erreur !</p>';
+    } else {
+        let h = `<p><strong>${errors.length}</strong> erreur(s) :</p><ol>`;
+        for (const e of errors) {
+            h += `<li style="margin-bottom:0.5rem;">
+                <strong>Q${e.num} :</strong> ${e.q}<br>
+                <span style="color:#dc3545;">Votre réponse : ${e.u}</span><br>
+                <span style="color:#28a745;">Bonne réponse : ${e.c}</span><br>
+                <span style="color:#555;font-size:0.9rem;">${e.e}</span></li>`;
+        }
+        h += '</ol>';
+        content.innerHTML = h;
+    }
+    recapDiv.style.display = 'block';
+    recapDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

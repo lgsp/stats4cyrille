@@ -1,0 +1,24 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Présentation}{2}{section.1}%
+\contentsline {paragraph}{Contexte typique :}{2}{section*.2}%
+\contentsline {paragraph}{Exemple :}{2}{section*.3}%
+\contentsline {paragraph}{Objectifs :}{2}{section*.4}%
+\contentsline {section}{\numberline {2}Phases de l'analyse multi-blocs}{2}{section.2}%
+\contentsline {section}{\numberline {3}Méthodes}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Double ACP (DACP)}{2}{subsection.3.1}%
+\contentsline {paragraph}{Quand l'utiliser ?}{2}{section*.5}%
+\contentsline {paragraph}{Principe :}{2}{section*.6}%
+\contentsline {subsection}{\numberline {3.2}STATIS}{3}{subsection.3.2}%
+\contentsline {paragraph}{Quand l'utiliser ?}{3}{section*.7}%
+\contentsline {paragraph}{Principe :}{3}{section*.8}%
+\contentsline {subsection}{\numberline {3.3}AFM (Analyse Factorielle Multiple)}{3}{subsection.3.3}%
+\contentsline {paragraph}{Quand l'utiliser ?}{3}{section*.9}%
+\contentsline {section}{\numberline {4}Exemple numérique : DACP sur les données de criminalité}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Données}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Phase 1 : Interstructure}{3}{subsection.4.2}%
+\contentsline {paragraph}{Cercle des corrélations (interstructure) :}{3}{section*.10}%
+\contentsline {paragraph}{Plan des individus (années) :}{3}{section*.11}%
+\contentsline {subsection}{\numberline {4.3}Phase 2 : Compromis et Intrastructure}{4}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Phase 3 : Trajectoires}{4}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Code Python}{4}{section.5}%
+\contentsline {section}{\numberline {6}Code R}{6}{section.6}%

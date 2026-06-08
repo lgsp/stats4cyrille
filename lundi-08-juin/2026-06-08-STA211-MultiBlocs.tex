@@ -1,0 +1,511 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+
+\geometry{margin=2cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\textbf{STA211 — Analyse multi-blocs — Fiche récapitulative}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\definecolor{codegreen}{rgb}{0.2,0.6,0.2}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{Analyse multi-blocs}} \\
+\vspace{0.3cm}
+STA211 — Apprentissage non supervisé — Fiche récapitulative \\
+8 juin 2026
+\end{center}
+
+\vspace{0.3cm}
+\rule{\textwidth}{0.4pt}
+\vspace{0.3cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Présentation}
+% ============================================================
+
+L'\textbf{analyse multi-blocs} regroupe un ensemble de méthodes factorielles permettant d'analyser simultanément plusieurs tableaux de données décrivant les mêmes individus (ou les mêmes variables). Chaque tableau est appelé un \textbf{bloc}.
+
+\paragraph{Contexte typique :}
+On dispose de $N$ tableaux $\mathbf{X}_1, \ldots, \mathbf{X}_N$, tous avec les mêmes $n$ individus en lignes, mais avec possiblement des variables différentes en colonnes ($p_1, \ldots, p_N$).
+
+\paragraph{Exemple :}
+Pour chaque département français, on dispose du nombre de crimes et délits dans 9 catégories, pour chaque année de 1974 à 1993. Chaque année est un \textbf{bloc} de 9 variables.
+
+\paragraph{Objectifs :}
+\begin{itemize}
+    \item Comparer les groupes de variables entre eux
+    \item Dégager une structure commune (compromis)
+    \item Visualiser l'évolution des individus (trajectoires)
+    \item Réduire la dimension
+\end{itemize}
+
+% ============================================================
+\section{Phases de l'analyse multi-blocs}
+% ============================================================
+
+Toute analyse multi-blocs se décompose en \textbf{4 phases} :
+
+\begin{enumerate}
+    \item \textbf{Interstructure} : chaque tableau est résumé par un objet (centre de gravité, matrice de produits scalaires\ldots). On compare ces objets entre eux (ex. ACP sur les centres de gravité).
+    \item \textbf{Compromis} : on recherche un espace commun qui résume l'ensemble des tableaux (maximisation de l'inertie projetée de tous les nuages).
+    \item \textbf{Intrastructure} : on analyse le compromis (cercles des corrélations, contributions\ldots) pour décrire finement les ressemblances entre tableaux.
+    \item \textbf{Trajectoires} : on projette les individus de chaque tableau dans le plan du compromis pour visualiser leur évolution.
+\end{enumerate}
+
+% ============================================================
+\section{Méthodes}
+% ============================================================
+
+\subsection{Double ACP (DACP)}
+\label{sec:dacp}
+
+\paragraph{Quand l'utiliser ?}
+Mêmes variables mesurées sur les mêmes individus à des instants différents ($p_t = p$ pour tout $t$, $n$ identique).
+
+\paragraph{Principe :}
+\begin{enumerate}
+    \item \textbf{Interstructure} : ACP sur les centres de gravité $\bar{\mathbf{x}}_t$ de chaque tableau (dimension $N \times p$). Chaque année est un point dans $\mathbb{R}^p$.
+    \item \textbf{Compromis} : on cherche les axes $\mathbf{v}_k$ maximisant la somme des inerties de projection de tous les nuages :
+    \[
+    \max_{\mathbf{v}_1,\ldots,\mathbf{v}_q} \sum_{t=1}^N \sum_{k=1}^q \mathbf{v}_k' \mathbf{V}_t \mathbf{v}_k
+    \]
+    où $\mathbf{V}_t$ est la matrice de variance-covariance du tableau $t$. Ceci revient à une ACP sur la matrice de variance-covariance \textbf{compromis} :
+    \[
+    \mathbf{V} = \sum_{t=1}^N \mathbf{V}_t
+    \]
+    \item \textbf{Intrastructure} : ACP sur les $N$ tableaux centrés concaténés verticalement (dimension $Nn \times p$). Les axes sont les mêmes que ceux du compromis.
+    \item \textbf{Trajectoires} : projection des individus de chaque année dans le plan factoriel.
+\end{enumerate}
+
+\subsection{STATIS}
+\paragraph{Quand l'utiliser ?}
+Mêmes individus, variables différentes selon les blocs (ou l'inverse pour STATIS duale).
+
+\paragraph{Principe :}
+On ne peut plus comparer les centres de gravité (variables différentes). On utilise les \textbf{ matrices de produits scalaires} $\mathbf{W}_t = \mathbf{X}_t \mathbf{M}_t \mathbf{X}_t^\top$ de dimension $n \times n$, qui représentent les proximités entre individus pour chaque bloc.
+\begin{enumerate}
+    \item \textbf{Interstructure} : ACP sur l'espace des matrices $\mathbf{W}_t$ (produit scalaire de Hilbert-Schmidt).
+    \item \textbf{Compromis} : combinaison linéaire optimale $\mathbf{W}_{\text{comp}} = \sum_{t=1}^N a_t \mathbf{W}_t$.
+    \item \textbf{Intrastructure} : diagonalisation de $\mathbf{W}_{\text{comp}}$ (équivalente à une ACP).
+\end{enumerate}
+
+\subsection{AFM (Analyse Factorielle Multiple)}
+\paragraph{Quand l'utiliser ?}
+Mêmes individus, variables de types potentiellement différents (quantitatives, qualitatives). Elle équilibre le poids de chaque bloc en pondérant par la première valeur propre de l'ACP (ou ACM) de chaque bloc.
+
+% ============================================================
+\section{Exemple numérique : DACP sur les données de criminalité}
+% ============================================================
+
+\subsection{Données}
+$n = 94$ départements français, $p = 9$ variables de criminalité mesurées chaque année de 1974 à 1993 ($N = 20$ tableaux).
+
+Variables :
+\begin{center}
+\begin{tabular}{ll}
+VO : vols et recels & FX : faux et escroqueries \\
+DF : délits financiers & CH : chèques sans provision \\
+CR : coups et règlements de comptes & DD : destructions et dégradations \\
+ET : délits à la police des étrangers & ST : stupéfiants \\
+\end{tabular}
+\end{center}
+
+\subsection{Phase 1 : Interstructure}
+
+On calcule le centre de gravité de chaque année (vecteur de dimension 9), puis on effectue une ACP sur le tableau $20 \times 9$ centré.
+
+\begin{center}
+\begin{tabular}{lrr}
+\hline
+Axe & Valeur propre & \% inertie cumulé \\
+\hline
+1 & 6,83 & 75,9\% \\
+2 & 1,69 & 94,7\% \\
+3 & 0,24 & 97,4\% \\
+\hline
+\end{tabular}
+\end{center}
+
+Le premier plan explique \textbf{94,7\%} de l'inertie : les années sont très bien représentées.
+
+\paragraph{Cercle des corrélations (interstructure) :}
+\begin{itemize}
+    \item Axe 1 : corrélé positivement avec VO, DD, ET, FX, CR, ST — \og effet taille \fg{} de la criminalité.
+    \item Axe 2 : lié à CH et DF — oppose la criminalité financière au reste.
+\end{itemize}
+
+\paragraph{Plan des individus (années) :}
+Les années s'alignent le long de l'axe 1, révélant une \textbf{évolution temporelle quasi linéaire} : la criminalité (VO, ST, ET, FX, CR, DD) a augmenté entre 1974 et 1993. Les années 1974--1978 sont stables, 1979--1988 montrent une forte progression, et 1989--1993 se stabilisent à un niveau élevé.
+
+\subsection{Phase 2 : Compromis et Intrastructure}
+
+On concatène les 20 tableaux centrés verticalement (matrice $20 \times 94 \times 9$, soit $1880 \times 9$) et on effectue une ACP.
+
+\begin{center}
+\begin{tabular}{lrr}
+\hline
+Axe & Valeur propre & \% inertie \\
+\hline
+1 & 4,18 & 32,2\% \\
+2 & 2,36 & 18,2\% \\
+3 & 1,93 & 14,9\% \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Interprétation :}
+\begin{itemize}
+    \item Axe 1 : oppose la criminalité contre les biens (VO, DD, CH) à la criminalité contre les personnes.
+    \item Axe 2 : oppose criminalité financière (DF, FX) à la délinquance de voie publique.
+\end{itemize}
+
+\subsection{Phase 3 : Trajectoires}
+
+On projette les individus (départements) de chaque année dans le plan 1--2 du compromis. On obtient des \textbf{trajectoires} qui montrent l'évolution de chaque département au cours du temps.
+
+% ============================================================
+\section{Code Python}
+% ============================================================
+
+\begin{lstlisting}[language=Python, caption=DACP avec scikit-learn]
+import numpy as np
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+def dacp(list_of_dfs, n_components=2):
+    """
+    Double ACP sur une liste de DataFrames (meme variables, meme individus).
+    Chaque DF = un bloc (ex. une annee).
+    """
+    n_blocs = len(list_of_dfs)
+    p = list_of_dfs[0].shape[1]  # nombre de variables
+
+    # --- Phase 1 : Interstructure ---
+    # Centres de gravite de chaque bloc
+    centers = np.array([df.mean(axis=0).values for df in list_of_dfs])
+    centers_scaled = StandardScaler(with_std=False).fit_transform(centers)
+
+    pca_inter = PCA()
+    pca_inter.fit(centers_scaled)
+
+    # --- Phase 2 : Compromis ---
+    # Matrice de variance-covariance compromis
+    V_sum = np.zeros((p, p))
+    for df in list_of_dfs:
+        df_centered = df - df.mean(axis=0)
+        V_sum += df_centered.T @ df_centered / (len(df) - 1)
+    V_sum /= n_blocs  # moyenne des matrices de covariance
+
+    # ACP sur V_sum
+    eigvals, eigvecs = np.linalg.eigh(V_sum)
+    idx = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:, idx]
+
+    # --- Phase 3 : Intrastructure ---
+    # Concaténation verticale des tableaux centres
+    all_centered = np.vstack([df - df.mean(axis=0) for df in list_of_dfs])
+    scores = all_centered @ eigvecs[:, :n_components]
+
+    # --- Phase 4 : Trajectoires ---
+    n_individuals = list_of_dfs[0].shape[0]
+    trajectories = np.zeros((n_individuals, n_blocs, n_components))
+    for t, df in enumerate(list_of_dfs):
+        centered = df - df.mean(axis=0)
+        trajectories[:, t, :] = centered @ eigvecs[:, :n_components]
+
+    return {
+        'pca_inter': pca_inter,
+        'eigvals': eigvals,
+        'eigvecs': eigvecs,
+        'scores': scores,
+        'trajectories': trajectories
+    }
+
+# Exemple d'utilisation
+if __name__ == "__main__":
+    # Simulation de 3 blocs (annees) avec 10 individus et 4 variables
+    np.random.seed(42)
+    blocs = [pd.DataFrame(np.random.randn(10, 4) + t*0.1)
+             for t in range(3)]
+    res = dacp(blocs)
+    print("Valeurs propres :", res['eigvals'][:3])
+\end{lstlisting}
+
+\newpage
+\begin{lstlisting}[language=Python, caption=AFM avec prince]
+# pip install prince
+
+import pandas as pd
+from prince import MFA
+
+# Construction du jeu de donnees multi-blocs
+# Simulons 2 blocs de variables
+np.random.seed(123)
+n = 50
+bloc1 = pd.DataFrame({
+    'V1': np.random.randn(n),
+    'V2': np.random.randn(n),
+    'V3': np.random.randn(n)
+}, index=[f'I{i}' for i in range(n)])
+
+bloc2 = pd.DataFrame({
+    'V4': np.random.randn(n),
+    'V5': np.random.randn(n)
+}, index=[f'I{i}' for i in range(n)])
+
+# Concaténation
+X = pd.concat([bloc1, bloc2], axis=1)
+
+# Groupes
+groups = [3, 2]  # 3 var dans bloc1, 2 dans bloc2
+
+# AFM
+mfa = MFA(groups=groups, n_components=3)
+mfa.fit(X)
+
+# Résultats
+print("Valeurs propres :", mfa.eigenvalues_)
+print("Coordonnées des individus :")
+print(mfa.row_coordinates(X).head())
+\end{lstlisting}
+
+% ============================================================
+\section{Code R}
+% ============================================================
+
+\begin{lstlisting}[language=R, caption=DACP avec R]
+# install.packages("FactoMineR")
+library(FactoMineR)
+
+# Simulation de 3 blocs (annees)
+set.seed(42)
+n <- 10  # individus
+p <- 4   # variables
+blocs <- list(
+  data.frame(matrix(rnorm(n*p) + 0.1, n, p)),
+  data.frame(matrix(rnorm(n*p) + 0.2, n, p)),
+  data.frame(matrix(rnorm(n*p) + 0.3, n, p))
+)
+
+# Concaténation verticale pour DACP
+X_all <- do.call(rbind, blocs)
+
+# Variable indiquant le bloc
+bloc_labels <- rep(1:3, each = n)
+
+# DACP manuelle
+centers <- t(sapply(blocs, colMeans))  # centres de gravite
+pca_inter <- PCA(centers, graph = FALSE)
+print(pca_inter$eig)
+
+# Compromis
+V_sum <- Reduce(`+`, lapply(blocs, cov))
+eig <- eigen(V_sum)
+print(eig$values[1:3])
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=AFM avec FactoMineR]
+library(FactoMineR)
+
+# Jeu de donnees : meme structure
+n <- 50
+bloc1 <- data.frame(
+  V1 = rnorm(n), V2 = rnorm(n), V3 = rnorm(n)
+)
+bloc2 <- data.frame(
+  V4 = rnorm(n), V5 = rnorm(n)
+)
+X <- cbind(bloc1, bloc2)
+
+# AFM
+res.afm <- MFA(X, group = c(3, 2),
+               type = c("s", "s"),
+               name.group = c("Bloc1", "Bloc2"),
+               graph = FALSE)
+
+# Valeurs propres
+print(res.afm$eig)
+
+# Cercle des correlations
+plot(res.afm, choix = "var")
+
+# Carte des individus
+plot(res.afm, choix = "ind")
+
+# Representations partielles
+plot(res.afm, choix = "axes")
+\end{lstlisting}
+
+\newpage
+% ============================================================
+\section*{QCM — Vérifiez vos connaissances}
+% ============================================================
+
+\medskip
+\textit{Pour chaque question, choisissez la bonne réponse. Les réponses sont en page \pageref{reponses-mb}.}
+
+\begin{enumerate}
+
+    \item Que signifie l'acronyme \textbf{DACP} ?
+    \begin{enumerate}
+        \item Double Analyse en Composantes Principales
+        \item Discrimination par Analyse en Composantes Principales
+        \item Décomposition en Axes Canoniques Principaux
+        \item Analyse Dynamique en Composantes Principales
+    \end{enumerate}
+
+    \item Combien de phases comporte une analyse multi-blocs ?
+    \begin{enumerate}
+        \item 2
+        \item 3
+        \item 4
+        \item 5
+    \end{enumerate}
+
+    \item La phase d'\textbf{interstructure} consiste à :
+    \begin{enumerate}
+        \item analyser la structure interne de chaque bloc séparément
+        \item comparer les blocs entre eux via leurs centres de gravité ou matrices de produits scalaires
+        \item calculer les trajectoires des individus
+        \item effectuer une classification hiérarchique
+    \end{enumerate}
+
+    \item Dans la DACP, la matrice de variance-covariance \textbf{compromis} $\mathbf{V}$ s'obtient par :
+    \begin{enumerate}
+        \item $\mathbf{V} = \sum_{t=1}^N \mathbf{V}_t$
+        \item $\mathbf{V} = \prod_{t=1}^N \mathbf{V}_t$
+        \item $\mathbf{V} = \frac{1}{N}\sum_{t=1}^N \mathbf{V}_t$
+        \item $\mathbf{V} = \sum_{t=1}^N \mathbf{V}_t^{-1}$
+    \end{enumerate}
+
+    \item La méthode \textbf{STATIS} utilise pour l'interstructure :
+    \begin{enumerate}
+        \item les centres de gravité de chaque tableau
+        \item les matrices de produits scalaires $\mathbf{W}_t = \mathbf{X}_t \mathbf{M}_t \mathbf{X}_t^\top$
+        \item les matrices de corrélation
+        \item les valeurs propres de chaque tableau
+    \end{enumerate}
+
+    \item La DACP s'applique quand :
+    \begin{enumerate}
+        \item les individus sont différents d'un tableau à l'autre
+        \item les variables sont différentes d'un tableau à l'autre
+        \item les mêmes variables sont mesurées sur les mêmes individus
+        \item les données sont qualitatives
+    \end{enumerate}
+
+    \item L'\textbf{AFM} (Analyse Factorielle Multiple) pondère chaque bloc par :
+    \begin{enumerate}
+        \item la somme de ses valeurs propres
+        \item l'inverse de sa première valeur propre
+        \item le nombre de variables du bloc
+        \item le nombre d'individus
+    \end{enumerate}
+
+    \item Dans la DACP sur les données de criminalité, le premier axe de l'interstructure représente :
+    \begin{enumerate}
+        \item l'opposition entre crimes violents et délits financiers
+        \item un effet taille de la criminalité qui augmente avec le temps
+        \item la différence entre zones urbaines et rurales
+        \item la saisonnalité des crimes
+    \end{enumerate}
+
+    \item La phase de \textbf{trajectoires} permet de :
+    \begin{enumerate}
+        \item visualiser l'évolution de chaque individu au fil des blocs
+        \item tracer la frontière entre clusters
+        \item estimer la qualité de la représentation
+        \item déterminer le nombre optimal d'axes
+    \end{enumerate}
+
+    \item Quel package R permet de réaliser une AFM ?
+    \begin{enumerate}
+        \item ggplot2
+        \item FactoMineR
+        \item kohonen
+        \item randomForest
+    \end{enumerate}
+
+\end{enumerate}
+
+\newpage
+\label{reponses-mb}
+
+\begin{center}
+{\Large\textbf{Réponses au QCM}}
+\end{center}
+
+\medskip
+
+\begin{tabular}{cp{10cm}}
+\toprule
+\textbf{N°} & \textbf{Réponse} & \textbf{Explication} \\
+\midrule
+1 & \textbf{a} & DACP = Double Analyse en Composantes Principales. \\
+2 & \textbf{c} & Les 4 phases sont : interstructure, compromis, intrastructure, trajectoires. \\
+3 & \textbf{b} & L'interstructure compare les blocs (via centres de gravité pour DACP, matrices $\mathbf{W}_t$ pour STATIS). \\
+4 & \textbf{a} & $\mathbf{V} = \sum_{t=1}^N \mathbf{V}_t$ (somme des matrices de variance-covariance de chaque bloc). \\
+5 & \textbf{b} & STATIS utilise $\mathbf{W}_t = \mathbf{X}_t \mathbf{M}_t \mathbf{X}_t^\top$ (matrices $n \times n$). \\
+6 & \textbf{c} & DACP : mêmes variables ($p_t = p$) sur les mêmes $n$ individus. \\
+7 & \textbf{b} & L'AFM pondère chaque bloc par $1/\lambda_1^{(t)}$ (inverse de la 1\up{ère} valeur propre). \\
+8 & \textbf{b} & Axe 1 = effet taille (corrélation avec VO, DD, ET, FX, CR, ST), croissance temporelle. \\
+9 & \textbf{a} & Les trajectoires projettent les individus de chaque bloc dans le plan compromis. \\
+10 & \textbf{b} & \texttt{FactoMineR} (fonction \texttt{MFA}) implémente l'AFM. \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5cm}
+
+\begin{center}
+\rule{0.6\textwidth}{0.4pt}
+\vspace{0.3cm}
+\textit{Fin de la fiche.}
+\end{center}
+
+\end{document}

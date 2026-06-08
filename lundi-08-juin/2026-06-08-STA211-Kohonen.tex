@@ -1,0 +1,668 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{graphicx}
+
+\geometry{margin=2cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\textbf{STA211 — Cartes de Kohonen — Fiche récapitulative}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\definecolor{codegreen}{rgb}{0.2,0.6,0.2}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\lstdefinelanguage{Rlang}{
+    language=R,
+    morekeywords={ggplot, aes, geom_point, scale_color_gradient, som, kohonen},
+    sensitive=true
+}
+
+\theoremstyle{definition}
+\newtheorem{exemple}{Exemple}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\textbf{Cartes de Kohonen}} \\
+{\large \textit{Self-Organizing Maps (SOM)}} \\
+\vspace{0.3cm}
+STA211 — Apprentissage non supervisé — Fiche récapitulative \\
+8 juin 2026
+\end{center}
+
+\vspace{0.5cm}
+\rule{\textwidth}{0.4pt}
+\vspace{0.5cm}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Présentation}
+% ============================================================
+
+Les \textbf{cartes de Kohonen} (ou \textit{Self-Organizing Maps}, SOM) sont un type de réseau de neurones artificiels utilisé en \textbf{apprentissage non supervisé}. Inventées par Teuvo Kohonen dans les années 1980, elles permettent de \textbf{visualiser des données de grande dimension} en les projetant sur une grille (souvent 2D) tout en préservant les relations de voisinage.
+
+\paragraph{Objectifs :}
+\begin{itemize}
+    \item Réduction de dimension (visualisation)
+    \item Clustering (segmentation non supervisée)
+    \item Conservation de la topologie des données
+\end{itemize}
+
+\paragraph{Propriété clé :}
+Deux points proches dans l'espace d'entrée sont représentés par des neurones proches (ou identiques) sur la carte.
+
+% ============================================================
+\section{Architecture}
+% ============================================================
+
+La carte de Kohonen est composée de deux couches :
+
+\begin{itemize}
+    \item \textbf{Couche d'entrée :} chaque neurone d'entrée correspond à une variable (une dimension des données).
+    \item \textbf{Couche de sortie (carte) :} une grille de neurones organisés spatialement (souvent rectangulaire ou hexagonale). Chaque neurone de sortie $j$ possède un \textbf{vecteur de poids} $\mathbf{w}_j$ de même dimension que les données d'entrée.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.9]
+    % Input layer
+    \foreach \y in {0,0.8,1.6,2.4} {
+        \draw (0,\y) circle (0.25);
+    }
+    \node at (-0.8,1.2) {Entrée};
+    \node at (0,2.9) {$\vdots$};
+    \node at (0,-0.3) {$x_d$};
+    \node at (0,0.4) {$x_2$};
+    \node at (0,2.0) {$x_3$};
+    \node at (0,1.2) {$x_1$};
+
+    % Connections (just a few)
+    \foreach \xin in {0,0.8,1.6,2.4} {
+        \foreach \yout in {4,5,6,7} {
+            \draw[gray,thin] (0.25,\xin) -- (3.75,\yout);
+        }
+    }
+
+    % Output layer grid
+    \draw (4,4) rectangle (8,8);
+    \draw (5,4) -- (5,8); \draw (6,4) -- (6,8); \draw (7,4) -- (7,8);
+    \draw (4,5) -- (8,5); \draw (4,6) -- (8,6); \draw (4,7) -- (8,7);
+    \node at (6,9) {\textbf{Carte (grille 2D)}};
+    \node at (6,8.5) {chaque neurone = vecteur $\mathbf{w}_j$};
+\end{tikzpicture}
+\end{center}
+
+% ============================================================
+\section{Algorithme}
+% ============================================================
+
+\subsection{Principe général}
+
+Pour chaque individu $\mathbf{x}^{(i)}$ de la base de données :
+\begin{enumerate}
+    \item On cherche le neurone \textbf{le plus proche} (Best Matching Unit, BMU) sur la carte.
+    \item On met à jour le BMU et ses voisins pour les rapprocher de $\mathbf{x}^{(i)}$.
+\end{enumerate}
+
+\subsection{Notations}
+
+\begin{itemize}
+    \item $\mathbf{x}^{(i)} \in \mathbb{R}^d$ : $i$-ème individu (vecteur à $d$ variables).
+    \item $\mathbf{w}_j(t) \in \mathbb{R}^d$ : vecteur de poids du neurone $j$ à l'itération $t$.
+    \item $\alpha(t)$ : taux d'apprentissage (\textit{learning rate}) à l'itération $t$.
+    \item $h_{c,j}(t)$ : fonction de voisinage entre le BMU $c$ et le neurone $j$.
+\end{itemize}
+
+\subsection{Étape 1 — Initialisation}
+Les poids $\mathbf{w}_j(0)$ sont initialisés aléatoirement (petites valeurs), ou par échantillonnage aléatoire des données.
+
+\subsection{Étape 2 — Recherche du BMU (Best Matching Unit)}
+Pour un individu $\mathbf{x}^{(i)}$, le BMU est le neurone $c$ dont le vecteur de poids est le plus proche (distance euclidienne) :
+\[
+c = \arg\min_{j} \|\mathbf{x}^{(i)} - \mathbf{w}_j(t)\|
+\]
+
+\subsection{Étape 3 — Mise à jour des poids}
+On met à jour le BMU et ses voisins :
+\[
+\boxed{\mathbf{w}_j(t+1) = \mathbf{w}_j(t) + \alpha(t) \cdot h_{c,j}(t) \cdot \bigl(\mathbf{x}^{(i)} - \mathbf{w}_j(t)\bigr)}
+\]
+
+\subsection{Fonction de voisinage}
+La fonction de voisinage $h_{c,j}(t)$ est souvent une \textbf{gaussienne} centrée sur le BMU :
+\[
+h_{c,j}(t) = \exp\!\left(-\frac{\| \mathbf{r}_c - \mathbf{r}_j \|^2}{2\,\sigma(t)^2}\right)
+\]
+où $\mathbf{r}_c$ et $\mathbf{r}_j$ sont les positions des neurones $c$ et $j$ sur la grille, et $\sigma(t)$ est le \textbf{rayon de voisinage} qui décroît avec le temps.
+
+\subsection{Plan de décroissance}
+Le taux d'apprentissage et le rayon diminuent au fil des itérations :
+\[
+\alpha(t) = \alpha_0 \cdot \exp\!\left(-\frac{t}{\tau_\alpha}\right),\qquad
+\sigma(t) = \sigma_0 \cdot \exp\!\left(-\frac{t}{\tau_\sigma}\right)
+\]
+ou linéairement :
+\[
+\alpha(t) = \alpha_0 \left(1 - \frac{t}{T}\right),\qquad
+\sigma(t) = \sigma_0 \left(1 - \frac{t}{T}\right)
+\]
+
+\subsection{Pseudo-code}
+\begin{lstlisting}[language=Python, caption=Pseudo-code SOM]
+def som(X, n_neurons, n_iter, alpha_0, sigma_0):
+    # Initialisation aleatoire des poids
+    W = np.random.randn(n_neurons, d)
+
+    for t in range(n_iter):
+        alpha = alpha_0 * (1 - t / n_iter)
+        sigma = sigma_0 * (1 - t / n_iter)
+
+        # Parcours des donnees
+        for x in X:
+            # 1. BMU
+            dist = np.linalg.norm(W - x, axis=1)
+            c = np.argmin(dist)
+
+            # 2. Mise a jour
+            for j in range(n_neurons):
+                d_grid = distance_grille(c, j)
+                h = np.exp(-d_grid**2 / (2 * sigma**2))
+                W[j] += alpha * h * (x - W[j])
+
+    return W
+\end{lstlisting}
+
+% ============================================================
+\section{Exemple numérique pas à pas}
+% ============================================================
+
+\subsection{Données}
+Considérons $n = 4$ individus en $\mathbb{R}^2$ :
+\[
+\mathbf{x}^{(1)} = \begin{pmatrix}0,2\\0,3\end{pmatrix},\;
+\mathbf{x}^{(2)} = \begin{pmatrix}0,1\\0,8\end{pmatrix},\;
+\mathbf{x}^{(3)} = \begin{pmatrix}0,7\\0,2\end{pmatrix},\;
+\mathbf{x}^{(4)} = \begin{pmatrix}0,9\\0,7\end{pmatrix}
+\]
+
+\subsection{Architecture}
+Une carte de $2 \times 2$ neurones (4 neurones), organisés en grille carrée.
+
+Positions des neurones sur la grille :
+\[
+\mathbf{r}_0 = (0,0),\;\; \mathbf{r}_1 = (0,1),\;\;
+\mathbf{r}_2 = (1,0),\;\; \mathbf{r}_3 = (1,1)
+\]
+
+\subsection{Initialisation}
+Poids initialisés aléatoirement. Pour cet exemple, supposons :
+\[
+\mathbf{w}_0 = \begin{pmatrix}0,3\\0,8\end{pmatrix},\;
+\mathbf{w}_1 = \begin{pmatrix}0,6\\0,4\end{pmatrix},\;
+\mathbf{w}_2 = \begin{pmatrix}0,2\\0,1\end{pmatrix},\;
+\mathbf{w}_3 = \begin{pmatrix}0,9\\0,5\end{pmatrix}
+\]
+
+\subsection{Itération 1 — Individu $\mathbf{x}^{(1)} = (0{,}2;\,0{,}3)$}
+
+\paragraph{BMU :}
+\begin{align*}
+\|\mathbf{x}^{(1)} - \mathbf{w}_0\| &= \sqrt{(0{,}2-0{,}3)^2 + (0{,}3-0{,}8)^2} = \sqrt{0{,}01+0{,}25} = \sqrt{0{,}26} \approx 0{,}510 \\
+\|\mathbf{x}^{(1)} - \mathbf{w}_1\| &= \sqrt{(0{,}2-0{,}6)^2 + (0{,}3-0{,}4)^2} = \sqrt{0{,}16+0{,}01} = \sqrt{0{,}17} \approx 0{,}412 \\
+\|\mathbf{x}^{(1)} - \mathbf{w}_2\| &= \sqrt{(0{,}2-0{,}2)^2 + (0{,}3-0{,}1)^2} = \sqrt{0+0{,}04} = \sqrt{0{,}04} = 0{,}200 \\
+\|\mathbf{x}^{(1)} - \mathbf{w}_3\| &= \sqrt{(0{,}2-0{,}9)^2 + (0{,}3-0{,}5)^2} = \sqrt{0{,}49+0{,}04} = \sqrt{0{,}53} \approx 0{,}728
+\end{align*}
+Le BMU est le neurone $c = 2$ (distance minimale $0{,}200$).
+
+\paragraph{Mise à jour :}
+Prenons $\alpha(0) = 0{,}5$ et $\sigma(0) = 1{,}0$.
+
+Distances sur la grille entre $c=2=(1,0)$ et chaque neurone :
+\begin{align*}
+d(2,0) &= \|(1,0)-(0,0)\| = 1 &\Rightarrow h_{2,0} &= e^{-1^2/(2\cdot1^2)} = e^{-0,5} \approx 0{,}607 \\
+d(2,1) &= \|(1,0)-(0,1)\| = \sqrt{2} \approx 1{,}414 &\Rightarrow h_{2,1} &= e^{-2/2} = e^{-1} \approx 0{,}368 \\
+d(2,2) &= 0 &\Rightarrow h_{2,2} &= e^{0} = 1{,}000 \\
+d(2,3) &= \|(1,0)-(1,1)\| = 1 &\Rightarrow h_{2,3} &= e^{-0,5} \approx 0{,}607
+\end{align*}
+
+Mise à jour des poids ($\Delta\mathbf{w}_j = \alpha \cdot h_{2,j} \cdot (\mathbf{x}^{(1)} - \mathbf{w}_j)$) :
+
+\begin{align*}
+\mathbf{w}_0 &\leftarrow \mathbf{w}_0 + 0{,}5 \times 0{,}607 \times \bigl((0{,}2;0{,}3) - (0{,}3;0{,}8)\bigr) \\
+&= (0{,}3;0{,}8) + 0{,}304 \times (-0{,}1;-0{,}5) = (0{,}3;0{,}8) + (-0{,}030;-0{,}152) = (0{,}270;0{,}648) \\[0,3cm]
+\mathbf{w}_1 &\leftarrow (0{,}6;0{,}4) + 0{,}5 \times 0{,}368 \times (-0{,}4;-0{,}1) \\
+&= (0{,}6;0{,}4) + (-0{,}074;-0{,}018) = (0{,}526;0{,}382) \\[0,3cm]
+\mathbf{w}_2 &\leftarrow (0{,}2;0{,}1) + 0{,}5 \times 1{,}000 \times (0;0{,}2) \\
+&= (0{,}2;0{,}1) + (0;0{,}100) = (0{,}200;0{,}200) \\[0,3cm]
+\mathbf{w}_3 &\leftarrow (0{,}9;0{,}5) + 0{,}5 \times 0{,}607 \times (-0{,}7;-0{,}2) \\
+&= (0{,}9;0{,}5) + (-0{,}212;-0{,}061) = (0{,}688;0{,}439)
+\end{align*}
+
+\subsection{Itération 1 — Individu $\mathbf{x}^{(2)} = (0{,}1;\,0{,}8)$}
+
+\paragraph{BMU :}
+\begin{align*}
+\|\mathbf{x}^{(2)} - \mathbf{w}_0\| &= \sqrt{(0{,}1-0{,}270)^2 + (0{,}8-0{,}648)^2} = \sqrt{0{,}029+0{,}023} \approx 0{,}228 \\
+\|\mathbf{x}^{(2)} - \mathbf{w}_1\| &= \sqrt{(0{,}1-0{,}526)^2 + (0{,}8-0{,}382)^2} = \sqrt{0{,}181+0{,}175} \approx 0{,}597 \\
+\|\mathbf{x}^{(2)} - \mathbf{w}_2\| &= \sqrt{(0{,}1-0{,}200)^2 + (0{,}8-0{,}200)^2} = \sqrt{0{,}010+0{,}360} \approx 0{,}608 \\
+\|\mathbf{x}^{(2)} - \mathbf{w}_3\| &= \sqrt{(0{,}1-0{,}688)^2 + (0{,}8-0{,}439)^2} = \sqrt{0{,}346+0{,}130} \approx 0{,}690
+\end{align*}
+Le BMU est le neurone $c = 0$ (distance $0{,}228$).
+
+\paragraph{Mise à jour :}
+\begin{align*}
+\mathbf{w}_0 &\leftarrow (0{,}270;0{,}648) + 0{,}5\times1{,}000\times(-0{,}170;0{,}152) = (0{,}185;0{,}724) \\
+\mathbf{w}_1 &\leftarrow (0{,}526;0{,}382) + 0{,}5\times0{,}607\times(-0{,}426;0{,}418) = (0{,}397;0{,}509) \\
+\mathbf{w}_2 &\leftarrow (0{,}200;0{,}200) + 0{,}5\times0{,}607\times(-0{,}100;0{,}600) = (0{,}170;0{,}382) \\
+\mathbf{w}_3 &\leftarrow (0{,}688;0{,}439) + 0{,}5\times0{,}368\times(-0{,}588;0{,}361) = (0{,}580;0{,}505)
+\end{align*}
+
+\subsection{Itération 1 — Individu $\mathbf{x}^{(3)} = (0{,}7;\,0{,}2)$}
+
+\paragraph{BMU :} neurone $c = 3$ (vérification laissée en exercice).
+
+Mise à jour (résultats après $\mathbf{x}^{(3)}$) :
+\[
+\mathbf{w}_0 \to (0{,}149;0{,}706),\;
+\mathbf{w}_1 \to (0{,}487;0{,}335),\;
+\mathbf{w}_2 \to (0{,}145;0{,}350),\;
+\mathbf{w}_3 \to (0{,}640;0{,}416)
+\]
+
+\subsection{Itération 1 — Individu $\mathbf{x}^{(4)} = (0{,}9;\,0{,}7)$}
+
+\paragraph{BMU :} neurone $c = 3$.
+
+Mise à jour (poids finaux après 1 passe complète) :
+\[
+\boxed{
+\mathbf{w}_0 \approx (0{,}119;0{,}677),\;
+\mathbf{w}_1 \approx (0{,}457;0{,}403),\;
+\mathbf{w}_2 \approx (0{,}122;0{,}335),\;
+\mathbf{w}_3 \approx (0{,}720;0{,}487)
+}
+\]
+
+\subsection{Interprétation}
+\begin{itemize}
+    \item Le neurone \textbf{0} s'est spécialisé sur les points proches de $(0{,}1;0{,}8)$ (individu 2).
+    \item Le neurone \textbf{2} attire les points proches de $(0{,}2;0{,}3)$ (individu 1).
+    \item Le neurone \textbf{3} attire les points $(0{,}7;0{,}2)$ et $(0{,}9;0{,}7)$ (individus 3 et 4).
+    \item Après plusieurs itérations, la carte s'organise : des neurones voisins représentent des données similaires.
+\end{itemize}
+
+% ============================================================
+\section{Code Python}
+% ============================================================
+
+\subsection{Implémentation simple avec NumPy}
+
+\begin{lstlisting}[language=Python, caption=SOM avec NumPy]
+import numpy as np
+import matplotlib.pyplot as plt
+
+class SOM:
+    def __init__(self, grid_size, d, alpha_0=0.5, sigma_0=1.0):
+        self.grid_size = grid_size  # (nx, ny)
+        self.W = np.random.randn(grid_size[0]*grid_size[1], d)
+        self.alpha_0 = alpha_0
+        self.sigma_0 = sigma_0
+        # Positions des neurones sur la grille
+        self.positions = np.array([(i,j) for i in range(grid_size[0])
+                                            for j in range(grid_size[1])])
+
+    def bmu(self, x):
+        dist = np.linalg.norm(self.W - x, axis=1)
+        return np.argmin(dist)
+
+    def fit(self, X, n_epochs=10):
+        n = len(X)
+        for epoch in range(n_epochs):
+            alpha = self.alpha_0 * (1 - epoch/n_epochs)
+            sigma = self.sigma_0 * (1 - epoch/n_epochs)
+            # Melange des donnees a chaque epoque
+            np.random.shuffle(X)
+            for x in X:
+                c = self.bmu(x)
+                for j in range(len(self.W)):
+                    d_grid = np.linalg.norm(
+                        self.positions[c] - self.positions[j])
+                    h = np.exp(-d_grid**2 / (2 * sigma**2))
+                    self.W[j] += alpha * h * (x - self.W[j])
+
+    def predict(self, X):
+        return np.array([self.bmu(x) for x in X])
+\end{lstlisting}
+
+\subsection{Application sur le jeu de données Iris}
+
+\begin{lstlisting}[language=Python, caption=SOM sur Iris]
+from sklearn.datasets import load_iris
+import pandas as pd
+
+iris = load_iris()
+X = iris.data  # 150 individus, 4 variables
+y = iris.target  # 3 especes (pour la visualisation)
+
+# Normalisation
+X_norm = (X - X.mean(axis=0)) / X.std(axis=0)
+
+# Modele SOM (grille 5x5)
+som = SOM(grid_size=(5,5), d=4)
+som.fit(X_norm, n_epochs=20)
+
+# Projection sur la carte
+clusters = som.predict(X_norm)
+
+# Visualisation
+plt.figure(figsize=(8,6))
+pos = som.positions
+for i in range(len(X_norm)):
+    plt.scatter(pos[clusters[i],0], pos[clusters[i],1],
+                c=f'C{y[i]}', s=60, alpha=0.8, edgecolors='k')
+
+# Grille
+for j, (px, py) in enumerate(pos):
+    plt.plot(px, py, 'ks', markersize=4, color='gray')
+
+plt.title("Projection SOM des iris (grille 5x5)")
+plt.xlabel("Position x sur la grille")
+plt.ylabel("Position y sur la grille")
+plt.grid(alpha=0.3)
+plt.show()
+\end{lstlisting}
+
+\subsection{Avec la bibliothèque MiniSom}
+
+\begin{lstlisting}[language=Python, caption=SOM avec MiniSom]
+!pip install minisom
+
+from minisom import MiniSom
+
+# Normalisation
+X_norm = (X - X.mean(axis=0)) / X.std(axis=0)
+
+# Initialisation
+som = MiniSom(5, 5, 4, sigma=1.0, learning_rate=0.5)
+som.random_weights_init(X_norm)
+som.train_random(X_norm, 500)
+
+# U-Matrix
+plt.figure(figsize=(8,6))
+from matplotlib.patches import RegularPolygon
+from matplotlib.collections import PatchCollection
+
+# Carte des distances (U-Matrix)
+U = som.distance_map()
+plt.imshow(U, cmap='bone_r', origin='upper')
+plt.colorbar(label='Distance moyenne aux voisins')
+plt.title("U-Matrix — Carte de Kohonen (Iris)")
+plt.show()
+
+# Hit map
+plt.figure(figsize=(8,6))
+som_labels = som.labels_map(X_norm, iris.target_names[y])
+# (affichage des effectifs par cellule — cf. documentation)
+\end{lstlisting}
+
+% ============================================================
+\section{Code R}
+% ============================================================
+
+\begin{lstlisting}[language=Rlang, caption=SOM avec le package kohonen]
+# Installation
+# install.packages("kohonen")
+
+library(kohonen)
+library(ggplot2)
+
+# Jeu de donnees Iris
+data(iris)
+X <- as.matrix(iris[,1:4])
+
+# Normalisation
+X_norm <- scale(X)
+
+# Modele SOM (grille hexagonale 5x5)
+set.seed(42)
+grille <- somgrid(xdim=5, ydim=5, topo="hexagonal")
+som_model <- som(X_norm, grid=grille, rlen=500,
+                 alpha=c(0.5,0.01), radius=c(2,0.1))
+
+# Visualisation de l'entrainement
+plot(som_model, type="changes", main="Evolution de la distance")
+
+# U-Matrix
+plot(som_model, type="dist.neighbours",
+     main="U-Matrix", palette.name=topo.colors)
+
+# Clustering
+plot(som_model, type="codes",
+     main="Vecteurs de poids", palette.name=topo.colors)
+
+# Carte des effectifs
+plot(som_model, type="counts",
+     main="Effectifs par neurone")
+
+# Projection des especes
+especes <- as.integer(iris$Species)
+plot(som_model, type="mapping", bg=rainbow(3)[especes],
+     main="Projection des iris", col=rainbow(3)[especes],
+     pch=19, cex=0.8)
+
+# Composantes
+plot(som_model, type="property",
+     property=getCodes(som_model,1)[,1],
+     main="Composante 1 (Sepal.Length)",
+     palette.name=topo.colors)
+\end{lstlisting}
+
+% ============================================================
+\section{Diagnostic et visualisations}
+% ============================================================
+
+\subsection{U-Matrix (Unified Distance Matrix)}
+La U-Matrix représente les \textbf{distances moyennes} entre chaque neurone et ses voisins immédiats sur la grille. Une zone claire indique une forte similarité entre neurones voisins (donc un cluster homogène), une zone sombre indique une frontière entre clusters.
+
+\subsection{Carte des effectifs (\textit{counts})}
+Compte le nombre d'individus projetés sur chaque neurone. Des neurones avec très peu d'individus peuvent être des \textbf{outliers} ou des artefacts.
+
+\subsection{Plans de composantes (\textit{component planes})}
+Pour chaque variable d'origine, on visualise la valeur du poids correspondant sur tous les neurones. Cela permet d'interpréter \textbf{quelles variables contribuent à la structure} de la carte.
+
+\subsection{Carte de qualité}
+On peut calculer l'erreur de quantification moyenne (MQE) et l'erreur topologique pour évaluer la qualité de la carte :
+\[
+\text{MQE} = \frac{1}{n}\sum_{i=1}^{n} \|\mathbf{x}^{(i)} - \mathbf{w}_{c(i)}\|
+\]
+où $c(i)$ est le BMU de $\mathbf{x}^{(i)}$.
+
+% ============================================================
+\section{Résumé — Points clés}
+% ============================================================
+
+\begin{center}
+\begin{tabular}{lp{10cm}}
+\toprule
+\textbf{Concept} & \textbf{À retenir} \\
+\midrule
+Type & Apprentissage non supervisé \\
+Objectif & Réduction de dimension + conservation topologie \\
+BMU & Neurone le plus proche de l'entrée (distance euclidienne) \\
+Mise à jour & $\mathbf{w}_j \leftarrow \mathbf{w}_j + \alpha \, h_{c,j} \, (\mathbf{x} - \mathbf{w}_j)$ \\
+Voisinage & Gaussien : $h_{c,j} = \exp(-\| \mathbf{r}_c - \mathbf{r}_j\|^2 / 2\sigma^2)$ \\
+Décroissance & $\alpha$ et $\sigma$ diminuent avec le temps \\
+Visualisations & U-Matrix, composantes, effectifs, projection \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+% ============================================================
+\section*{QCM — Vérifiez vos connaissances}
+% ============================================================
+
+\medskip
+\textit{Pour chaque question, choisissez la ou les bonnes réponses. Les réponses sont en page \pageref{reponses}.}
+
+\medskip
+
+\begin{enumerate}
+
+    \item Que signifie l'acronyme \textbf{SOM} ?
+    \begin{enumerate}
+        \item Self-Organizing Machine
+        \item Self-Organizing Map
+        \item Systematic Ordered Mapping
+        \item Supervised Objective Method
+    \end{enumerate}
+
+    \item Les cartes de Kohonen sont une méthode d'apprentissage :
+    \begin{enumerate}
+        \item supervisé
+        \item non supervisé
+        \item par renforcement
+        \item semi-supervisé
+    \end{enumerate}
+
+    \item Comment détermine-t-on le \textbf{BMU} (Best Matching Unit) pour un vecteur d'entrée $\mathbf{x}$ ?
+    \begin{enumerate}
+        \item En maximisant la distance à $\mathbf{x}$
+        \item En minimisant la distance euclidienne à $\mathbf{x}$
+        \item En calculant la moyenne de tous les poids
+        \item En choisissant aléatoirement un neurone
+    \end{enumerate}
+
+    \item La fonction de voisinage $h_{c,j}$ utilisée dans la mise à jour des poids est typiquement :
+    \begin{enumerate}
+        \item une fonction linéaire
+        \item une fonction exponentielle décroissante
+        \item une gaussienne
+        \item une fonction sinus
+    \end{enumerate}
+
+    \item Quel est le rôle du \textbf{taux d'apprentissage} $\alpha(t)$ dans l'algorithme SOM ?
+    \begin{enumerate}
+        \item Il détermine la taille de la grille
+        \item Il contrôle l'ampleur de la mise à jour des poids
+        \item Il fixe le nombre d'itérations
+        \item Il initialise les poids
+    \end{enumerate}
+
+    \item Au fil des itérations, le taux d'apprentissage $\alpha$ et le rayon de voisinage $\sigma$ :
+    \begin{enumerate}
+        \item augmentent
+        \item restent constants
+        \item diminuent
+        \item oscillent
+    \end{enumerate}
+
+    \item Que visualise la \textbf{U-Matrix} (Unified Distance Matrix) ?
+    \begin{enumerate}
+        \item Les valeurs des poids de chaque neurone
+        \item Les distances moyennes entre chaque neurone et ses voisins
+        \item Le nombre d'individus par neurone
+        \item L'évolution de l'erreur au cours de l'apprentissage
+    \end{enumerate}
+
+    \item En Python, quelle bibliothèque légère est dédiée aux cartes de Kohonen ?
+    \begin{enumerate}
+        \item scikit-learn
+        \item MiniSom
+        \item TensorFlow
+        \item Keras
+    \end{enumerate}
+
+    \item En R, quel package permet d'implémenter les cartes de Kohonen ?
+    \begin{enumerate}
+        \item ggplot2
+        \item kohonen
+        \item randomForest
+        \item caret
+    \end{enumerate}
+
+    \item Quelle est la \textbf{propriété fondamentale} des cartes de Kohonen ?
+    \begin{enumerate}
+        \item Elles maximisent la variance inter-classe
+        \item Elles préservent la topologie des données d'entrée
+        \item Elles minimisent l'erreur de prédiction
+        \item Elles nécessitent des données étiquetées
+    \end{enumerate}
+
+\end{enumerate}
+
+\newpage
+\label{reponses}
+
+\begin{center}
+{\Large\textbf{Réponses au QCM}}
+\end{center}
+
+\medskip
+
+\begin{tabular}{cp{10cm}}
+\toprule
+\textbf{N°} & \textbf{Réponse} & \textbf{Explication} \\
+\midrule
+1 & \textbf{b} & SOM = Self-Organizing Map (carte auto-organisatrice). \\
+2 & \textbf{b} & Les cartes de Kohonen sont une méthode d'apprentissage non supervisé : on ne fournit pas les étiquettes. \\
+3 & \textbf{b} & Le BMU est le neurone dont le vecteur de poids est le plus proche de $\mathbf{x}$ au sens de la distance euclidienne. \\
+4 & \textbf{c} & Le voisinage gaussien $h_{c,j} = \exp(-\| \mathbf{r}_c - \mathbf{r}_j\|^2 / 2\sigma^2)$ est le plus courant. \\
+5 & \textbf{b} & $\alpha$ contrôle la vitesse d'apprentissage : plus $\alpha$ est grand, plus les poids sont modifiés. \\
+6 & \textbf{c} & $\alpha$ et $\sigma$ diminuent avec le temps pour permettre une convergence stable. \\
+7 & \textbf{b} & La U-Matrix représente les distances entre neurones voisins : zones claires = clusters. \\
+8 & \textbf{b} & MiniSom est une bibliothèque Python légère dédiée aux cartes de Kohonen. \\
+9 & \textbf{b} & Le package \texttt{kohonen} est le plus utilisé en R pour les SOM. \\
+10 & \textbf{b} & Les cartes de Kohonen préservent la topologie : des points proches en entrée restent proches sur la carte. \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5cm}
+
+\begin{center}
+\rule{0.6\textwidth}{0.4pt}
+\vspace{0.3cm}
+\textit{Fin de la fiche.}
+\end{center}
+
+\end{document}

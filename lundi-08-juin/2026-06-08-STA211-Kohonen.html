@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Cartes de Kohonen — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+.tag { color: #569cd6; }
+.attr { color: #9cdcfe; }
+.val { color: #ce9178; }
+
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.som-app {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin: 1.5rem 0;
+}
+.som-app canvas {
+    display: block;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+}
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 0.8rem 0;
+}
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    background: #fff;
+    color: #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+.controls button:hover { background: #1a73e8; color: #fff; }
+.controls button.primary { background: #1a73e8; color: #fff; }
+.controls button.primary:hover { background: #1557b0; }
+.controls button:disabled { opacity: 0.5; cursor: default; }
+.controls button:disabled:hover { background: #fff; color: #1a73e8; }
+.info-panel {
+    font-size: 0.85rem;
+    text-align: center;
+    background: #fff;
+    padding: 0.6rem 1rem;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    margin: 0.5rem 0;
+}
+.info-panel .highlight { color: #d32f2f; font-weight: bold; }
+.info-panel .highlight-bmu { color: #1a73e8; font-weight: bold; }
+
+ul, ol { margin: 0.5rem 0 0.5rem 1.8rem; }
+li { margin-bottom: 0.3rem; }
+
+.note {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.alert {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 0.6rem 1rem;
+    margin: 0.6rem 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+}
+.math { font-family: 'Cambria', 'Times New Roman', serif; }
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+.card {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+.card h4 { color: #1a73e8; margin-bottom: 0.3rem; }
+</style>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]]
+  },
+  svg: {
+    fontCache: "global"
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>Cartes de Kohonen</h1>
+<p class="subtitle">Self-Organizing Maps (SOM) — STA211 — 8 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Présentation</a></li>
+    <li><a href="#archi">Architecture</a></li>
+    <li><a href="#algo">Algorithme</a></li>
+    <li><a href="#demo">Démonstration interactive</a></li>
+    <li><a href="#python">Code Python</a></li>
+    <li><a href="#r">Code R</a></li>
+    <li><a href="#visu">Visualisations</a></li>
+    <li><a href="#resume">Résumé</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Présentation</h2>
+
+<p>Les <strong>cartes de Kohonen</strong> (SOM) sont des réseaux de neurones artificiels en <strong>apprentissage non supervisé</strong> qui projettent des données de grande dimension sur une grille 2D tout en <strong>préservant la topologie</strong> : des points voisins dans l'espace d'entrée restent voisins sur la carte.</p>
+
+<div class="grid">
+<div class="card">
+<h4>🎯 Objectifs</h4>
+<ul>
+    <li>Réduction de dimension (visualisation)</li>
+    <li>Clustering non supervisé</li>
+    <li>Conservation de la topologie</li>
+</ul>
+</div>
+<div class="card">
+<h4>✨ Propriété clé</h4>
+<p>Deux points proches dans l'espace d'entrée sont représentés par des neurones proches (ou identiques) sur la carte.</p>
+</div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="archi">2. Architecture</h2>
+
+<p>La carte est composée de deux couches :</p>
+<ul>
+    <li><strong>Couche d'entrée :</strong> chaque neurone correspond à une variable (dimension <em>d</em>).</li>
+    <li><strong>Couche de sortie (carte) :</strong> grille de neurones (souvent rectangulaire ou hexagonale). Chaque neurone <em>j</em> a un <strong>vecteur de poids</strong> <strong>w</strong><sub>j</sub> ∈ ℝ<sup>d</sup>.</li>
+</ul>
+
+<div class="formula">
+\(\text{Dimension d'entrée : } d \to \text{Grille } n_x \times n_y \text{ neurones}\)
+</div>
+
+<!-- ============================================ -->
+<h2 id="algo">3. Algorithme</h2>
+
+<h3>3.1 Principe</h3>
+<ol>
+    <li><strong>Initialisation :</strong> poids aléatoires <strong>w</strong><sub>j</sub>(0).</li>
+    <li>Pour chaque individu <strong>x</strong><sup>(i)</sup> :</li>
+    <ol>
+        <li>Trouver le <strong>BMU</strong> (Best Matching Unit) — neurone le plus proche.</li>
+        <li>Mettre à jour le BMU et ses voisins.</li>
+    </ol>
+    <li>Répéter en diminuant α et σ.</li>
+</ol>
+
+<h3>3.2 Formules</h3>
+
+<div class="formula">
+\(\text{BMU : } c = \arg\min_j \|\mathbf{x} - \mathbf{w}_j\|\)
+</div>
+
+<div class="formula">
+\(\mathbf{w}_j(t+1) = \mathbf{w}_j(t) + \alpha(t) \cdot h_{c,j}(t) \cdot (\mathbf{x} - \mathbf{w}_j(t))\)
+</div>
+
+<div class="formula">
+\(h_{c,j} = \exp\!\big(-\|\mathbf{r}_c - \mathbf{r}_j\|^2 / 2\sigma^2\big)\)
+</div>
+
+<div class="formula">
+\(\alpha(t) = \alpha_0 (1 - t/T),\; \sigma(t) = \sigma_0 (1 - t/T)\)
+</div>
+
+<div class="note">
+<strong>Note :</strong> Le BMU est mis à jour avec h = 1 (le plus fortement), ses voisins avec h &lt; 1 (d'autant moins que la distance sur la grille est grande).
+</div>
+
+<!-- ============================================ -->
+<h2 id="demo">4. Démonstration interactive</h2>
+
+<p>Cliquez sur le canvas pour générer des données aléatoires, puis entraînez la carte pas à pas. Les points sont les données d'entraînement. Les cercles colorés sont les neurones (poids) reliés par leur voisinage dans la grille.</p>
+
+<div class="som-app">
+    <canvas id="somCanvas" width="600" height="400"></canvas>
+    <div class="info-panel" id="infoPanel">
+        Itération : <span id="iterCount">0</span> / <span id="maxIter">20</span> |
+        α = <span id="alphaVal">0.50</span> | σ = <span id="sigmaVal">1.00</span> |
+        Neurones : <span id="neuronCount">16</span>
+    </div>
+    <div class="info-panel" id="bmuPanel">
+        Dernier BMU : <span id="bmuInfo">—</span>
+    </div>
+    <div class="controls">
+        <button id="btnGenData" class="primary">Générer des données</button>
+        <button id="btnStep">Pas à pas</button>
+        <button id="btnEpoch">Une époque</button>
+        <button id="btnFull">Entraînement complet</button>
+        <button id="btnReset">Réinitialiser</button>
+    </div>
+    <div class="controls">
+        <label>Grille :
+            <select id="gridSelect">
+                <option value="3x3">3×3</option>
+                <option value="4x4" selected>4×4</option>
+                <option value="5x5">5×5</option>
+                <option value="6x6">6×6</option>
+            </select>
+        </label>
+        <label>Points :
+            <select id="nPoints">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="200">200</option>
+            </select>
+        </label>
+    </div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h4>💡 Interprétation</h4>
+<ul>
+    <li>Les neurones (cercles) se déplacent pour couvrir les données.</li>
+    <li>La grille se déforme mais la <strong>topologie</strong> est conservée.</li>
+    <li>Après entraînement, des neurones voisins codent des régions voisines.</li>
+</ul>
+</div>
+<div class="card">
+<h4>🎮 Utilisation</h4>
+<ol>
+    <li>Cliquez <strong>"Générer des données"</strong>.</li>
+    <li>Cliquez <strong>"Pas à pas"</strong> pour voir chaque mise à jour.</li>
+    <li>Ou <strong>"Une époque"</strong> / <strong>"Entraînement complet"</strong>.</li>
+</ol>
+</div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="python">5. Code Python</h2>
+
+<h3>5.1 Implémentation simple avec NumPy</h3>
+
+<div class="code-block">
+<pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+<span class="kw">class</span> <span class="fn">SOM</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, grid_size, d, alpha_0=<span class="num">0.5</span>, sigma_0=<span class="num">1.0</span>):
+        <span class="kw">self</span>.grid_size = grid_size
+        n_neurons = grid_size[<span class="num">0</span>] * grid_size[<span class="num">1</span>]
+        <span class="kw">self</span>.W = np.random.randn(n_neurons, d)
+        <span class="kw">self</span>.alpha_0 = alpha_0
+        <span class="kw">self</span>.sigma_0 = sigma_0
+        <span class="kw">self</span>.positions = np.array([(i,j) <span class="kw">for</span> i <span class="kw">in</span> range(grid_size[<span class="num">0</span>])
+                                           <span class="kw">for</span> j <span class="kw">in</span> range(grid_size[<span class="num">1</span>)])
+
+    <span class="kw">def</span> <span class="fn">bmu</span>(<span class="kw">self</span>, x):
+        dist = np.linalg.norm(<span class="kw">self</span>.W - x, axis=<span class="num">1</span>)
+        <span class="kw">return</span> np.argmin(dist)
+
+    <span class="kw">def</span> <span class="fn">fit</span>(<span class="kw">self</span>, X, n_epochs=<span class="num">10</span>):
+        n = len(X)
+        <span class="kw">for</span> epoch <span class="kw">in</span> range(n_epochs):
+            alpha = <span class="kw">self</span>.alpha_0 * (<span class="num">1</span> - epoch/n_epochs)
+            sigma = <span class="kw">self</span>.sigma_0 * (<span class="num">1</span> - epoch/n_epochs)
+            np.random.shuffle(X)
+            <span class="kw">for</span> x <span class="kw">in</span> X:
+                c = <span class="kw">self</span>.bmu(x)
+                <span class="kw">for</span> j <span class="kw">in</span> range(len(<span class="kw">self</span>.W)):
+                    d_grid = np.linalg.norm(
+                        <span class="kw">self</span>.positions[c] - <span class="kw">self</span>.positions[j])
+                    h = np.exp(-d_grid**<span class="num">2</span> / (<span class="num">2</span> * sigma**<span class="num">2</span>))
+                    <span class="kw">self</span>.W[j] += alpha * h * (x - <span class="kw">self</span>.W[j])
+
+    <span class="kw">def</span> <span class="fn">predict</span>(<span class="kw">self</span>, X):
+        <span class="kw">return</span> np.array([<span class="kw">self</span>.bmu(x) <span class="kw">for</span> x <span class="kw">in</span> X])
+</pre>
+</div>
+
+<h3>5.2 Application sur Iris</h3>
+
+<div class="code-block">
+<pre><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_iris
+<span class="kw">from</span> minisom <span class="kw">import</span> MiniSom
+
+iris = load_iris()
+X = iris.data
+X_norm = (X - X.mean(axis=<span class="num">0</span>)) / X.std(axis=<span class="num">0</span>)
+
+<span class="cm"># Modele SOM (grille 5x5)</span>
+som = MiniSom(<span class="num">5</span>, <span class="num">5</span>, <span class="num">4</span>, sigma=<span class="num">1.0</span>, learning_rate=<span class="num">0.5</span>)
+som.random_weights_init(X_norm)
+som.train_random(X_norm, <span class="num">500</span>)
+
+<span class="cm"># U-Matrix</span>
+plt.imshow(som.distance_map(), cmap=<span class="str">'bone_r'</span>)
+plt.colorbar()
+plt.title(<span class="str">"U-Matrix — Iris"</span>)
+plt.show()
+</pre>
+</div>
+
+<!-- ============================================ -->
+<h2 id="r">6. Code R</h2>
+
+<div class="code-block">
+<pre><span class="kw">library</span>(kohonen)
+
+data(iris)
+X <span class="op">&lt;-</span> as.matrix(iris[, <span class="num">1</span>:<span class="num">4</span>])
+X_norm <span class="op">&lt;-</span> <span class="fn">scale</span>(X)
+
+<span class="cm"># Modele SOM</span>
+grille <span class="op">&lt;-</span> <span class="fn">somgrid</span>(xdim=<span class="num">5</span>, ydim=<span class="num">5</span>, topo=<span class="str">"hexagonal"</span>)
+som_model <span class="op">&lt;-</span> <span class="fn">som</span>(X_norm, grid=grille, rlen=<span class="num">500</span>,
+                alpha=c(<span class="num">0.5</span>, <span class="num">0.01</span>), radius=c(<span class="num">2</span>, <span class="num">0.1</span>))
+
+<span class="cm"># U-Matrix</span>
+<span class="fn">plot</span>(som_model, type=<span class="str">"dist.neighbours"</span>,
+     palette.name=topo.colors, main=<span class="str">"U-Matrix"</span>)
+
+<span class="cm"># Projection des especes</span>
+especes <span class="op">&lt;-</span> as.integer(iris$Species)
+<span class="fn">plot</span>(som_model, type=<span class="str">"mapping"</span>, bg=<span class="fn">rainbow</span>(<span class="num">3</span>)[especes],
+     main=<span class="str">"Projection des iris"</span>)
+</pre>
+</div>
+
+<!-- ============================================ -->
+<h2 id="visu">7. Visualisations</h2>
+
+<div class="grid">
+<div class="card">
+<h4>🗺️ U-Matrix</h4>
+<p>Distance moyenne entre chaque neurone et ses voisins. Zones claires = clusters, zones sombres = frontières.</p>
+</div>
+<div class="card">
+<h4>📊 Effectifs (counts)</h4>
+<p>Nombre d'individus par neurone. Certains neurones morts peuvent indiquer un mauvais dimensionnement.</p>
+</div>
+<div class="card">
+<h4>📐 Plans de composantes</h4>
+<p>Valeur d'une variable sur chaque neurone. Permet d'interpréter les clusters.</p>
+</div>
+<div class="card">
+<h4>📈 Erreur de quantification (MQE)</h4>
+<p>MQE = (1/n) Σ ∥<strong>x</strong><sup>(i)</sup> − <strong>w</strong><sub>c(i)</sub>∥. Plus elle est faible, mieux la carte représente les données.</p>
+</div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="resume">8. Résumé</h2>
+
+<table>
+<tr><th>Concept</th><th>À retenir</th></tr>
+<tr><td>Type</td><td>Apprentissage non supervisé</td></tr>
+<tr><td>Objectif</td><td>Réduction de dimension + conservation topologie</td></tr>
+<tr><td>BMU</td><td>Neurone le plus proche (distance euclidienne)</td></tr>
+<tr><td>Mise à jour</td><td><strong>w</strong><sub>j</sub> ← <strong>w</strong><sub>j</sub> + α · h<sub>c,j</sub> · (<strong>x</strong> − <strong>w</strong><sub>j</sub>)</td></tr>
+<tr><td>Voisinage</td><td>Gaussien : h = exp(−d²/2σ²)</td></tr>
+<tr><td>Décroissance</td><td>α et σ diminuent avec le temps</td></tr>
+<tr><td>Bibliothèques</td><td>Python : <tt>minisom</tt> · R : <tt>kohonen</tt></td></tr>
+</table>
+
+<div class="success">
+<strong>Points clés à retenir pour l'examen :</strong>
+<ol>
+    <li>Le BMU se trouve par <strong>distance euclidienne minimale</strong>.</li>
+    <li>La mise à jour utilise un <strong>voisinage gaussien</strong> qui décroît.</li>
+    <li>La carte préserve la <strong>topologie</strong> des données d'entrée.</li>
+    <li>La <strong>U-Matrix</strong> visualise les distances entre neurones voisins (frontières de clusters).</li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">9. QCM interactif</h2>
+
+<p>Testez vos connaissances sur les cartes de Kohonen. Choisissez la bonne réponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">📋 Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">— Fin de la fiche interactive —</p>
+
+</div>
+
+<script>
+// ============================================================
+// QCM Data
+// ============================================================
+const qcmData = [
+    {
+        q: "Que signifie l'acronyme SOM ?",
+        options: [
+            "Self-Organizing Machine",
+            "Self-Organizing Map",
+            "Systematic Ordered Mapping",
+            "Supervised Objective Method"
+        ],
+        correct: 1,
+        expl: "SOM = Self-Organizing Map (carte auto-organisatrice)."
+    },
+    {
+        q: "Les cartes de Kohonen sont une méthode d'apprentissage :",
+        options: [
+            "supervisé",
+            "non supervisé",
+            "par renforcement",
+            "semi-supervisé"
+        ],
+        correct: 1,
+        expl: "Les cartes de Kohonen sont non supervisées : on ne fournit pas d'étiquettes."
+    },
+    {
+        q: "Comment détermine-t-on le BMU (Best Matching Unit) pour un vecteur d'entrée x ?",
+        options: [
+            "En maximisant la distance à x",
+            "En minimisant la distance euclidienne à x",
+            "En calculant la moyenne de tous les poids",
+            "En choisissant aléatoirement un neurone"
+        ],
+        correct: 1,
+        expl: "Le BMU est le neurone dont le poids est le plus proche de x (distance euclidienne minimale)."
+    },
+    {
+        q: "La fonction de voisinage utilisée dans la mise à jour des poids est typiquement :",
+        options: [
+            "une fonction linéaire",
+            "une fonction exponentielle décroissante",
+            "une gaussienne",
+            "une fonction sinus"
+        ],
+        correct: 2,
+        expl: "Le voisinage gaussien est le plus courant : h = exp(-d² / 2σ²)."
+    },
+    {
+        q: "Quel est le rôle du taux d'apprentissage α(t) dans l'algorithme SOM ?",
+        options: [
+            "Il détermine la taille de la grille",
+            "Il contrôle l'ampleur de la mise à jour des poids",
+            "Il fixe le nombre d'itérations",
+            "Il initialise les poids"
+        ],
+        correct: 1,
+        expl: "α contrôle la vitesse d'apprentissage : plus α est grand, plus les poids sont modifiés."
+    },
+    {
+        q: "Au fil des itérations, le taux d'apprentissage α et le rayon σ :",
+        options: [
+            "augmentent",
+            "restent constants",
+            "diminuent",
+            "oscillent"
+        ],
+        correct: 2,
+        expl: "α et σ diminuent avec le temps pour permettre une convergence stable."
+    },
+    {
+        q: "Que visualise la U-Matrix (Unified Distance Matrix) ?",
+        options: [
+            "Les valeurs des poids de chaque neurone",
+            "Les distances moyennes entre chaque neurone et ses voisins",
+            "Le nombre d'individus par neurone",
+            "L'évolution de l'erreur au cours de l'apprentissage"
+        ],
+        correct: 1,
+        expl: "La U-Matrix montre les distances entre neurones voisins. Zones claires = clusters."
+    },
+    {
+        q: "En Python, quelle bibliothèque légère est dédiée aux cartes de Kohonen ?",
+        options: [
+            "scikit-learn",
+            "MiniSom",
+            "TensorFlow",
+            "Keras"
+        ],
+        correct: 1,
+        expl: "MiniSom est une bibliothèque Python légère dédiée aux SOM."
+    },
+    {
+        q: "En R, quel package permet d'implémenter les cartes de Kohonen ?",
+        options: [
+            "ggplot2",
+            "kohonen",
+            "randomForest",
+            "caret"
+        ],
+        correct: 1,
+        expl: "Le package 'kohonen' est le plus utilisé en R pour les SOM."
+    },
+    {
+        q: "Quelle est la propriété fondamentale des cartes de Kohonen ?",
+        options: [
+            "Elles maximisent la variance inter-classe",
+            "Elles préservent la topologie des données d'entrée",
+            "Elles minimisent l'erreur de prédiction",
+            "Elles nécessitent des données étiquetées"
+        ],
+        correct: 1,
+        expl: "Propriété clé : deux points proches en entrée sont représentés par des neurones proches sur la carte."
+    }
+];
+
+// ============================================================
+// QCM Rendering (interactive: feedback on selection, recap on demand)
+// ============================================================
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const letters = ['a', 'b', 'c', 'd'];
+        const answered = qcmLocked[i];
+        const isCorrect = answered && userAnswers[i] === item.correct;
+        const isWrong = answered && userAnswers[i] !== item.correct;
+        const borderColor = answered
+            ? (isCorrect ? '#28a745' : '#dc3545')
+            : '#e0e0e0';
+
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;${answered ? ' background:#fafafa;' : ''}">`;
+        html += `<div style="font-weight:bold; margin-bottom:0.4rem;">Question ${i+1}. ${item.q}</div>`;
+
+        for (let j = 0; j < item.options.length; j++) {
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            const disabled = answered ? 'disabled' : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `<span>${letters[j]}) ${item.options[j]}</span>`;
+            html += `</label>`;
+        }
+
+        // Immediate feedback when answered
+        if (answered) {
+            const correct = isCorrect;
+            html += `<div style="margin-top:0.4rem; font-size:0.85rem; padding:0.4rem 0.6rem; border-radius:3px; background:${correct ? '#d4edda' : '#f8d7da'};">`;
+            html += correct
+                ? '✓ <strong>Correct !</strong>'
+                : `✗ <strong>Incorrect.</strong> La bonne réponse était <strong>${letters[item.correct]}) ${item.options[item.correct]}</strong>.`;
+            html += `<br><span style="color:#555;">${item.expl}</span>`;
+            html += '</div>';
+        }
+
+        html += '</div>';
+    }
+    qcmContainer.innerHTML = html;
+
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+// Handle radio clicks — immediate feedback
+qcmContainer.addEventListener('change', (e) => {
+    if (e.target.type !== 'radio') return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return; // already answered
+
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+
+    // Re-render to show feedback
+    renderQCM();
+
+    // Auto-scroll to the feedback
+    const qDiv = document.querySelector(`.qcm-question[data-idx="${idx}"]`);
+    if (qDiv) qDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez répondu qu'à ${answered}/${qcmData.length} questions. Afficher le récapitulatif quand même ?`)) {
+            return;
+        }
+    }
+
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            const letters = ['a', 'b', 'c', 'd'];
+            errors.push({
+                num: i + 1,
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de réponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745; font-weight:bold;">🎉 Aucune erreur ! Toutes vos réponses sont correctes.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;">
+                <strong>Q${e.num} :</strong> ${e.q}<br>
+                <span style="color:#dc3545;">Votre réponse : ${e.userAns}</span><br>
+                <span style="color:#28a745;">Bonne réponse : ${e.correctAns}</span><br>
+                <span style="color:#555; font-size:0.9rem;">${e.expl}</span>
+            </li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+
+    recapDiv.style.display = 'block';
+    recapDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+// Initial render
+renderQCM();
+</script>
+
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="bash">
+<｜｜DSML｜｜parameter name="command" string="true">true
+
+<script>
+// ============================================================
+// Interactive SOM demonstration
+// ============================================================
+
+const canvas = document.getElementById('somCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+// State
+let data = [];
+let W_weights = []; // array of {x, y}
+let n_neurons_x = 4;
+let n_neurons_y = 4;
+let gridPositions = [];
+let iteration = 0;
+let total_epochs = 20;
+let alpha_0 = 0.5;
+let sigma_0 = 1.0;
+let current_epoch = 0;
+let current_idx = 0;
+let isTraining = false;
+let trained = false;
+
+function generateData(n) {
+    const centers = [
+        [0.2, 0.3], [0.8, 0.3], [0.3, 0.7], [0.75, 0.7],
+        [0.1, 0.1], [0.9, 0.9]
+    ];
+    data = [];
+    for (let i = 0; i < n; i++) {
+        const c = centers[Math.floor(Math.random() * centers.length)];
+        data.push({
+            x: Math.max(0.02, Math.min(0.98, c[0] + (Math.random() - 0.5) * 0.2)),
+            y: Math.max(0.02, Math.min(0.98, c[1] + (Math.random() - 0.5) * 0.2))
+        });
+    }
+}
+
+function initGrid(nx, ny) {
+    n_neurons_x = nx;
+    n_neurons_y = ny;
+    gridPositions = [];
+    for (let i = 0; i < nx; i++) {
+        for (let j = 0; j < ny; j++) {
+            gridPositions.push({x: i, y: j});
+        }
+    }
+    W_weights = [];
+    for (let k = 0; k < nx * ny; k++) {
+        W_weights.push({
+            x: 0.1 + Math.random() * 0.8,
+            y: 0.1 + Math.random() * 0.8
+        });
+    }
+    iteration = 0;
+    current_epoch = 0;
+    current_idx = 0;
+    trained = false;
+    updateInfo();
+}
+
+function getAlpha(t) {
+    return alpha_0 * (1 - t / total_epochs);
+}
+
+function getSigma(t) {
+    return Math.max(0.1, sigma_0 * (1 - t / total_epochs));
+}
+
+function findBMU(x, y) {
+    let minDist = Infinity;
+    let bmu = 0;
+    for (let k = 0; k < W_weights.length; k++) {
+        const d = Math.hypot(x - W_weights[k].x, y - W_weights[k].y);
+        if (d < minDist) { minDist = d; bmu = k; }
+    }
+    return bmu;
+}
+
+function gridDist(k1, k2) {
+    const p1 = gridPositions[k1];
+    const p2 = gridPositions[k2];
+    return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+function stepOnce() {
+    if (data.length === 0) { generateData(100); }
+    if (current_epoch >= total_epochs) { trained = true; return; }
+
+    const alpha = getAlpha(current_epoch);
+    const sigma = getSigma(current_epoch);
+
+    // Pick one data point
+    if (current_idx >= data.length) {
+        current_epoch++;
+        current_idx = 0;
+        if (current_epoch >= total_epochs) { trained = true; updateInfo(); draw(); return; }
+    }
+
+    const pt = data[current_idx];
+    const bmu = findBMU(pt.x, pt.y);
+
+    // Update weights
+    for (let k = 0; k < W_weights.length; k++) {
+        const d_grid = gridDist(bmu, k);
+        const h = Math.exp(-d_grid * d_grid / (2 * sigma * sigma));
+        W_weights[k].x += alpha * h * (pt.x - W_weights[k].x);
+        W_weights[k].y += alpha * h * (pt.y - W_weights[k].y);
+    }
+
+    document.getElementById('bmuInfo').textContent = `Neurone #${bmu} (pos grille [${gridPositions[bmu].x},${gridPositions[bmu].y}])`;
+    document.getElementById('bmuPanel').style.display = 'block';
+
+    current_idx++;
+    iteration++;
+    updateInfo();
+    draw();
+}
+
+function runEpoch() {
+    if (data.length === 0) { generateData(100); }
+    if (current_epoch >= total_epochs) { trained = true; return; }
+
+    const alpha = getAlpha(current_epoch);
+    const sigma = getSigma(current_epoch);
+
+    // Shuffle data order
+    const shuffled = [...data];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    for (const pt of shuffled) {
+        const bmu = findBMU(pt.x, pt.y);
+        for (let k = 0; k < W_weights.length; k++) {
+            const d_grid = gridDist(bmu, k);
+            const h = Math.exp(-d_grid * d_grid / (2 * sigma * sigma));
+            W_weights[k].x += alpha * h * (pt.x - W_weights[k].x);
+            W_weights[k].y += alpha * h * (pt.y - W_weights[k].y);
+        }
+    }
+
+    current_epoch++;
+    iteration = current_epoch * data.length;
+    updateInfo();
+    draw();
+    if (current_epoch >= total_epochs) trained = true;
+}
+
+function runFull() {
+    if (data.length === 0) { generateData(100); }
+    if (trained) return;
+
+    function runNext() {
+        if (current_epoch >= total_epochs) { trained = true; updateInfo(); draw(); return; }
+        runEpoch();
+        setTimeout(runNext, 50);
+    }
+    runNext();
+}
+
+function updateInfo() {
+    const alpha = current_epoch < total_epochs ? getAlpha(current_epoch) : 0;
+    const sigma = current_epoch < total_epochs ? getSigma(current_epoch) : 0;
+    document.getElementById('iterCount').textContent = current_epoch;
+    document.getElementById('maxIter').textContent = total_epochs;
+    document.getElementById('alphaVal').textContent = alpha.toFixed(3);
+    document.getElementById('sigmaVal').textContent = sigma.toFixed(3);
+    document.getElementById('neuronCount').textContent = W_weights.length;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    function toCanvas(vx, vy) {
+        return [35 + vx * 530, 25 + (1 - vy) * 350];
+    }
+
+    // Draw data points
+    for (const pt of data) {
+        const [cx, cy] = toCanvas(pt.x, pt.y);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+        ctx.fill();
+    }
+
+    // Draw grid lines (connections between neighboring neurons)
+    ctx.strokeStyle = 'rgba(26, 115, 232, 0.25)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < n_neurons_x; i++) {
+        for (let j = 0; j < n_neurons_y; j++) {
+            const idx = i * n_neurons_y + j;
+            // Connect to right neighbor
+            if (i < n_neurons_x - 1) {
+                const ridx = (i+1) * n_neurons_y + j;
+                const [x1, y1] = toCanvas(W_weights[idx].x, W_weights[idx].y);
+                const [x2, y2] = toCanvas(W_weights[ridx].x, W_weights[ridx].y);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            // Connect to bottom neighbor
+            if (j < n_neurons_y - 1) {
+                const bidx = i * n_neurons_y + (j+1);
+                const [x1, y1] = toCanvas(W_weights[idx].x, W_weights[idx].y);
+                const [x2, y2] = toCanvas(W_weights[bidx].x, W_weights[bidx].y);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        }
+    }
+
+    // Draw neurons
+    for (let k = 0; k < W_weights.length; k++) {
+        const [cx, cy] = toCanvas(W_weights[k].x, W_weights[k].y);
+        const r = 12 + 4 * (1 - current_epoch / total_epochs);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        const intensity = Math.min(1, k / W_weights.length);
+        ctx.fillStyle = `hsl(${k * 360 / W_weights.length}, 70%, 55%)`;
+        ctx.globalAlpha = 0.8;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    // Legend
+    ctx.fillStyle = '#333';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('● Données d\'entraînement', 440, 40);
+    ctx.fillStyle = '#1a73e8';
+    ctx.fillText('● Neurones (poids)', 440, 58);
+    ctx.fillStyle = '#999';
+    ctx.fillText('Connexions de voisinage', 440, 76);
+
+    if (trained) {
+        ctx.fillStyle = '#28a745';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('✓ Entraînement terminé', 440, 100);
+    }
+}
+
+// Button handlers
+document.getElementById('btnGenData').addEventListener('click', () => {
+    const n = parseInt(document.getElementById('nPoints').value);
+    generateData(n);
+    const [nx, ny] = document.getElementById('gridSelect').value.split('x').map(Number);
+    initGrid(nx, ny);
+    document.getElementById('bmuPanel').style.display = 'none';
+    draw();
+});
+
+document.getElementById('btnStep').addEventListener('click', stepOnce);
+document.getElementById('btnEpoch').addEventListener('click', runEpoch);
+document.getElementById('btnFull').addEventListener('click', runFull);
+document.getElementById('btnReset').addEventListener('click', () => {
+    const [nx, ny] = document.getElementById('gridSelect').value.split('x').map(Number);
+    initGrid(nx, ny);
+    document.getElementById('bmuPanel').style.display = 'none';
+    draw();
+});
+
+document.getElementById('gridSelect').addEventListener('change', () => {
+    const [nx, ny] = document.getElementById('gridSelect').value.split('x').map(Number);
+    initGrid(nx, ny);
+    if (data.length === 0) generateData(100);
+    document.getElementById('bmuPanel').style.display = 'none';
+    draw();
+});
+
+document.getElementById('nPoints').addEventListener('change', () => {
+    generateData(parseInt(document.getElementById('nPoints').value));
+    draw();
+});
+
+// Initial state
+generateData(100);
+initGrid(4, 4);
+document.getElementById('bmuPanel').style.display = 'none';
+draw();
+</script>
+
+</body>
+</html>
