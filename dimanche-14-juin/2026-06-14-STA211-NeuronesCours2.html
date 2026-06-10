@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 &mdash; R&eacute;seaux de neurones &mdash; Cours 2 &mdash; Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; R&eacute;seaux de neurones &mdash; Cours 2</h1>
+<p class="subtitle">R&eacute;seaux de neurones convolutionnels (ConvNets) et LeNet &mdash; 14 juin 2026 &mdash; N. Thome</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#limites">Limites des MLP</a></li>
+    <li><a href="#convolution">La convolution</a></li>
+    <li><a href="#pooling">Le pooling</a></li>
+    <li><a href="#architecture">Architecture d&rsquo;un ConvNet</a></li>
+    <li><a href="#lenet">&Eacute;tude de cas : LeNet-5</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="limites">1. Limites des r&eacute;seaux fully connected (MLP)</h2>
+<!-- ============================================ -->
+
+<p>Les r&eacute;seaux enti&egrave;rement connect&eacute;s (MLP) pr&eacute;sentent trois limitations majeures pour les donn&eacute;es de signaux :</p>
+
+<ol>
+    <li><strong>Explosion du nombre de param&egrave;tres :</strong> m&ecirc;me une seule couche cach&eacute;e g&eacute;n&egrave;re un nombre de poids colossal (ex : image $32\times 32$ en entr&eacute;e, couche cach&eacute;e de $1000$ neurones &rArr; $1$ million de param&egrave;tres).</li>
+    <li><strong>Ignorance de la topologie spatiale :</strong> la repr&eacute;sentation vectorielle perd toute notion de voisinage. Le MLP est indiff&eacute;rent aux permutations des pixels d&rsquo;entr&eacute;e.</li>
+    <li><strong>Absence d&rsquo;invariance :</strong> un faible d&eacute;calage en entr&eacute;e peut produire une repr&eacute;sentation compl&egrave;tement diff&eacute;rente.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="convolution">2. La convolution</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Connectivit&eacute; locale et partage de poids</h3>
+
+<p>Pour pallier ces limites, on introduit deux id&eacute;es cl&eacute;s :</p>
+
+<ol>
+    <li><strong>Connectivit&eacute; locale (sparse connectivity) :</strong> chaque neurone cach&eacute; n&rsquo;est connect&eacute; qu&rsquo;&agrave; une petite r&eacute;gion locale de l&rsquo;entr&eacute;e (champ r&eacute;cepteur), inspir&eacute; du cortex visuel.</li>
+    <li><strong>Partage de poids (shared weights) :</strong> le m&ecirc;me filtre (noyau) est appliqu&eacute; &agrave; toutes les positions spatiales, r&eacute;duisant consid&eacute;rablement le nombre de param&egrave;tres.</li>
+</ol>
+
+<h3>2.2 Convolution 2D</h3>
+
+<p>Soit une image $f$ et un filtre $h$ de taille impaire $d$. La convolution 2D est d&eacute;finie par :</p>
+
+<div class="formula">
+$f'(i,j) = (f \star h)(i,j) =
+\sum_{n=-\frac{d-1}{2}}^{\frac{d-1}{2}}
+\sum_{m=-\frac{d-1}{2}}^{\frac{d-1}{2}}
+f(i-n, j-m)\,h(n,m)$
+</div>
+
+<p>La sortie pour $1$ filtre est une carte 2D ; pour $K$ filtres on obtient $K$ cartes 2D.</p>
+
+<h3>2.3 Convolution vs corr&eacute;lation crois&eacute;e</h3>
+
+<p>La corr&eacute;lation crois&eacute;e (<em>cross-correlation</em>) est similaire mais sans sym&eacute;trisation du masque :</p>
+
+<div class="formula">
+$f'(i,j) = (f \otimes h)(i,j) =
+\sum_{n}\sum_{m} f(i+n, j+m)\,h(n,m)$
+</div>
+
+<p>En pratique, les frameworks Deep Learning impl&eacute;mentent la corr&eacute;lation crois&eacute;e (plus simple) et les filtres sont appris.</p>
+
+<h3>2.4 Convolution sur tenseurs (couche convolutionnelle)</h3>
+
+<p>Pour une image couleur (3 canaux) ou une carte de features profonde, la convolution s&rsquo;applique sur toute la profondeur :</p>
+
+<div class="formula">
+$f'(i,j) = \sum_{k=1}^{K} \sum_{n}\sum_{m}
+f(i-n, j-m, k)\,h(n,m,k) + b$
+</div>
+
+<p>Chaque filtre produit une carte 2D ; $F$ filtres produisent $F$ cartes empil&eacute;es en un <strong>tenseur</strong> de profondeur $F$.</p>
+
+<div class="info-box">
+<strong>&Agrave; retenir :</strong> la couche convolutionnelle est une op&eacute;ration affine (convolution lin&eacute;aire + biais), suivie d&rsquo;une non-lin&eacute;arit&eacute; (ReLU, sigmo&iuml;de, etc.).
+</div>
+
+<!-- ============================================ -->
+<h2 id="pooling">3. Le pooling</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Objectif</h3>
+
+<p>Le <strong>pooling</strong> (sous-&eacute;chantillonnage) permet de :</p>
+<ul>
+    <li>R&eacute;duire la r&eacute;solution spatiale.</li>
+    <li>Apporter une invariance aux translations locales.</li>
+    <li>Diminuer le nombre de param&egrave;tres.</li>
+</ul>
+
+<h3>3.2 Max pooling</h3>
+
+<p>La valeur maximale dans une fen&ecirc;tre $p \times p$ est retenue avec un pas (stride) $s$ :</p>
+<ul>
+    <li>Exemple : fen&ecirc;tre $2\times 2$, stride $2$ &rArr; division par $2$ de chaque dimension spatiale.</li>
+    <li>Offre une invariance partielle aux translations : un d&eacute;calage inf&eacute;rieur &agrave; la taille de la fen&ecirc;tre de pooling ne modifie pas n&eacute;cessairement le maximum.</li>
+</ul>
+
+<h3>3.3 Types de pooling</h3>
+
+<table>
+<tr><th>Type</th><th>Op&eacute;ration</th></tr>
+<tr><td>Max pooling</td><td>Maximum dans la fen&ecirc;tre</td></tr>
+<tr><td>Average pooling</td><td>Moyenne dans la fen&ecirc;tre</td></tr>
+<tr><td>Sum pooling</td><td>Somme (pond&eacute;r&eacute;e par un param&egrave;tre appris)</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="architecture">4. Architecture d&rsquo;un ConvNet</h2>
+<!-- ============================================ -->
+
+<p>Un r&eacute;seau convolutionnel (ConvNet / CNN) est constitu&eacute; de l&rsquo;empilement de blocs &eacute;l&eacute;mentaires :</p>
+
+<div class="formula">
+$\boxed{\text{Convolution} + \text{Non-lin&eacute;arit&eacute;} + \text{Pooling}}$
+</div>
+
+<p>Apr&egrave;s plusieurs blocs, les cartes de features sont aplaties et connect&eacute;es &agrave; des couches enti&egrave;rement connect&eacute;es (fully connected) pour la classification finale.</p>
+
+<div class="info-box">
+<strong>&Agrave; retenir :</strong> les ConvNets exploitent la structure locale des donn&eacute;es : pixels voisins, &eacute;chantillons temporels proches, etc. Chaque bloc extrait des motifs de plus en plus abstraits.
+</div>
+
+<!-- ============================================ -->
+<h2 id="lenet">5. &Eacute;tude de cas : LeNet-5 (LeCun et al., 1989)</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Architecture</h3>
+
+<p>LeNet-5 est le premier r&eacute;seau convolutionnel moderne, d&eacute;velopp&eacute; pour la reconnaissance de chiffres manuscrits (MNIST).</p>
+
+<table>
+<tr><th>Couche</th><th>Type</th><th>Maps &times; Dim.</th><th># Param.</th></tr>
+<tr><td>Entr&eacute;e</td><td>Image $32\times 32$</td><td>$1 \times 32 \times 32$</td><td>0</td></tr>
+<tr><td>C1</td><td>Conv ($5\times5$, 6 filtres)</td><td>$6 \times 28 \times 28$</td><td>156</td></tr>
+<tr><td>S2</td><td>Pooling ($2\times2$, stride 2)</td><td>$6 \times 14 \times 14$</td><td>12</td></tr>
+<tr><td>C3</td><td>Conv ($5\times5$, 16 filtres)</td><td>$16 \times 10 \times 10$</td><td>1516</td></tr>
+<tr><td>S4</td><td>Pooling ($2\times2$, stride 2)</td><td>$16 \times 5 \times 5$</td><td>32</td></tr>
+<tr><td>C5</td><td>Conv ($5\times5$, 120 filtres)</td><td>$120 \times 1 \times 1$</td><td>48&thinsp;210</td></tr>
+<tr><td>F6</td><td>Fully connected</td><td>84</td><td>10&thinsp;164</td></tr>
+<tr><td>F7</td><td>Fully connected (sortie)</td><td>10</td><td>850</td></tr>
+<tr><td colspan="3"><strong>Total</strong></td><td><strong>~60&thinsp;000</strong></td></tr>
+</table>
+
+<h3>5.2 D&eacute;tails</h3>
+
+<dl>
+    <dt><strong>C1 :</strong></dt><dd>6 filtres $5\times5$, pas de padding &rArr; $28\times28$. Param&egrave;tres : $(5\times5 + 1)\times 6 = 156$.</dd>
+    <dt><strong>S2 :</strong></dt><dd>Sous-&eacute;chantillonnage $2\times2$ stride $2$, somme pond&eacute;r&eacute;e + biais &rArr; $14\times14$.</dd>
+    <dt><strong>C3 :</strong></dt><dd>16 filtres $5\times5$, connexion s&eacute;lective aux cartes de S2 (non fully connected) &rArr; $10\times10$.</dd>
+    <dt><strong>S4 :</strong></dt><dd>Identique &agrave; S2 &rArr; $5\times5$.</dd>
+    <dt><strong>C5 :</strong></dt><dd>120 filtres $5\times5\times16$ (profondeur totale) &rArr; cartes $1\times1$ (vecteur de 120).</dd>
+    <dt><strong>F6 :</strong></dt><dd>84 neurones fully connected.</dd>
+    <dt><strong>F7 :</strong></dt><dd>10 neurones de sortie (softmax).</dd>
+</dl>
+
+<h3>5.3 R&eacute;sultats sur MNIST</h3>
+
+<ul>
+    <li>Ensemble original : 60&thinsp;000 images, erreur test $0{,}95\%$.</li>
+    <li>Avec 540&thinsp;000 distortions artificielles : erreur test $0{,}8\%$.</li>
+    <li>D&eacute;ploiement r&eacute;ussi pour la lecture de codes postaux aux &Eacute;tats-Unis.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="qcm">6. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quelle est la principale limitation des MLP pour les images\u00a0?",
+        options: ["Ils sont trop lents \u00e0 l\u2019inf\u00e9rence", "Explosion du nombre de param\u00e8tres et ignorance de la topologie spatiale", "Ils ne peuvent pas apprendre", "Ils n\u00e9cessitent trop de donn\u00e9es"],
+        correct: 1,
+        expl: "Explosion des param\u00e8tres et perte de la topologie spatiale."
+    },
+    {
+        q: "Que permet le partage de poids (shared weights)\u00a0?",
+        options: ["Augmenter le nombre de param\u00e8tres", "R\u00e9duire consid\u00e9rablement le nombre de param\u00e8tres \u00e0 apprendre", "Acc\u00e9l\u00e9rer le calcul", "\u00c9viter le sur-apprentissage"],
+        correct: 1,
+        expl: "Le partage de poids r\u00e9duit consid\u00e9rablement le nombre de param\u00e8tres \u00e0 apprendre."
+    },
+    {
+        q: "Quelle est la diff\u00e9rence entre convolution et corr\u00e9lation crois\u00e9e\u00a0?",
+        options: ["Aucune", "La corr\u00e9lation crois\u00e9e ne sym\u00e9trise pas le masque", "La convolution est plus rapide", "La corr\u00e9lation crois\u00e9e utilise des filtres plus grands"],
+        correct: 1,
+        expl: "La corr\u00e9lation crois\u00e9e n\u2019applique pas de sym\u00e9trisation du masque."
+    },
+    {
+        q: "Quel est le r\u00f4le d\u2019une couche de pooling\u00a0?",
+        options: ["Augmenter la r\u00e9solution", "Apporter une invariance aux translations locales et r\u00e9duire la dimension spatiale", "Remplacer la convolution", "Initialiser les poids"],
+        correct: 1,
+        expl: "Le pooling sous-\u00e9chantillonne et apporte une invariance locale aux translations."
+    },
+    {
+        q: "Dans LeNet-5, combien de filtres la couche C1 poss\u00e8de-t-elle\u00a0?",
+        options: ["1", "6", "16", "120"],
+        correct: 1,
+        expl: "C1 utilise 6 filtres 5\u00d75."
+    },
+    {
+        q: "Quelle est la taille des cartes de sortie de C1 dans LeNet-5\u00a0?",
+        options: ["32\u00d732", "28\u00d728", "14\u00d714", "10\u00d710"],
+        correct: 1,
+        expl: "28\u00d728, convolution 5\u00d75 sans padding."
+    },
+    {
+        q: "Combien de param\u00e8tres LeNet-5 a-t-il au total\u00a0?",
+        options: ["~6\u00a0000", "~60\u00a0000", "~600\u00a0000", "~6\u00a0000\u00a0000"],
+        correct: 1,
+        expl: "LeNet-5 poss\u00e8de environ 60\u00a0000 param\u00e8tres."
+    },
+    {
+        q: "Quel jeu de donn\u00e9es a servi pour \u00e9valuer LeNet-5\u00a0?",
+        options: ["ImageNet", "MNIST", "CIFAR-10", "COCO"],
+        correct: 1,
+        expl: "MNIST : chiffres manuscrits 28\u00d728."
+    },
+    {
+        q: "Quelle performance LeNet-5 atteint-elle sur MNIST avec distortions artificielles\u00a0?",
+        options: ["5% d\u2019erreur", "0,8% d\u2019erreur", "10% d\u2019erreur", "0,1% d\u2019erreur"],
+        correct: 1,
+        expl: "0,8% d\u2019erreur test avec 540\u00a0000 distortions."
+    },
+    {
+        q: "Qui a propos\u00e9 LeNet-5\u00a0?",
+        options: ["Hinton et al.", "LeCun et al.", "Krizhevsky et al.", "Goodfellow et al."],
+        correct: 1,
+        expl: "LeCun et al., 1989."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+<title>STA211 — Données manquantes — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+.tag { color: #569cd6; }
+.attr { color: #9cdcfe; }
+.val { color: #ce9178; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 — Gestion des données manquantes</h1>
+<p class="subtitle">Mécanismes de manquance, imputation simple et multiple, MICE &mdash; 10 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#mecanismes">Mécanismes de manquance</a></li>
+    <li><a href="#identification">Identification des mécanismes</a></li>
+    <li><a href="#suppression">Méthodes par suppression</a></li>
+    <li><a href="#imputation-simple">Imputation simple</a></li>
+    <li><a href="#imputation-multiple">Imputation multiple (MICE)</a></li>
+    <li><a href="#rubin">Règles de Rubin</a></li>
+    <li><a href="#diagnostic">Diagnostic et convergence</a></li>
+    <li><a href="#r">Code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Introduction</h2>
+<!-- ============================================ -->
+
+<p>Les données manquantes sont omniprésentes en data-mining : questionnaires incomplets, fusion de fichiers, défaillances de saisie, refus de répondre, etc. Leur traitement est indispensable car la plupart des méthodes d'analyse ne sont pas conçues pour les données incomplètes.</p>
+
+<p>La méthode naïve consistant à supprimer les individus incomplets (<em>listwise deletion</em>) n'est pas satisfaisante :</p>
+<ul>
+    <li>Les individus complets ne sont pas nécessairement représentatifs &rarr; biais.</li>
+    <li>Le nombre d'individus complets devient vite très petit quand le nombre de variables est grand.</li>
+</ul>
+
+<div class="warn-box">
+<strong>Exemple :</strong> si 5 % des valeurs sont manquantes pour chaque variable (MCAR), un jeu de 50 variables contient en moyenne seulement 8 % d'individus complets ($0{,}95^{50} \approx 0{,}08$).
+</div>
+
+<p><strong>Deux approches :</strong></p>
+<ol>
+    <li><strong>Pré-traitement</strong> : imputation pour se ramener à des données complètes.</li>
+    <li><strong>Méthodes avancées</strong> : algorithmes EM, pondération, qui s'appliquent directement sur les données incomplètes.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="mecanismes">2. Mécanismes de manquance</h2>
+<!-- ============================================ -->
+
+<p>On note $X_{n \times p}$ le tableau de données complet (fictif) et $R_{n \times p}$ la matrice d'indication de manquance : $r_{ij}=1$ si $x_{ij}$ est observé, $0$ sinon. Les méthodes de traitement dépendent du type de mécanisme.</p>
+
+<h3>2.1 MCAR (Missing Completely At Random)</h3>
+
+<div class="formula">$$P(R \mid X) = P(R)$$</div>
+
+<p>La probabilité de manquance est <strong>indépendante</strong> de toutes les données (observées et manquantes).</p>
+<ul>
+    <li>Les individus complets forment un sous-échantillon représentatif.</li>
+    <li>L'analyse sur les cas complets n'est <strong>pas biaisée</strong> (mais perte de puissance).</li>
+    <li><strong>Exemple :</strong> questionnaire perdu aléatoirement, prélèvement sanguin accidentellement détruit.</li>
+</ul>
+
+<h3>2.2 MAR (Missing At Random)</h3>
+
+<div class="formula">$$P(R \mid X) = P(R \mid X^{\text{obs}})$$</div>
+
+<p>La probabilité de manquance dépend des <strong>données observées</strong> uniquement.</p>
+<ul>
+    <li>L'analyse par cas complets est <strong>biaisée</strong>.</li>
+    <li>Hypothèse par défaut de la plupart des méthodes d'imputation.</li>
+    <li><strong>Exemple :</strong> les hommes répondent moins à une question sur le poids (la manquance dépend du sexe, qui est observé).</li>
+</ul>
+
+<div class="info-box">
+<strong>À retenir :</strong> L'hypothèse MAR est <strong>non testable</strong>. Il est recommandé d'inclure des <em>variables auxiliaires</em> (peu/pas de manquantes, sans intérêt scientifique propre) qui aident à expliquer la manquance et rendent MAR plus crédible.
+</div>
+
+<h3>2.3 MNAR (Missing Not At Random)</h3>
+
+<div class="formula">$$P(R \mid X) = P(R \mid X^{\text{obs}}, X^{\text{mis}})$$</div>
+
+<p>La probabilité de manquance dépend des <strong>valeurs manquantes</strong> elles-mêmes.</p>
+<ul>
+    <li>Impossible à tester à partir des seules données observées.</li>
+    <li>Nécessite des méthodes spécifiques (pattern mixture models, selection models) ou une <strong>analyse de sensibilité</strong>.</li>
+    <li><strong>Exemple :</strong> les personnes à haut revenu ne déclarent pas leur revenu.</li>
+</ul>
+
+<table>
+<tr><th>Mécanisme</th><th>Dépend de</th><th>Testable ?</th><th>Cas complets non-biaisé ?</th></tr>
+<tr><td>MCAR</td><td>Rien</td><td>Oui (Little)</td><td>Oui</td></tr>
+<tr><td>MAR</td><td>$X^{\text{obs}}$</td><td>Non</td><td>Non</td></tr>
+<tr><td>MNAR</td><td>$X^{\text{mis}}$</td><td>Non</td><td>Non</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="identification">3. Identification des mécanismes</h2>
+<!-- ============================================ -->
+
+<p>Bien qu'il soit impossible de <em>démontrer</em> le mécanisme, l'analyse exploratoire aide à l'identifier :</p>
+
+<ol>
+    <li><strong>Analyse univariée</strong> : proportion de manquantes par variable.</li>
+    <li><strong>Analyse bivariée</strong> : lien entre la manquance d'une variable et les valeurs observées d'autres variables (ex. distribution d'une variable selon qu'une autre est observée ou non).</li>
+    <li><strong>Analyse multivariée</strong> : régression logistique de la manquance sur les variables observées.</li>
+    <li><strong>Test de Little</strong> : teste MCAR contre MAR. Compare les profils des individus complets et incomplets.</li>
+</ol>
+
+<div class="warn-box">
+<strong>Limite :</strong> Ces analyses ne permettent pas de trancher entre MAR et MNAR (tous deux peuvent produire des différences de distribution). Seule la connaissance du mécanisme de production des données permet de décider.
+</div>
+
+<!-- ============================================ -->
+<h2 id="suppression">4. Méthodes par suppression</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Listwise deletion (cas complets)</h3>
+<p>On supprime toute observation comportant au moins une valeur manquante.</p>
+<ul>
+    <li><strong>Avantage :</strong> simplicité, c'est le comportement par défaut de la plupart des logiciels.</li>
+    <li><strong>Inconvénients :</strong> perte de puissance ; biais sauf si MCAR ; gaspillage d'information.</li>
+</ul>
+
+<h3>4.2 Pairwise deletion</h3>
+<p>On utilise toutes les observations disponibles pour chaque calcul (moyenne, corrélation).</p>
+<ul>
+    <li><strong>Inconvénient :</strong> la matrice de covariance peut ne pas être définie positive.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="imputation-simple">5. Imputation simple</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Imputation marginale (moyenne / médiane)</h3>
+<p>Remplace chaque valeur manquante par la moyenne (ou médiane) de la variable. Atténue la variance et réduit les corrélations.</p>
+
+<h3>5.2 Imputation par régression</h3>
+<ol>
+    <li>Ajuster un modèle de régression sur les données observées.</li>
+    <li>Prédire les valeurs manquantes à partir de ce modèle.</li>
+    <li>Ajouter une perturbation aléatoire (<strong>imputation stochastique</strong>) pour mieux respecter la distribution.</li>
+</ol>
+
+<h3>5.3 Hot-deck ($k$-NN)</h3>
+<p>Identifier les $k$ individus complets les plus proches (distance euclidienne) et imputer par leur moyenne (quantitative) ou le mode (qualitative).</p>
+
+<h3>5.4 Imputation par analyse factorielle</h3>
+<p>ACP (quantitatives), ACM (qualitatives) ou AFDM (mixtes) via le package <strong>missMDA</strong>. Particulièrement adapté à la grande dimension, la multicolinéarité et les données mixtes.</p>
+
+<h3>5.5 Imputation séquentielle</h3>
+<ol>
+    <li>Ordonner les variables de la moins manquante à la plus manquante.</li>
+    <li>Initialiser les valeurs manquantes (tirage dans les observées).</li>
+    <li>Pour chaque variable $X_j$ : ajuster le modèle sur les autres variables, mettre à jour les valeurs imputées.</li>
+    <li>Répéter l'étape 3 jusqu'à convergence.</li>
+</ol>
+
+<h3>5.6 Modèles joints</h3>
+<p>Spécifier un modèle pour la distribution <strong>jointe</strong> :</p>
+<ul>
+    <li><strong>Quantitatives :</strong> modèle gaussien multivarié (package <strong>Amelia</strong>).</li>
+    <li><strong>Qualitatives :</strong> modèle log-linéaire, classes latentes (package <strong>cat</strong>).</li>
+    <li><strong>Mixtes :</strong> <em>general location model</em> (package <strong>mix</strong>).</li>
+</ul>
+
+<div class="warn-box">
+<strong>Inconvénient de l'imputation simple :</strong> elle ne tient pas compte de l'incertitude d'imputation. Les variances sont sous-estimées, les intervalles de confiance trop courts, et les tests trop libéraux.
+</div>
+
+<!-- ============================================ -->
+<h2 id="imputation-multiple">6. Imputation multiple — MICE</h2>
+<!-- ============================================ -->
+
+<p><strong>MICE</strong> (<em>Multiple Imputation by Chained Equations</em>) génère $M$ jeux de données imputés (typiquement $M=5$ à $M=20$) en tenant compte de l'incertitude d'imputation.</p>
+
+<h3>6.1 Algorithme</h3>
+<ol>
+    <li><strong>Initialisation :</strong> imputation provisoire (e.g. moyenne).</li>
+    <li><strong>Boucle d'imputation :</strong> pour chaque variable $X_j$ contenant des valeurs manquantes :
+        <ul>
+            <li>Modéliser $X_j$ en fonction de toutes les autres variables (modèle adapté au type), <em>uniquement sur les lignes où $X_j$ est observée</em>.</li>
+            <li>Imputer les valeurs manquantes par tirage dans la distribution prédictive (prédiction + bruit aléatoire).</li>
+        </ul>
+    </li>
+    <li><strong>Cycles :</strong> répéter l'étape 2 pendant 5--10 cycles pour stabiliser les imputations (chaîne de Markov).</li>
+    <li><strong>Répétition :</strong> répéter tout le processus $M$ fois &rarr; $M$ jeux de données imputés.</li>
+    <li><strong>Analyse :</strong> analyser chaque jeu séparément puis combiner avec les règles de Rubin.</li>
+</ol>
+
+<h3>6.2 Types de modèles par variable</h3>
+<table>
+<tr><th>Type de variable</th><th>Modèle par défaut (mice)</th></tr>
+<tr><td>Numérique continue</td><td>pmm (predictive mean matching) ou norm</td></tr>
+<tr><td>Binaire (0/1)</td><td>logreg (régression logistique)</td></tr>
+<tr><td>Catégorielle (&gt;2 modalités)</td><td>polyreg (régression polytomique)</td></tr>
+<tr><td>Ordonnée</td><td>lda (analyse discriminante linéaire)</td></tr>
+</table>
+
+<p><strong>Choix du modèle d'imputation :</strong> « Choisir des modèles d'imputation au moins aussi complexes que la méthode qui sera appliquée sur les données imputées » (Schafer, 2003).</p>
+
+<div class="info-box">
+<strong>Règle pratique :</strong> $M$ au moins égal au pourcentage d'observations incomplètes. $M=5$ pour des taux modérés, $M \ge 20$ pour des taux élevés ou des inférences sur des quantiles extrêmes.
+</div>
+
+<!-- ============================================ -->
+<h2 id="rubin">7. Règles de Rubin</h2>
+<!-- ============================================ -->
+
+<p>Soit $\hat{\theta}_m$ l'estimation du paramètre d'intérêt sur le $m$-ième tableau imputé, et $\widehat{\operatorname{Var}}(\hat{\theta}_m)$ sa variance estimée.</p>
+
+<h3>7.1 Estimation agrégée</h3>
+<div class="formula">$$\hat{\theta} = \frac{1}{M}\sum_{m=1}^{M} \hat{\theta}_m$$</div>
+
+<h3>7.2 Variance totale</h3>
+<div class="formula">$$\widehat{\operatorname{Var}}(\hat{\theta}) = \underbrace{\frac{1}{M}\sum_{m=1}^{M} \widehat{\operatorname{Var}}(\hat{\theta}_m)}_{\text{Variance intra}} + \left(1 + \frac{1}{M}\right) \underbrace{\frac{1}{M-1}\sum_{m=1}^{M} (\hat{\theta}_m - \hat{\theta})^2}_{\text{Variance inter}}$$</div>
+
+<ul>
+    <li>La <strong>variance intra</strong> $\bar{U}$ représente l'incertitude dans chaque échantillon.</li>
+    <li>La <strong>variance inter</strong> $B$ représente l'incertitude due aux données manquantes.</li>
+    <li>Le facteur $(1+1/M)$ corrige l'estimation de $B$ pour un nombre fini d'imputations.</li>
+</ul>
+
+<h3>7.3 Intervalles de confiance</h3>
+<p>L'intervalle de confiance à $95\%$ pour $\theta$ est :</p>
+<div class="formula">$$\hat{\theta} \pm t_{\nu, 0.975} \sqrt{\widehat{\operatorname{Var}}(\hat{\theta})}$$</div>
+<p>où les degrés de liberté $\nu$ sont donnés par l'approximation de Rubin-Schafer.</p>
+
+<!-- ============================================ -->
+<h2 id="diagnostic">8. Diagnostic et convergence</h2>
+<!-- ============================================ -->
+
+<h3>8.1 Visualisation des motifs de manquance</h3>
+<ul>
+    <li>Matrice des motifs (blanc = observé, rouge = manquant).</li>
+    <li>Heatmap de corrélation entre indicateurs de manquance.</li>
+</ul>
+
+<h3>8.2 Convergence de MICE</h3>
+<ul>
+    <li>Tracer l'évolution de la moyenne et de l'écart-type des valeurs imputées au fil des cycles.</li>
+    <li>Si la chaîne converge, les fluctuations sont stables (typiquement 5-10 cycles).</li>
+</ul>
+
+<h3>8.3 Overimputation</h3>
+<p>Technique de validation <strong>interne</strong> : générer des valeurs plausibles également pour les <strong>données observées</strong>. En générant plusieurs centaines de tableaux, on construit un intervalle de prédiction à 95 % pour chaque valeur observée. Si le modèle est bien choisi, 95 % des valeurs observées sont contenues dans leur intervalle.</p>
+
+<!-- ============================================ -->
+<h2 id="autress">9. Autres méthodes</h2>
+<!-- ============================================ -->
+
+<h3>9.1 Algorithmes EM et Data Augmentation</h3>
+<ul>
+    <li><strong>EM (Expectation-Maximization)</strong> : alterne imputation (espérance) et estimation des paramètres par maximum de vraisemblance.</li>
+    <li><strong>DA (Data Augmentation)</strong> : version bayésienne qui alterne génération des données imputées et tirage des paramètres dans leur distribution a posteriori.</li>
+</ul>
+<p><strong>Différence avec l'imputation :</strong> le modèle d'imputation est le même que le modèle d'analyse. On ne peut pas imputer par $k$-NN et analyser par régression linéaire (contrairement à l'imputation classique).</p>
+
+<h3>9.2 Méthodes par pondération</h3>
+<p>Attribuer un poids aux individus complets, inversement proportionnel à leur probabilité d'être manquants. Issu de la théorie des sondages. Avantage : pas besoin de modéliser la distribution des données. Inconvénient : nécessite de modéliser le mécanisme de manquance.</p>
+
+<h3>9.3 Analyse de sensibilité</h3>
+<p>Puisque MAR n'est pas testable, il est recommandé d'évaluer l'impact d'un écart à MAR :</p>
+<ul>
+    <li>Faire varier $\delta$ dans un modèle où $P(\text{manquant}) = f(X_{\text{obs}}) + \delta \cdot X_{\text{manq}}$.</li>
+    <li>Modèles par patterns de manquance (pattern-mixture models).</li>
+    <li>Analyse de scénarios extrêmes (best-case / worst-case).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="r">10. Code R</h2>
+<!-- ============================================ -->
+
+<div class="code-block"><span class="cm"># Imputation multiple avec mice</span>
+<span class="kw">library</span>(mice)
+
+<span class="cm"># Chargement et inspection des motifs</span>
+data(nhanes)
+<span class="kw">md.pattern</span>(nhanes)
+
+<span class="cm"># Imputation multiple (m=5, methode PMM)</span>
+imp <span class="op">&lt;-</span> <span class="kw">mice</span>(nhanes, m = 5, method = <span class="str">'pmm'</span>,
+           seed = 123, printFlag = FALSE)
+
+<span class="cm"># Diagnostics de convergence</span>
+<span class="kw">plot</span>(imp)
+
+<span class="cm"># Comparaison des distributions observees/imputees</span>
+<span class="kw">densityplot</span>(imp)
+
+<span class="cm"># Analyse : regression lineaire</span>
+fit <span class="op">&lt;-</span> <span class="kw">with</span>(imp, lm(bmi ~ age + chl))
+
+<span class="cm"># Combinaison (regles de Rubin)</span>
+pooled <span class="op">&lt;-</span> <span class="kw">pool</span>(fit)
+<span class="kw">summary</span>(pooled)</div>
+
+<div class="code-block"><span class="cm"># Imputation par forets aleatoires</span>
+imp_rf <span class="op">&lt;-</span> <span class="kw">mice</span>(nhanes, m = 5, method = <span class="str">'rf'</span>,
+              seed = 123, printFlag = FALSE)
+fit_rf <span class="op">&lt;-</span> <span class="kw">with</span>(imp_rf, lm(bmi ~ age + chl))
+<span class="kw">summary</span>(<span class="kw">pool</span>(fit_rf))</div>
+
+<div class="code-block"><span class="cm"># Imputation par analyse factorielle (missMDA)</span>
+<span class="kw">library</span>(missMDA)
+data(ozone)
+
+<span class="cm"># Estimation du nombre de composantes</span>
+nb <span class="op">&lt;-</span> <span class="kw">estim_ncpPCA</span>(ozone[, -1], ncp.max = 5)
+
+<span class="cm"># Imputation par ACP</span>
+res.impute <span class="op">&lt;-</span> <span class="kw">imputePCA</span>(ozone[, -1], ncp = nb$ncp)
+<span class="kw">head</span>(res.impute$completeObs)</div>
+
+<div class="code-block"><span class="cm"># Simulation : impact de l'imputation simple sur les IC</span>
+set.seed(123)
+nsim <span class="op">&lt;-</span> 2000
+res <span class="op">&lt;-</span> <span class="kw">matrix</span>(NA, nsim, 2)
+
+<span class="kw">for</span> (ii in 1:nsim) {
+  x <span class="op">&lt;-</span> <span class="kw">rnorm</span>(500)
+  y <span class="op">&lt;-</span> 2 * x + <span class="kw">rnorm</span>(500, sd = 0.5)
+
+  <span class="cm"># Ajout de donnees manquantes MAR</span>
+  prob <span class="op">&lt;-</span> <span class="kw">pnorm</span>(1.2 * x - 0.5)
+  ismar <span class="op">&lt;-</span> <span class="kw">sapply</span>(prob,
+    FUN = function(p) sample(c(TRUE, FALSE), 1,
+                             prob = c(p, 1 - p)))
+  ymar <span class="op">&lt;-</span> y; ymar[ismar] <span class="op">&lt;-</span> NA
+
+  <span class="cm"># Imputation simple par regression stochastique</span>
+  res.lm <span class="op">&lt;-</span> <span class="kw">lm</span>(ymar[!ismar] ~ x[!ismar])
+  ystoch <span class="op">&lt;-</span> ymar
+  ystoch[ismar] <span class="op">&lt;-</span> <span class="kw">cbind</span>(1, x[ismar]) %*%
+    res.lm$coefficients +
+    <span class="kw">rnorm</span>(sum(ismar), sd = summary(res.lm)$sigma)
+
+  <span class="cm"># Intervalle de confiance</span>
+  se <span class="op">&lt;-</span> <span class="kw">sd</span>(ystoch) / sqrt(500)
+  ci_inf <span class="op">&lt;-</span> <span class="kw">mean</span>(ystoch) - <span class="kw">qt</span>(0.975, 499) * se
+  ci_sup <span class="op">&lt;-</span> <span class="kw">mean</span>(ystoch) + <span class="kw">qt</span>(0.975, 499) * se
+  res[ii, ] <span class="op">&lt;-</span> c(<span class="kw">mean</span>(ystoch),
+                     0 >= ci_inf & 0 <= ci_sup)
+}
+
+<span class="kw">cat</span>(<span class="str">"Taux de couverture:"</span>, <span class="kw">mean</span>(res[, 2]), <span class="str">"\n"</span>)
+<span class="cm"># Devrait etre < 0.95 (sous-couverture)</span></div>
+
+<!-- ============================================ -->
+<h2 id="qcm">11. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne réponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+// ============================================================
+// QCM Data
+// ============================================================
+const qcmData = [
+    {
+        q: "Le mécanisme MAR signifie que la probabilité de manquance :",
+        options: [
+            "Est indépendante de toutes les données",
+            "Dépend des données observées uniquement",
+            "Dépend des données manquantes uniquement",
+            "Dépend des données observées et manquantes"
+        ],
+        correct: 1,
+        expl: "MAR = Missing At Random : la manquance dépend des données observées uniquement."
+    },
+    {
+        q: "Sous un mécanisme MCAR, l'analyse sur les cas complets est :",
+        options: [
+            "Biaisée",
+            "Non biaisée (les complets sont représentatifs)",
+            "Impossible",
+            "Plus puissante qu'avec imputation"
+        ],
+        correct: 1,
+        expl: "MCAR garantit que les individus complets forment un sous-échantillon représentatif."
+    },
+    {
+        q: "L'hypothèse MAR est :",
+        options: [
+            "Testable par le test de Little",
+            "Non testable",
+            "Toujours vérifiée en pratique",
+            "Plus restrictive que MCAR"
+        ],
+        correct: 1,
+        expl: "MAR n'est pas testable (on ne connaît pas X^{mis}). Little teste MCAR vs MAR."
+    },
+    {
+        q: "Que signifie l'acronyme MICE ?",
+        options: [
+            "Multiple Imputation by Chained Equations",
+            "Missing Information Criterion Estimate",
+            "Multivariate Imputation for Complete Estimation",
+            "Model-based Imputation for Censored Events"
+        ],
+        correct: 0,
+        expl: "MICE = Multiple Imputation by Chained Equations."
+    },
+    {
+        q: "Quelle est la conséquence de l'imputation simple sur les intervalles de confiance ?",
+        options: [
+            "Ils sont trop larges",
+            "Ils sont trop courts (sous-couverture)",
+            "Ils ne sont pas affectés",
+            "Ils deviennent exacts"
+        ],
+        correct: 1,
+        expl: "L'imputation simple ignore l'incertitude d'imputation &rarr; variance sous-estimée &rarr; IC trop courts."
+    },
+    {
+        q: "Dans les règles de Rubin, la variance totale T est :",
+        options: [
+            "$T = \\bar{U}$",
+            "$T = B$",
+            "$T = \\bar{U} + (1+1/M)B$",
+            "$T = \\bar{U} - (1+1/M)B$"
+        ],
+        correct: 2,
+        expl: "La variance totale combine variance intra et variance inter, avec correction (1+1/M)."
+    },
+    {
+        q: "Quel package R propose l'imputation multiple par modèle gaussien joint ?",
+        options: [
+            "mice",
+            "Amelia",
+            "VIM",
+            "missMDA"
+        ],
+        correct: 1,
+        expl: "Amelia implémente le modèle gaussien multivarié pour l'imputation multiple."
+    },
+    {
+        q: "L'approche missMDA est particulièrement adaptée :",
+        options: [
+            "Aux petites données",
+            "À la grande dimension et la multicolinéarité",
+            "Aux données qualitatives uniquement",
+            "Aux séries temporelles"
+        ],
+        correct: 1,
+        expl: "missMDA utilise l'analyse factorielle, performante en grande dimension et multicolinéarité."
+    },
+    {
+        q: "La technique d'overimputation consiste à :",
+        options: [
+            "Imputer plus de variables que nécessaire",
+            "Générer des valeurs plausibles pour les données observées (validation)",
+            "Supprimer les valeurs imputées",
+            "Augmenter le nombre M d'imputations"
+        ],
+        correct: 1,
+        expl: "L'overimputation valide le modèle en vérifiant que les valeurs observées sont dans l'intervalle de prédiction."
+    },
+    {
+        q: "Quelle est la différence entre imputation et algorithme EM ?",
+        options: [
+            "Aucune, ce sont les mêmes",
+            "En imputation, le modèle d'imputation peut différer du modèle d'analyse",
+            "L'EM ne nécessite pas de modèle",
+            "L'imputation ne fonctionne que sous MCAR"
+        ],
+        correct: 1,
+        expl: "L'imputation dissocie modèle d'imputation et modèle d'analyse. EM utilise le même modèle."
+    }
+];
+
+// ============================================================
+// QCM Rendering
+// ============================================================
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) {
+            return;
+        }
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null
+                    ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}`
+                    : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

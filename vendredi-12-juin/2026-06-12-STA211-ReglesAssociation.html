@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Recherche de règles d'association — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; Recherche de r&egrave;gles d&rsquo;association</h1>
+<p class="subtitle">Fiche r&eacute;capitulative &mdash; 12 juin 2026 &mdash; V. Audigier, N. Niang</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#definitions">D&eacute;finitions et concepts de base</a></li>
+    <li><a href="#apriori">Algorithme Apriori</a></li>
+    <li><a href="#alternatifs">Algorithmes alternatifs</a></li>
+    <li><a href="#indices">Indices de pertinence des r&egrave;gles</a></li>
+    <li><a href="#exemples">Exemples</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Introduction</h2>
+<!-- ============================================ -->
+
+<p>Les m&eacute;thodes de recherche de r&egrave;gles d&rsquo;association ont &eacute;t&eacute; propos&eacute;es par <strong>Agrawal, Imieli&nacute;ski &amp; Swami (1993)</strong> pour d&eacute;couvrir quels produits &eacute;taient achet&eacute;s conjointement dans les bases de donn&eacute;es des ventes de supermarch&eacute;.</p>
+
+<blockquote style="font-style:italic; border-left:4px solid #1a73e8; margin:0.75rem 0; padding:0.5rem 1rem; background:#f8f9fa;">
+&laquo; Lorsqu&rsquo;un client ach&egrave;te du pain et du beurre, alors neuf fois sur dix il ach&egrave;te en m&ecirc;me temps du lait. &raquo;
+</blockquote>
+
+<p>Applications principales : <strong>webmining</strong> (analyse de navigation), <strong>text mining</strong> (cooccurrences de termes), <strong>marketing</strong> (paniers d&rsquo;achat).</p>
+
+<!-- ============================================ -->
+<h2 id="definitions">2. D&eacute;finitions et concepts de base</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Items, transactions et r&egrave;gles</h3>
+
+<p>On d&eacute;finit $I = \{it_1, it_2, \dots, it_p\}$ l&rsquo;ensemble des <strong>items</strong>. Une <strong>transaction</strong> $tr_j$ est un sous-ensemble non vide de $I$. On note $T = \{tr_1, tr_2, \dots, tr_n\}$ l&rsquo;ensemble des $n$ transactions.</p>
+
+<p>Une <strong>r&egrave;gle d&rsquo;association</strong> est une implication $A \rightarrow B$ o&ugrave; $A \subset I$, $B \subset I$ et $A \cap B = \emptyset$. $A$ est la pr&eacute;misse (ant&eacute;c&eacute;dent), $B$ la conclusion (cons&eacute;quent). Les ensembles $A$ et $B$ sont appel&eacute;s <strong>itemsets</strong>.</p>
+
+<div class="formula">
+Exemple : $\{\text{cacahuètes, chips, pastis}\} \rightarrow \{\text{bière}\}$
+</div>
+
+<h3>2.2 Support et confiance</h3>
+
+<div class="formula">
+$\text{supp}(X) = \dfrac{|\{t \in T : X \subseteq t\}|}{|T|}$
+</div>
+<div class="formula">
+$\text{conf}(A \rightarrow B) = \dfrac{\text{supp}(A \cup B)}{\text{supp}(A)}$
+</div>
+
+<div class="info-box">
+<strong>&Agrave; retenir :</strong> Le support mesure la <strong>g&eacute;n&eacute;ralit&eacute;</strong> d&rsquo;une r&egrave;gle&nbsp;; la confiance mesure sa <strong>fiabilit&eacute;</strong>. On impose des seuils minimaux $\text{supp}_{\min}$ et $\text{conf}_{\min}$.
+</div>
+
+<!-- ============================================ -->
+<h2 id="apriori">3. Algorithme Apriori</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Recherche des itemsets fr&eacute;quents</h3>
+
+<p>On explore le treillis des itemsets par parcours en largeur (de taille 1 jusqu&rsquo;&agrave; $p$). &Agrave; chaque niveau $k$, on g&eacute;n&egrave;re les candidats de taille $k$ &agrave; partir des itemsets fr&eacute;quents de taille $k-1$, puis on &eacute;lague ceux dont le support est inf&eacute;rieur &agrave; $\text{supp}_{\min}$.</p>
+
+<div class="warn-box">
+<strong>Propri&eacute;t&eacute; d&rsquo;anti-monotonie :</strong> Tout sur-ensemble d&rsquo;un itemset non fr&eacute;quent est n&eacute;cessairement non fr&eacute;quent. Si un itemset de taille $k-1$ a un support $< \text{supp}_{\min}$, tous ses sur-ensembles de taille $k$ peuvent &ecirc;tre &eacute;limin&eacute;s sans calcul suppl&eacute;mentaire.
+</div>
+
+<p>Sch&eacute;ma de principe de l&rsquo;&eacute;lagage :</p>
+<ol>
+    <li>D&eacute;terminer les itemsets fr&eacute;quents de taille 1.</li>
+    <li>G&eacute;n&eacute;rer les candidats de taille 2 &agrave; partir des itemsets fr&eacute;quents de taille 1.</li>
+    <li>Compter le support de chaque candidat, &eacute;laguer ceux $< \text{supp}_{\min}$.</li>
+    <li>R&eacute;p&eacute;ter jusqu&rsquo;&agrave; ce qu&rsquo;aucun itemset fr&eacute;quent ne soit trouv&eacute;.</li>
+</ol>
+
+<h3>3.2 Extraction des r&egrave;gles</h3>
+
+<p>&Agrave; partir des itemsets fr&eacute;quents, on g&eacute;n&egrave;re toutes les r&egrave;gles $A \rightarrow B$ telles que $\text{conf}(A \rightarrow B) \geq \text{conf}_{\min}$.</p>
+
+<!-- ============================================ -->
+<h2 id="alternatifs">4. Algorithmes alternatifs</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Repr&eacute;sentation horizontale</h3>
+<p>Les donn&eacute;es sont stock&eacute;es sous forme d&rsquo;une liste de transactions (une ligne par transaction contenant la liste des items). C&rsquo;est la repr&eacute;sentation utilis&eacute;e par Apriori.</p>
+
+<h3>4.2 Repr&eacute;sentation verticale</h3>
+<p>Pour chaque item, on stocke la liste des identifiants de transactions qui le contiennent (format <em>tid-list</em>). Le support d&rsquo;un itemset s&rsquo;obtient par intersection des tid-lists.</p>
+
+<table>
+<tr><th>Repr&eacute;sentation</th><th>Format</th><th>Avantage</th></tr>
+<tr><td>Horizontale</td><td>Une ligne par transaction</td><td>Simple, lecture intuitive</td></tr>
+<tr><td>Verticale</td><td>Une ligne par item (tid-list)</td><td>Support par intersection rapide</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="indices">5. Indices de pertinence des r&egrave;gles</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Faiblesse de l&rsquo;approche support-confiance</h3>
+
+<div class="warn-box">
+<strong>Probl&egrave;me :</strong> Une r&egrave;gle peut avoir une confiance &eacute;lev&eacute;e mais &ecirc;tre trompeuse si le cons&eacute;quent est fr&eacute;quent dans la population. Par exemple, si 90&nbsp;% des clients ach&egrave;tent du lait, une r&egrave;gle $X \rightarrow \text{lait}$ aura une confiance d&rsquo;au moins 90&nbsp;% quel que soit $X$.
+</div>
+
+<h3>5.2 Indices compl&eacute;mentaires</h3>
+
+<h4>Lift</h4>
+<div class="formula">
+$\text{lift}(A \rightarrow B) = \dfrac{\text{supp}(A \cup B)}{\text{supp}(A)\,\text{supp}(B)}$
+</div>
+<ul>
+    <li>$\text{lift} > 1$ : association positive</li>
+    <li>$\text{lift} = 1$ : ind&eacute;pendance</li>
+    <li>$\text{lift} < 1$ : association n&eacute;gative</li>
+</ul>
+
+<h4>Conviction</h4>
+<div class="formula">
+$\text{conviction}(A \rightarrow B) = \dfrac{1 - \text{supp}(B)}{1 - \text{conf}(A \rightarrow B)}$
+</div>
+<p>Mesure la d&eacute;pendance directionnelle. Plus la conviction est grande, plus la r&egrave;gle est robuste.</p>
+
+<h4>Leverage</h4>
+<div class="formula">
+$\text{leverage}(A \rightarrow B) = \text{supp}(A \cup B) - \text{supp}(A)\,\text{supp}(B)$
+</div>
+
+<!-- ============================================ -->
+<h2 id="exemples">6. Exemples</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Supermarch&eacute;</h3>
+
+<p>Soit 5 transactions :</p>
+
+<table>
+<tr><th>Transaction</th><th>Items</th></tr>
+<tr><td>$tr_1$</td><td>{pain, lait, beurre, bi&egrave;re}</td></tr>
+<tr><td>$tr_2$</td><td>{pain, beurre}</td></tr>
+<tr><td>$tr_3$</td><td>{bi&egrave;re, cacahu&egrave;tes}</td></tr>
+<tr><td>$tr_4$</td><td>{pain, lait, beurre}</td></tr>
+<tr><td>$tr_5$</td><td>{pain, lait}</td></tr>
+</table>
+
+<p>Avec $\text{supp}_{\min} = 0{,}4$ :</p>
+<ul>
+    <li>$\text{supp}(\{\text{pain}\}) = 4/5 = 0{,}8$ &rarr; fr&eacute;quent</li>
+    <li>$\text{supp}(\{\text{pain}, \text{beurre}\}) = 3/5 = 0{,}6$ &rarr; fr&eacute;quent</li>
+    <li>$\text{supp}(\{\text{cacahu&egrave;tes}\}) = 1/5 = 0{,}2$ &rarr; non fr&eacute;quent (&eacute;lagu&eacute;)</li>
+</ul>
+
+<p>R&egrave;gle $\{\text{pain}\} \rightarrow \{\text{beurre}\}$ :</p>
+<ul>
+    <li>$\text{supp} = 3/5 = 0{,}6$</li>
+    <li>$\text{conf} = 3/4 = 0{,}75$</li>
+    <li>$\text{lift} = 0{,}6 / (0{,}8 \times 0{,}6) = 1{,}25 > 1$</li>
+</ul>
+
+<h3>6.2 German Credit</h3>
+
+<p>Les r&egrave;gles d&rsquo;association peuvent &ecirc;tre extraites apr&egrave;s discr&eacute;tisation des variables quantitatives avec le package R <code>arules</code>.</p>
+
+<div class="code-block"><span class="kw">library</span>(arules)
+
+<span class="cm"># Discretisation des variables quantitatives</span>
+don_disc &lt;- <span class="fn">discretizeDF</span>(don, default = <span class="fn">list</span>(
+  method = <span class="str">"interval"</span>, breaks = 3))
+
+<span class="cm"># Extraction des regles</span>
+regles &lt;- <span class="fn">apriori</span>(don_disc,
+  parameter = <span class="fn">list</span>(supp = 0.05, conf = 0.3,
+                   target = <span class="str">"rules"</span>))
+<span class="fn">inspect</span>(<span class="fn">head</span>(regles, 5))</div>
+
+<!-- ============================================ -->
+<h2 id="conclusion">7. Conclusion</h2>
+<!-- ============================================ -->
+
+<p>Les m&eacute;thodes de recherche de r&egrave;gles d&rsquo;association permettent d&rsquo;extraire des connaissances sous forme de r&egrave;gles interpr&eacute;tables &agrave; partir de grandes bases de donn&eacute;es. L&rsquo;algorithme Apriori reste la m&eacute;thode de r&eacute;f&eacute;rence gr&acirc;ce &agrave; son &eacute;lagage par anti-monotonie.</p>
+
+<p>Applications principales :</p>
+<ul>
+    <li>Analyse de paniers d&rsquo;achat (marketing)</li>
+    <li>Webmining (analyse de navigation)</li>
+    <li>Text mining (cooccurrences de termes)</li>
+    <li>Analyse de donn&eacute;es m&eacute;dicales (associations de sympt&ocirc;mes)</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="qcm">8. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Que repr\u00e9sente le support d'un itemset X ?",
+        options: ["La probabilit\u00e9 de X sachant Y", "La proportion de transactions contenant X", "La force de l'association X \u21d2 Y", "Le nombre d'items dans X"],
+        correct: 1,
+        expl: "supp(X) = proportion de transactions contenant X."
+    },
+    {
+        q: "Que mesure la confiance d'une r\u00e8gle A \u2192 B ?",
+        options: ["supp(A\u222aB) / supp(A)", "supp(A) / supp(B)", "supp(A\u222aB) / supp(B)", "supp(A) / supp(A\u222aB)"],
+        correct: 0,
+        expl: "conf(A\u2192B) = supp(A\u222aB) / supp(A)."
+    },
+    {
+        q: "Quelle propri\u00e9t\u00e9 permet l'\u00e9lagage dans Apriori ?",
+        options: ["Monotonie du support", "Anti-monotonie du support", "Sym\u00e9trie de la confiance", "Transitivit\u00e9 du lift"],
+        correct: 1,
+        expl: "Anti-monotonie\u00a0: tout sur-ensemble d'un itemset non fr\u00e9quent est non fr\u00e9quent."
+    },
+    {
+        q: "Un lift > 1 indique :",
+        options: ["Association n\u00e9gative", "Association positive", "Aucune association", "Erreur de calcul"],
+        correct: 1,
+        expl: "lift > 1 : les items apparaissent plus souvent ensemble que sous l'ind\u00e9pendance."
+    },
+    {
+        q: "Quelle est la particularit\u00e9 de la repr\u00e9sentation verticale ?",
+        options: ["Une ligne par transaction", "Pour chaque item, stockage de la liste des transactions (tid-list)", "Stockage matriciel", "Moins de m\u00e9moire qu'Apriori"],
+        correct: 1,
+        expl: "Format tid-list : pour chaque item, on stocke la liste des transactions qui le contiennent."
+    },
+    {
+        q: "Quel package R impl\u00e9mente Apriori ?",
+        options: ["arules", "cluster", "FactoMineR", "MASS"],
+        correct: 0,
+        expl: "Le package arules impl\u00e9mente l'algorithme Apriori."
+    },
+    {
+        q: "Que mesure la conviction d'une r\u00e8gle ?",
+        options: ["Le support conditionnel", "La d\u00e9pendance directionnelle entre pr\u00e9misse et conclusion", "La fr\u00e9quence de l'itemset", "La dissimilarit\u00e9 entre items"],
+        correct: 1,
+        expl: "La conviction mesure la d\u00e9pendance directionnelle. Plus elle est grande, plus la r\u00e8gle est robuste."
+    },
+    {
+        q: "Dans l'exemple du supermarch\u00e9 (5 transactions), quel est le support de {pain, beurre} ?",
+        options: ["3/5 = 0,6", "4/5 = 0,8", "2/5 = 0,4", "1/5 = 0,2"],
+        correct: 0,
+        expl: "3 transactions (tr1, tr2, tr4) contiennent pain et beurre sur 5."
+    },
+    {
+        q: "Quel est l'inconv\u00e9nient de l'approche support-confiance ?",
+        options: ["Elle est trop complexe", "Une r\u00e8gle peut avoir une confiance \u00e9lev\u00e9e mais \u00eatre trompeuse si le cons\u00e9quent est fr\u00e9quent", "Elle ne fonctionne que pour les donn\u00e9es binaires", "Elle n\u00e9cessite trop de m\u00e9moire"],
+        correct: 1,
+        expl: "Si le cons\u00e9quent est tr\u00e8s fr\u00e9quent, la confiance est artificiellement \u00e9lev\u00e9e."
+    },
+    {
+        q: "Qui a propos\u00e9 l'algorithme Apriori ?",
+        options: ["Vigneau et Qannari", "Agrawal, Imieli\u0144ski et Swami", "Chavent et al.", "Breiman"],
+        correct: 1,
+        expl: "Agrawal, Imieli\u0144ski et Swami ont propos\u00e9 Apriori en 1993."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,597 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+% ---- Style des titres ----
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+% ---- Style listings ----
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+% ---- En-têtes / pieds ----
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Données manquantes}
+\fancyhead[R]{\small Fiche récapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---- Theorem-like environment ----
+\theoremstyle{definition}
+\newtheorem*{definition}{Définition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{À retenir}
+
+\title{\textbf{Fiche récapitulative -- STA211}\\[4pt]
+\large Gestion des données manquantes}
+\author{}
+\date{10 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche synthétise le cours sur la gestion des données manquantes
+(V. Audigier, N. Niang). Les données manquantes sont omniprésentes en
+data-mining~: questionnaires incomplets, fusion de fichiers, défaillances
+de saisie, etc. Leur traitement est indispensable car la plupart des
+méthodes d'analyse ne sont pas conçues pour les données incomplètes.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Introduction}
+% ===================================================================
+
+Les données manquantes constituent un problème incontournable dans
+l'application des techniques de data-mining. L'augmentation de la taille
+des données fait mécaniquement augmenter la probabilité d'en rencontrer.
+
+Les causes sont multiples~:
+\begin{itemize}
+  \item Oubli de saisie, questionnaires partiellement remplis
+  \item Refus de répondre (questions sensibles~: revenus, consommation,
+    etc.)
+  \item Fusion de jeux de données~: concaténer des fichiers fait
+    apparaître des blocs verticaux de données manquantes car les
+    variables diffèrent.
+\end{itemize}
+
+\textbf{Deux approches}~:
+\begin{enumerate}
+  \item Pré-traitement pour se ramener à des données complètes (imputation)
+  \item Méthodes avancées qui s'appliquent directement sur les données
+    incomplètes (EM, pondération)
+\end{enumerate}
+
+La méthode naïve consistant à supprimer les individus incomplets
+(\textit{liste-wise deletion}) n'est pas satisfaisante~:
+\begin{itemize}
+  \item Les individus complets ne sont pas nécessairement représentatifs
+    $\rightarrow$ biais.
+  \item Le nombre d'individus complets devient vite très petit quand le
+    nombre de variables est grand.
+\end{itemize}
+Exemple~: si 5\% des valeurs sont manquantes pour chaque variable (MCAR),
+un jeu de 50 variables contient en moyenne seulement 8\% d'individus
+complets.
+
+% ===================================================================
+\section{Mécanismes de manquance}
+% ===================================================================
+
+On note $\mathbf{X}_{n\times p}$ le tableau de données complet (fictif)
+et $\mathbf{R}_{n\times p}$ la matrice d'indication de manquance~:
+$r_{ij} = 1$ si $x_{ij}$ est observé, $0$ sinon.
+
+Les méthodes employées pour gérer les données manquantes sont conditionnées
+par le type de mécanisme.
+
+\subsection{MCAR (Missing Completely At Random)}
+
+La probabilité de manquance est indépendante de toutes les données
+(observées et manquantes)~:
+\[
+P(R \mid X) = P(R).
+\]
+
+\textbf{Propriété}~: les individus complets forment un sous-échantillon
+représentatif. L'analyse sur les cas complets n'est pas biaisée, mais
+la variance des estimateurs est augmentée.
+
+\textbf{Exemple}~: questionnaire perdu aléatoirement.
+
+\subsection{MAR (Missing At Random)}
+
+La probabilité de manquance dépend des données observées mais pas des
+données manquantes~:
+\[
+P(R \mid X) = P(R \mid X^{\text{obs}}).
+\]
+
+\textbf{Propriété}~: l'analyse par cas complets est biaisée. MAR est
+l'hypothèse par défaut de la plupart des méthodes d'imputation.
+
+\textbf{Exemple}~: enquête de satisfaction~: seules les personnes
+insatisfaites en janvier sont réinterrogées en février. La manquance
+en février dépend de la réponse observée en janvier.
+
+\begin{important}
+  L'hypothèse MAR est non testable. Il est recommandé d'inclure des
+  \textbf{variables auxiliaires} (peu/pas de manquantes, sans intérêt
+  scientifique propre) qui aident à expliquer la manquance et rendent
+  MAR plus crédible.
+\end{important}
+
+\subsection{MNAR (Missing Not At Random)}
+
+La probabilité de manquance dépend des données manquantes elles-mêmes~:
+\[
+P(R \mid X) = P(R \mid X^{\text{obs}}, X^{\text{mis}}).
+\]
+
+\textbf{Exemple}~: les personnes à haut revenu ne déclarent pas leur
+revenu.
+
+\textbf{Traitement}~: méthodes spécifiques (pattern mixture models,
+selection models), moins développées et plus complexes que pour MAR.
+
+% ===================================================================
+\section{Identification des mécanismes}
+% ===================================================================
+
+Bien qu'il soit impossible de \emph{démontrer} le mécanisme, l'analyse
+exploratoire aide à l'identifier~:
+
+\begin{enumerate}
+  \item \textbf{Analyse univariée du dispositif} $\mathbf{R}$~:
+    proportion de manquantes par variable.
+  \item \textbf{Analyse bivariée}~: lien entre la manquance d'une
+    variable et les valeurs observées d'autres variables.
+    Exemple~: distribution de \textit{Credit Amount} selon que
+    \textit{Duration} est observée ou non.
+  \item \textbf{Analyse multivariée}~: régression logistique de la
+    manquance sur les variables observées.
+\end{enumerate}
+
+\begin{remark}
+  Ces analyses ne permettent pas de trancher entre MAR et MNAR (tous
+  deux peuvent produire des différences de distribution). Seule la
+  connaissance du mécanisme de production des données permet de
+  décider.
+\end{remark}
+
+% ===================================================================
+\section{Traitement par imputation simple}
+% ===================================================================
+
+L'imputation simple remplace chaque valeur manquante par une valeur
+plausible (une seule valeur par cellule).
+
+\subsection{Typologie des méthodes}
+
+\paragraph{Imputation marginale (univariée)}~:
+moyenne, médiane, tirage aléatoire dans les valeurs observées.
+\textbf{Inconvénient}~: détruit les relations entre variables.
+
+\paragraph{Imputation par régression}~:
+\begin{enumerate}
+  \item Ajuster un modèle de régression sur les données observées.
+  \item Prédire les valeurs manquantes à partir de ce modèle.
+  \item Ajouter une perturbation aléatoire (\textbf{imputation
+    stochastique}) pour mieux respecter la distribution.
+\end{enumerate}
+
+\paragraph{Imputation par $k$ plus proches voisins ($k$-NN)}~:
+\begin{enumerate}
+  \item Identifier les $k$ individus complets les plus proches de
+    l'individu à imputer (distance euclidienne).
+  \item Tirer une valeur parmi leurs $k$ valeurs observées (ou
+    faire la moyenne).
+\end{enumerate}
+
+\paragraph{Choix du modèle}~:
+\begin{quote}
+  «~Choisir des modèles d'imputation au moins aussi complexes que la
+  méthode qui sera appliquée sur les données imputées~» (Schafer, 2003).
+\end{quote}
+Si l'analyse finale comporte des interactions, l'imputation doit les
+préserver.
+
+\subsection{Imputation séquentielle (plusieurs variables)}
+
+Algorithme~:
+\begin{enumerate}
+  \item Ordonner les variables de la moins manquante à la plus manquante.
+  \item Initialiser les valeurs manquantes (tirage dans les observées).
+  \item Pour chaque variable $j$ (dans l'ordre)~:
+    \begin{itemize}
+      \item Ajuster le modèle d'imputation de $X_j$ sur les autres
+        variables (données observées de $X_j$ uniquement).
+      \item Mettre à jour les valeurs imputées de $X_j$ avec ce modèle.
+    \end{itemize}
+  \item Répéter l'étape 3 jusqu'à convergence (stabilisation de la
+    distribution imputée).
+\end{enumerate}
+Les logiciels proposent des modèles par défaut selon la nature des
+variables (régression linéaire pour quantitative, logistique pour
+binaire, etc.).
+
+\subsection{Validation du modèle d'imputation}
+
+Comparer les distributions des données imputées et observées~:
+\begin{itemize}
+  \item Une différence de \textbf{tendance centrale} est attendue sous MAR.
+  \item Une différence de \textbf{forme} indique un modèle mal adapté.
+\end{itemize}
+Outils~: histogrammes superposés, boxplots, analyses bivariées/multivariées.
+
+\subsection{Modèles joints}
+
+Alternative aux approches séquentielles~: spécifier un modèle pour la
+distribution \textbf{jointe} de toutes les variables.
+
+\begin{itemize}
+  \item \textbf{Données quantitatives}~: modèle gaussien multivarié
+    (package \texttt{Amelia}).
+  \item \textbf{Données qualitatives}~: modèle log-linéaire, classes
+    latentes (package \texttt{cat}).
+  \item \textbf{Données mixtes}~: \textit{general location model}
+    (package \texttt{mix}).
+  \item \textbf{Imputation par analyse factorielle}~: ACP, ACM, AFDM
+    (package \texttt{missMDA}). Particulièrement adapté à la grande
+    dimension, la multicolinéarité et les données mixtes.
+\end{itemize}
+
+Avantage~: rapidité (toutes les variables imputées simultanément).
+Inconvénient~: moins flexible que l'approche séquentielle.
+
+% ===================================================================
+\section{Imputation multiple -- MICE}
+% ===================================================================
+
+L'imputation simple ignore l'incertitude sur les valeurs imputées~:
+les intervalles de confiance construits après imputation simple ont un
+taux de couverture trop faible.
+
+L'\textbf{imputation multiple} génère $M$ tableaux imputés (typiquement
+$M \ge 3$, souvent $M=5$ ou $M=20$)~:
+
+\begin{enumerate}
+  \item Générer $M$ jeux de paramètres du modèle d'imputation (par
+    bootstrap ou tirage dans la distribution a posteriori).
+  \item Pour chaque jeu, imputer les données $\rightarrow$ $M$ tableaux
+    complets.
+  \item Appliquer la méthode d'analyse sur chaque tableau.
+  \item Agréger les $M$ résultats avec les \textbf{règles de Rubin}.
+\end{enumerate}
+
+\subsection{Règles de Rubin}
+
+Soit $\hat{\theta}_m$ l'estimation du paramètre d'intérêt sur le
+$m$-ième tableau imputé, et $\widehat{\operatorname{Var}}(\hat{\theta}_m)$
+sa variance estimée.
+
+\textbf{Estimation agrégée}~:
+\[
+\hat{\theta} = \frac{1}{M}\sum_{m=1}^{M} \hat{\theta}_m.
+\]
+
+\textbf{Variance totale}~:
+\[
+\widehat{\operatorname{Var}}(\hat{\theta})
+= \frac{1}{M}\sum_{m=1}^{M} \widehat{\operatorname{Var}}(\hat{\theta}_m)
++ \left(1 + \frac{1}{M}\right)
+  \frac{1}{M-1}\sum_{m=1}^{M} (\hat{\theta}_m - \hat{\theta})^2.
+\]
+
+Le premier terme est la \textbf{variance intra-imputation} (incertitude
+dans chaque échantillon), le second la \textbf{variance inter-imputation}
+(incertitude due aux données manquantes).
+
+\begin{remark}
+  Les règles de Rubin s'appliquent essentiellement aux modèles linéaires
+  généralisés (régression linéaire, logistique, ANOVA). Pour d'autres
+  méthodes, l'agrégation peut être difficile.
+\end{remark}
+
+\subsection{Overimputation}
+
+Technique de validation~: générer des valeurs plausibles également pour
+les \textbf{données observées}. En générant plusieurs centaines de
+tableaux, on construit un intervalle de prédiction à 95~\% pour chaque
+valeur observée. Si le modèle est bien choisi, 95~\% des valeurs
+observées sont contenues dans leur intervalle.
+
+% ===================================================================
+\section{Autres méthodes de traitement}
+% ===================================================================
+
+\subsection{Algorithmes EM et DA}
+
+\begin{itemize}
+  \item \textbf{EM (Expectation-Maximization)}~: alterne imputation
+    (espérance) et estimation des paramètres par maximum de vraisemblance.
+  \item \textbf{DA (Data Augmentation)}~: version bayésienne qui alterne
+    génération des données imputées et tirage des paramètres dans leur
+    distribution a posteriori.
+\end{itemize}
+
+\textbf{Différence avec l'imputation}~: le modèle d'imputation est le
+même que le modèle d'analyse. On ne peut pas, par exemple, imputer par
+$k$-NN et analyser par régression linéaire (contrairement à l'imputation).
+
+\subsection{Méthodes par pondération}
+
+Attribuer un poids aux individus complets, inversement proportionnel à
+leur probabilité d'être manquants. Issu de la théorie des sondages.
+
+\textbf{Avantage}~: pas besoin de modéliser la distribution des données.
+\textbf{Inconvénient}~: nécessite de modéliser le mécanisme de manquance
+(estimation difficile des poids en pratique).
+
+% ===================================================================
+\section{Code R -- Exemples}
+% ===================================================================
+
+\begin{lstlisting}[language=R, caption=Imputation multiple avec mice]
+library(mice)
+
+# Chargement et inspection
+data(nhanes)
+md.pattern(nhanes)
+
+# Imputation multiple
+imp <- mice(nhanes, m = 5, method = 'pmm',
+            seed = 123, printFlag = FALSE)
+
+# Convergence
+plot(imp)
+
+# Comparaison distributions
+densityplot(imp)
+
+# Analyse et combinaison
+fit <- with(imp, lm(bmi ~ age + chl))
+pooled <- pool(fit)
+summary(pooled)
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Imputation par forêts aléatoires (randomForest)]
+library(mice)
+imp_rf <- mice(nhanes, m = 5,
+               method = 'rf',  # random forest
+               seed = 123, printFlag = FALSE)
+fit_rf <- with(imp_rf, lm(bmi ~ age + chl))
+summary(pool(fit_rf))
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Imputation par analyse factorielle (missMDA)]
+library(missMDA)
+data(ozone)
+
+# Estimation du nombre de composantes
+nb <- estim_ncpPCA(ozone[, -1], ncp.max = 5)
+
+# Imputation par ACP
+res.impute <- imputePCA(ozone[, -1], ncp = nb$ncp)
+head(res.impute$completeObs)
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Imputation avec Amelia (modèle gaussien)]
+library(Amelia)
+data(freetrade)
+amelia_out <- amelia(freetrade, m = 5,
+                     ts = 'year', cs = 'country')
+summary(amelia_out)
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Codes pour simuler l'impact de l'imputation simple]
+set.seed(123)
+nsim <- 2000
+res <- matrix(NA, nsim, 2)
+
+for (ii in 1:nsim) {
+  x <- rnorm(500)
+  y <- 2 * x + rnorm(500, sd = 0.5)
+
+  # Ajout de donnees manquantes MAR
+  prob <- pnorm(1.2 * x - 0.5)
+  ismar <- sapply(prob,
+    FUN = function(p) sample(c(TRUE, FALSE), 1,
+                             prob = c(p, 1 - p)))
+  ymar <- y; ymar[ismar] <- NA
+
+  # Imputation simple par regression stochastique
+  res.lm <- lm(ymar[!ismar] ~ x[!ismar])
+  ystoch <- ymar
+  ystoch[ismar] <- cbind(1, x[ismar]) %*%
+    res.lm$coefficients +
+    rnorm(sum(ismar), sd = summary(res.lm)$sigma)
+
+  # Intervalle de confiance
+  se <- sd(ystoch) / sqrt(500)
+  ci_inf <- mean(ystoch) - qt(0.975, 499) * se
+  ci_sup <- mean(ystoch) + qt(0.975, 499) * se
+  res[ii, ] <- c(mean(ystoch), 0 >= ci_inf & 0 <= ci_sup)
+}
+
+# Taux de couverture (devrait etre < 0.95)
+cat("Taux de couverture moyen:",
+    mean(res[, 2]), "\n")
+\end{lstlisting}
+
+% ===================================================================
+\section*{Questions clés (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions clés (QCM)}
+
+\begin{enumerate}
+
+  \item Le mécanisme MAR signifie que la probabilité de manquance~:
+    \begin{enumerate}
+      \item Est indépendante de toutes les données
+      \item Dépend des données observées uniquement
+      \item Dépend des données manquantes uniquement
+      \item Dépend des données observées et manquantes
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Sous un mécanisme MCAR~:
+    \begin{enumerate}
+      \item L'analyse sur les cas complets est biaisée
+      \item Les individus complets sont un sous-échantillon
+        représentatif
+      \item Il faut obligatoirement imputer les données
+      \item La variance des estimateurs est plus faible
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item L'hypothèse MAR est~:
+    \begin{enumerate}
+      \item Testable par un test statistique
+      \item Non testable
+      \item Toujours vérifiée en pratique
+      \item Plus restrictive que MCAR
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Dans MICE, que signifie l'acronyme~?
+    \begin{enumerate}
+      \item Multiple Imputation by Chained Equations
+      \item Missing Information Criterion Estimate
+      \item Multivariate Imputation for Complete Estimation
+      \item Model-based Imputation for Censored Events
+    \end{enumerate}
+    \textbf{Réponse~: a}
+
+  \item Quelle est la conséquence de l'imputation simple sur les
+    intervalles de confiance~?
+    \begin{enumerate}
+      \item Ils sont trop larges
+      \item Ils sont trop courts (sous-couverture)
+      \item Ils ne sont pas affectés
+      \item Ils deviennent exacts
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Dans les règles de Rubin, la variance totale $T$ est~:
+    \begin{enumerate}
+      \item $T = \bar{U}$ (variance intra uniquement)
+      \item $T = B$ (variance inter uniquement)
+      \item $T = \bar{U} + (1+1/M)B$
+      \item $T = \bar{U} - (1+1/M)B$
+    \end{enumerate}
+    \textbf{Réponse~: c}
+
+  \item Quel package R propose l'imputation multiple par modèle
+    gaussien joint~?
+    \begin{enumerate}
+      \item \texttt{mice}
+      \item \texttt{Amelia}
+      \item \texttt{VIM}
+      \item \texttt{missMDA}
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item L'approche par analyse factorielle pour l'imputation
+    (package \texttt{missMDA}) est particulièrement adaptée~:
+    \begin{enumerate}
+      \item Aux petites données
+      \\item À la grande dimension et la multicolinéarité
+      \item Aux données qualitatives uniquement
+      \item Aux séries temporelles
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item La technique d'\textit{overimputation} consiste à~:
+    \begin{enumerate}
+      \item Imputer plus de variables que nécessaire
+      \item Générer des valeurs plausibles pour les données observées
+      \item Supprimer les valeurs imputées
+      \item Augmenter le nombre $M$ d'imputations
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Quelle est la différence entre imputation et algorithme EM~?
+    \begin{enumerate}
+      \item Aucune, ce sont les mêmes méthodes
+      \item En imputation, le modèle d'imputation peut différer du
+        modèle d'analyse
+      \item L'EM ne nécessite pas de modèle
+      \item L'imputation ne fonctionne que sous MCAR
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{little2002}
+R.J.A.~Little, D.B.~Rubin.
+\newblock \emph{Statistical Analysis with Missing Data}.
+\newblock 2nd ed., Wiley, 2002.
+
+\bibitem{vanbuuren2012}
+S.~van~Buuren.
+\newblock \emph{Flexible Imputation of Missing Data}.
+\newblock CRC Press, 2012.
+
+\bibitem{audigier2026}
+V.~Audigier, N.~Niang.
+\newblock STA211~: gestion des données manquantes.
+\newblock Cours CNAM, 2026.
+
+\bibitem{schafer2003}
+J.L.~Schafer.
+\newblock Multiple imputation in multivariate problems when the imputation
+  and analysis models differ.
+\newblock \emph{Statistica Neerlandica}, 57(1):19--35, 2003.
+
+\bibitem{josse2016}
+J.~Josse, F.~Husson.
+\newblock missMDA~: a package for handling missing values in multivariate
+  data analysis.
+\newblock \emph{Journal of Statistical Software}, 70(1):1--31, 2016.
+
+\end{thebibliography}
+
+\end{document}

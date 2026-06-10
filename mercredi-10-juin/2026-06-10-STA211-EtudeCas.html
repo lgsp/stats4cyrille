@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Étude de cas : pré-traitement German Credit — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+.tag { color: #569cd6; }
+.attr { color: #9cdcfe; }
+.val { color: #ce9178; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 — Étude de cas : pré-traitement</h1>
+<p class="subtitle">Pipeline complet sur les données German Credit &mdash; 10 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#apercu">Aperçu général</a></li>
+    <li><a href="#univariee">Analyse univariée</a></li>
+    <li><a href="#bivariee">Analyse bivariée</a></li>
+    <li><a href="#multivariee">Analyse multivariée</a></li>
+    <li><a href="#transformations">Transformations</a></li>
+    <li><a href="#reduction">Réduction des données</a></li>
+    <li><a href="#pipeline">Pipeline résumé</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Introduction</h2>
+<!-- ============================================ -->
+
+<p>Cette étude de cas applique les méthodes de pré-traitement aux données <strong>German Credit</strong> (UCI, 1 000 crédits, 21 variables). Objectif : prédire le statut bon/mauvais payeur.</p>
+
+<p><strong>Données :</strong> <a href="https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit)">https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit)</a></p>
+
+<h3>Chargement et renommage</h3>
+<div class="code-block"><span class="kw">library</span>(stargazer)
+<span class="kw">library</span>(FactoMineR)
+<span class="kw">library</span>(DescTools)
+<span class="kw">library</span>(car)
+<span class="kw">library</span>(lattice)
+<span class="kw">library</span>(gridExtra)
+
+don <span class="op">&lt;-</span> <span class="kw">read.table</span>(
+  <span class="str">"https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"</span>,
+  sep = <span class="str">" "</span>, stringsAsFactors = TRUE)
+
+<span class="cm"># Renommage des variables (d'apres le descriptif UCI)</span>
+<span class="kw">colnames</span>(don) <span class="op">&lt;-</span> c(<span class="str">"Status"</span>, <span class="str">"Duration"</span>, <span class="str">"History"</span>,
+  <span class="str">"Purpose"</span>, <span class="str">"Credit.Amount"</span>,
+  <span class="str">"Savings account/bonds"</span>,
+  <span class="str">"Length.of.current.employment"</span>,
+  <span class="str">"Instalment.per.cent"</span>,
+  <span class="str">"Sex.Marital.Status"</span>, <span class="str">"Guarantors"</span>,
+  <span class="str">"Duration.in.Current.address"</span>,
+  <span class="str">"Property"</span>, <span class="str">"Age.years"</span>,
+  <span class="str">"Other.installment.plans"</span>, <span class="str">"Housing"</span>,
+  <span class="str">"No.of.Credits.at.this.Bank"</span>, <span class="str">"Job"</span>,
+  <span class="str">"No.of.dependents"</span>, <span class="str">"Telephone"</span>,
+  <span class="str">"Foreign.Worker"</span>, <span class="str">"Creditability"</span>)</div>
+
+<div class="info-box">
+<strong>À retenir :</strong> Les noms des variables et modalités (A11, A12, ...) ne sont pas explicites. Leur renommage est essentiel pour l'interprétation.
+</div>
+
+<!-- ============================================ -->
+<h2 id="apercu">2. Aperçu général</h2>
+<!-- ============================================ -->
+
+<div class="code-block"><span class="kw">dim</span>(don)               <span class="cm"># 1000 x 21</span>
+<span class="kw">table</span>(<span class="kw">sapply</span>(don, class))
+<span class="cm"># factor:14, integer:4, numeric:3</span>
+<span class="kw">sum</span>(<span class="kw">is.na</span>(don))        <span class="cm"># 0 (aucune donnee manquante)</span></div>
+
+<div class="warn-box">
+<strong>Spécificité :</strong> Le jeu de données German Credit est complet (0 valeur manquante). Les étapes de pré-traitement se concentrent donc sur les transformations et la réduction, pas sur l'imputation.
+</div>
+
+<!-- ============================================ -->
+<h2 id="univariee">3. Analyse univariée</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Variables quantitatives</h3>
+
+<div class="code-block"><span class="cm"># Tableau recapitulatif</span>
+<span class="kw">stargazer</span>(don,
+  summary.stat = c(<span class="str">"n"</span>, <span class="str">"min"</span>, <span class="str">"p25"</span>, <span class="str">"median"</span>,
+                   <span class="str">"mean"</span>, <span class="str">"p75"</span>, <span class="str">"max"</span>, <span class="str">"sd"</span>),
+  type = <span class="str">"text"</span>)
+
+<span class="cm"># Histogrammes</span>
+varhist <span class="op">&lt;-</span> c(<span class="str">"Duration"</span>, <span class="str">"Credit.Amount"</span>, <span class="str">"Age.years"</span>)
+<span class="kw">mapply</span>(don[,varhist],
+  FUN = function(xx,name){<span class="kw">hist</span>(xx, main = name)},
+  name = varhist)</div>
+
+<p><strong>Constats :</strong></p>
+<ul>
+    <li><strong>Duration</strong> (4-72 mois, médiane 18) : asymétrie droite.</li>
+    <li><strong>Credit.Amount</strong> (250-18 424, médiane 2 319) : forte asymétrie droite.</li>
+    <li><strong>Age.years</strong> (19-75, médiane 33) : asymétrie droite modérée.</li>
+    <li>Les variables discrètes (Instalment, No.of.Credits, etc.) ont peu de modalités.</li>
+</ul>
+
+<h3>3.2 Boîtes à moustaches</h3>
+<div class="code-block"><span class="kw">library</span>(car)
+<span class="kw">mapply</span>(don[,varhist],
+  FUN = function(xx,name){<span class="kw">Boxplot</span>(xx, main = name, id.n = 2)},
+  name = varhist)</div>
+
+<p>Des valeurs apparaissent comme potentiellement aberrantes (notamment pour <em>Credit.Amount</em>), mais la décision de les traiter peut être prise a posteriori.</p>
+
+<h3>3.3 Variables qualitatives</h3>
+<div class="code-block"><span class="cm"># Detection des modalites rares</span>
+var.factor <span class="op">&lt;-</span> <span class="kw">which</span>(<span class="kw">sapply</span>(don, class) <span class="op">==</span> <span class="str">"factor"</span>)
+<span class="kw">mapply</span>(don[,var.factor],
+  FUN = function(xx,name){<span class="kw">barplot</span>(<span class="kw">table</span>(xx), main = name,
+    horiz = TRUE, las = 2, xlim = c(0,1000))},
+  name = <span class="kw">names</span>(var.factor))</div>
+
+<p>Exemples de modalités rares : <em>noCredit.allPaid</em> et <em>thisBank.AllPaid</em> pour History, <em>Guarantor</em> pour Guarantors. Ces modalités pourront être regroupées.</p>
+
+<!-- ============================================ -->
+<h2 id="bivariee">4. Analyse bivariée</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Liens avec la variable réponse</h3>
+
+<p><strong>Linéarité (variables quantitatives) :</strong> On représente la proportion de bons payeurs en fonction de chaque variable.</p>
+
+<div class="code-block">cont.table <span class="op">&lt;-</span> <span class="kw">table</span>(don$Duration, don$Creditability)
+prof.lignes <span class="op">&lt;-</span> <span class="kw">prop.table</span>(cont.table, 1)
+<span class="kw">plot</span>(<span class="kw">as.numeric</span>(<span class="kw">rownames</span>(prof.lignes)), prof.lignes[,1],
+     pch = 16, xlab = <span class="str">"Duree du credit"</span>,
+     ylab = <span class="str">"Proportion de bons payeurs"</span>)</div>
+
+<p>La proportion de bons payeurs décroît linéairement avec la durée du crédit. Pour l'âge, la relation est <strong>non monotone</strong> &rarr; discrétisation en 3 classes recommandée.</p>
+
+<p><strong>Rapport de corrélation $\eta^2$ (quantitatives) :</strong></p>
+<div class="code-block"><span class="kw">library</span>(BioStatR)
+res.eta2 <span class="op">&lt;-</span> <span class="kw">sapply</span>(don[, var.numeric], eta2, y = don$Creditability)
+<span class="kw">barplot</span>(<span class="kw">sort</span>(res.eta2), horiz = TRUE, las = 2,
+        xlab = <span class="kw">expression</span>(eta^2))</div>
+
+<table>
+<tr><th>Discriminantes ($\eta^2$ élevé)</th><th>Non discriminantes ($\eta^2$ faible)</th></tr>
+<tr><td>Duration, Credit.Amount</td><td>No.of.dependents, Duration.in.Current.address</td></tr>
+</table>
+
+<p><strong>V de Cramer (qualitatives) :</strong></p>
+<div class="code-block"><span class="kw">library</span>(DescTools)
+res.cramer <span class="op">&lt;-</span> <span class="kw">sapply</span>(don[,var.factor[-<span class="kw">which</span>(
+  <span class="kw">names</span>(var.factor) <span class="op">==</span> <span class="str">"Creditability"</span>)]],
+  FUN = function(xx) <span class="kw">CramerV</span>(<span class="kw">table</span>(xx, don$Creditability)))
+<span class="kw">barplot</span>(<span class="kw">sort</span>(res.cramer), horiz = TRUE, las = 2,
+        xlab = <span class="str">"V de Cramer"</span>)</div>
+
+<table>
+<tr><th>Discriminantes (V élevé)</th><th>Non discriminantes (V faible)</th></tr>
+<tr><td>Status, History</td><td>Job, Telephone</td></tr>
+</table>
+
+<div class="info-box">
+<strong>Utilité :</strong> Les variables peu discriminantes sont candidates à la suppression en cas de réduction de dimension.
+</div>
+
+<h3>4.2 Liens entre variables explicatives</h3>
+
+<div class="code-block"><span class="cm"># Matrice de correlation (Pearson)</span>
+matcor <span class="op">&lt;-</span> <span class="kw">cor</span>(don[, var.numeric])
+
+<span class="cm"># Spearman (pour detecter la non-linearite)</span>
+matcor.spearman <span class="op">&lt;-</span> <span class="kw">cor</span>(don[, var.numeric], method = <span class="str">"spearman"</span>)</div>
+
+<p>Comparer Pearson et Spearman : si $|r| \approx |\rho|$ la relation est linéaire ; si $|\rho| > |r|$ elle est monotone non linéaire.</p>
+
+<!-- ============================================ -->
+<h2 id="multivariee">5. Analyse multivariée</h2>
+<!-- ============================================ -->
+
+<h3>5.1 AFDM (Analyse Factorielle de Données Mixtes)</h3>
+
+<div class="code-block"><span class="kw">library</span>(FactoMineR)
+res.famd <span class="op">&lt;-</span> <span class="kw">FAMD</span>(don[, -<span class="kw">ncol</span>(don)], graph = FALSE)
+<span class="kw">plot</span>(res.famd, choix = <span class="str">"var"</span>)
+<span class="kw">plot</span>(res.famd, choix = <span class="str">"ind"</span>)</div>
+
+<p>L'AFDM permet de visualiser les proximités entre individus et entre variables, et de détecter les individus atypiques (contribution élevée).</p>
+
+<h3>5.2 Classification (CAH)</h3>
+
+<div class="code-block"><span class="cm"># CAH sur les composantes de l'AFDM</span>
+res.hcpc <span class="op">&lt;-</span> <span class="kw">HCPC</span>(res.famd, nb.clust = -1, graph = FALSE)
+<span class="kw">plot</span>(res.hcpc)</div>
+
+<h3>5.3 Description des partitions</h3>
+
+<div class="code-block"><span class="kw">catdes</span>(don, num.var = <span class="kw">ncol</span>(don))</div>
+
+<p>La fonction <strong>catdes</strong> décrit chaque modalité de la réponse (good/bad) à partir des variables quantitatives (test de Student) et des modalités qualitatives (test du $\chi^2$).</p>
+
+<!-- ============================================ -->
+<h2 id="transformations">6. Transformations</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Variables quantitatives</h3>
+
+<p><strong>Discrétisation :</strong> On coupe l'âge en 3 classes pour gérer la non-linéarité.</p>
+<div class="code-block">Age.cut <span class="op">&lt;-</span> <span class="kw">cut</span>(don$Age.years,
+  breaks = <span class="kw">quantile</span>(don$Age.years,
+    probs = c(0, 1/3, 2/3, 1)),
+  include.lowest = TRUE)</div>
+
+<p><strong>Box-Cox :</strong> Pour linéariser et symétriser les distributions.</p>
+<div class="code-block"><span class="kw">library</span>(MASS)
+<span class="kw">boxcox</span>(<span class="kw">lm</span>(Credit.Amount ~ 1, data = don))</div>
+
+<p>La transformation logarithmique ($\lambda \approx 0$) est souvent appropriée pour <em>Credit.Amount</em> et <em>Duration</em>.</p>
+
+<h3>6.2 Variables qualitatives</h3>
+<p><strong>Regroupement de modalités :</strong> On fusionne les modalités rares au comportement similaire.</p>
+<div class="code-block"><span class="cm"># Exemple : History</span>
+tmp <span class="op">&lt;-</span> <span class="kw">prop.table</span>(<span class="kw">table</span>(don$History, don$Creditability), 1)
+<span class="cm"># noCredit.allPaid et thisBank.AllPaid ont des profils proches</span>
+<span class="kw">levels</span>(don$History)[1:2] <span class="op">&lt;-</span> <span class="str">"AllPaid"</span></div>
+
+<h3>6.3 Standardisation</h3>
+<div class="code-block">don.scaled <span class="op">&lt;-</span> <span class="kw">as.data.frame</span>(<span class="kw">scale</span>(don[, var.numeric]))</div>
+
+<!-- ============================================ -->
+<h2 id="reduction">7. Réduction des données</h2>
+<!-- ============================================ -->
+
+<h3>7.1 Réduction en lignes</h3>
+<p>Suppression des individus atypiques (distance de Mahalanobis robuste) :</p>
+<div class="code-block"><span class="kw">library</span>(robustbase)
+mcd <span class="op">&lt;-</span> <span class="kw">covMcd</span>(don[, var.numeric])
+dist <span class="op">&lt;-</span> <span class="kw">mahalanobis</span>(don[, var.numeric],
+  center = mcd$center, cov = mcd$cov)
+seuil <span class="op">&lt;-</span> <span class="kw">qchisq</span>(0.999, df = <span class="kw">length</span>(var.numeric))
+outliers <span class="op">&lt;-</span> <span class="kw">which</span>(dist > seuil)</div>
+
+<h3>7.2 Réduction en colonnes</h3>
+<p><strong>Sélection de variables (Lasso) :</strong></p>
+<div class="code-block"><span class="kw">library</span>(glmnet)
+X <span class="op">&lt;-</span> <span class="kw">model.matrix</span>(Creditability ~ ., data = don)[, -1]
+y <span class="op">&lt;-</span> don$Creditability
+cv.lasso <span class="op">&lt;-</span> <span class="kw">cv.glmnet</span>(X, y, alpha = 1, family = <span class="str">"binomial"</span>)
+<span class="kw">coef</span>(cv.lasso, s = <span class="str">"lambda.1se"</span>)</div>
+
+<p><strong>Extraction de caractéristiques (ACP) :</strong></p>
+<div class="code-block">res.pca <span class="op">&lt;-</span> <span class="kw">PCA</span>(don[, var.numeric], scale.unit = TRUE, graph = FALSE)
+<span class="kw">barplot</span>(res.pca$eig[, 2], main = <span class="str">"Variance expliquee"</span>)</div>
+
+<!-- ============================================ -->
+<h2 id="pipeline">8. Pipeline résumé</h2>
+<!-- ============================================ -->
+
+<ol>
+    <li><strong>Import</strong> &rarr; charger, renommer, typer</li>
+    <li><strong>Aperçu</strong> &rarr; dimensions, types, valeurs manquantes</li>
+    <li><strong>Analyse univariée</strong> &rarr; distributions, atypiques, modalités rares</li>
+    <li><strong>Analyse bivariée</strong> &rarr; lien avec $Y$ (linéarité, $\eta^2$, V de Cramer), lien entre $X$</li>
+    <li><strong>Analyse multivariée</strong> &rarr; AFDM, CAH, catdes</li>
+    <li><strong>Transformations</strong> &rarr; Box-Cox, discrétisation, regroupement, standardisation</li>
+    <li><strong>Réduction</strong> &rarr; suppression d'atypiques, sélection (Lasso), extraction (ACP/AFDM)</li>
+    <li><strong>Modélisation</strong> &rarr; appliquer la méthode sur les données prétraitées</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="qcm">9. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne réponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+// ============================================================
+// QCM Data
+// ============================================================
+const qcmData = [
+    {
+        q: "Combien de variables le jeu German Credit contient-il ?",
+        options: [
+            "1000",
+            "21",
+            "20",
+            "14"
+        ],
+        correct: 1,
+        expl: "21 variables : 20 explicatives + 1 r\u00e9ponse (Creditability)."
+    },
+    {
+        q: "Le jeu German Credit contient-il des valeurs manquantes ?",
+        options: [
+            "Oui, beaucoup",
+            "Non, il est complet",
+            "Oui, 5%",
+            "On ne peut pas savoir"
+        ],
+        correct: 1,
+        expl: "sum(is.na(don)) = 0. Le jeu est int\u00e9gralement complet."
+    },
+    {
+        q: "Quelle variable quantitative est la plus discriminante selon le \u03b7\u00b2 ?",
+        options: [
+            "Age.years",
+            "Duration",
+            "Instalment.per.cent",
+            "No.of.dependents"
+        ],
+        correct: 1,
+        expl: "Duration a le \u03b7\u00b2 le plus \u00e9lev\u00e9 parmi les variables quantitatives."
+    },
+    {
+        q: "Quelle variable qualitative est la plus discriminante selon le V de Cramer ?",
+        options: [
+            "Telephone",
+            "Job",
+            "Status",
+            "Housing"
+        ],
+        correct: 2,
+        expl: "Status (compte bancaire) a le V de Cramer le plus \u00e9lev\u00e9."
+    },
+    {
+        q: "La relation entre Age et la proportion de bons payeurs est :",
+        options: [
+            "Lin\u00e9aire croissante",
+            "Lin\u00e9aire d\u00e9croissante",
+            "Non monotone",
+            "Inexistante"
+        ],
+        correct: 2,
+        expl: "La relation est non monotone, d'o\u00f9 la discr\u00e9tisation en 3 classes."
+    },
+    {
+        q: "Quel package R permet de calculer le \u03b7\u00b2 ?",
+        options: [
+            "stargazer",
+            "DescTools",
+            "BioStatR",
+            "FactoMineR"
+        ],
+        correct: 2,
+        expl: "BioStatR avec la fonction eta2()."
+    },
+    {
+        q: "La fonction catdes (FactoMineR) permet de :",
+        options: [
+            "Visualiser les corr\u00e9lations",
+            "D\u00e9crire une partition par les variables",
+            "Effectuer une ACP",
+            "Imputer les valeurs manquantes"
+        ],
+        correct: 1,
+        expl: "catdes d\u00e9crit les modalit\u00e9s d'une partition \u00e0 l'aide des variables."
+    },
+    {
+        q: "Pour g\u00e9rer la non-lin\u00e9arit\u00e9 de l'\u00e2ge, on recommande :",
+        options: [
+            "Une transformation logarithmique",
+            "Une discr\u00e9tisation en 3 classes",
+            "Une standardisation",
+            "La suppression de la variable"
+        ],
+        correct: 1,
+        expl: "Discr\u00e9tisation en 3 classes par quantiles (0, 1/3, 2/3, 1)."
+    },
+    {
+        q: "Le Lasso (r\u00e9gression p\u00e9nalis\u00e9e L1) permet :",
+        options: [
+            "D'imputer les donn\u00e9es manquantes",
+            "De s\u00e9lectionner automatiquement les variables",
+            "De visualiser les clusters",
+            "De transformer les variables"
+        ],
+        correct: 1,
+        expl: "La p\u00e9nalit\u00e9 L1 force certains coefficients \u00e0 z\u00e9ro (s\u00e9lection)."
+    },
+    {
+        q: "Quel est l'ordre correct du pipeline de pr\u00e9-traitement ?",
+        options: [
+            "Mod\u00e9lisation \u2192 transformation \u2192 analyse",
+            "Analyse \u2192 transformation \u2192 r\u00e9duction \u2192 mod\u00e9lisation",
+            "R\u00e9duction \u2192 mod\u00e9lisation \u2192 analyse",
+            "Transformation \u2192 mod\u00e9lisation \u2192 analyse"
+        ],
+        correct: 1,
+        expl: "D'abord explorer, puis transformer, r\u00e9duire, enfin mod\u00e9liser."
+    }
+];
+
+// ============================================================
+// QCM Rendering
+// ============================================================
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) {
+            return;
+        }
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null
+                    ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}`
+                    : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

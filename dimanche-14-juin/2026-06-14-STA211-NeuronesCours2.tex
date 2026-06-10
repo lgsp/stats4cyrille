@@ -1,0 +1,400 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\usepackage{multirow}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- R\'eseaux de neurones (cours 2)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large R\'eseaux de neurones -- Cours 2 \\[2pt]
+\small R\'eseaux de neurones convolutionnels (ConvNets) et LeNet}
+\author{Nicolas Thome (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente les r\'eseaux de neurones convolutionnels
+(ConvNets / CNN), qui tirent parti de la structure spatiale des
+donn\'ees (images, audio) via la convolution, le partage de poids
+et le pooling. Le mod\`ele historique LeNet-5 (LeCun et al., 1989)
+est d\'etaill\'e comme \'etude de cas avec son architecture
+compl\`ete et ses performances sur MNIST.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Limites des r\'eseaux fully connected (MLP)}
+% ===================================================================
+
+Les r\'eseaux enti\`erement connect\'es (MLP) pr\'esentent trois
+limitations majeures pour les donn\'ees de signaux~:
+
+\begin{enumerate}
+  \item \textbf{Explosion du nombre de param\`etres}~: m\^eme une
+    seule couche cach\'ee g\'en\`re un nombre de poids colossal
+    (ex~: image $32\times 32$ en entr\'ee, couche cach\'ee de $1000$
+    neurones $\Rightarrow$ $1$ million de param\`etres).
+  \item \textbf{Ignorance de la topologie spatiale}~: la
+    repr\'esentation vectorielle perd toute notion de voisinage.
+    Le MLP est indiff\'erent aux permutations des pixels d'entr\'ee.
+  \item \textbf{Absence d'invariance}~: un faible d\'ecalage en
+    entr\'ee peut produire une repr\'esentation compl\`etement
+    diff\'erente.
+\end{enumerate}
+
+% ===================================================================
+\section{La convolution}
+% ===================================================================
+
+\subsection{Connectivit\'e locale et partage de poids}
+
+Pour pallier ces limites, on introduit deux id\'ees cl\'es~:
+
+\begin{enumerate}
+  \item \textbf{Connectivit\'e locale (sparse connectivity)}~:
+    chaque neurone cach\'e n'est connect\'e qu'\`a une petite r\'egion
+    locale de l'entr\'ee (champ r\'ecepteur), inspir\'e du cortex
+    visuel.
+  \item \textbf{Partage de poids (shared weights)}~: le m\^eme filtre
+    (noyau) est appliqu\'e \`a toutes les positions spatiales,
+    r\'eduisant consid\'erablement le nombre de param\`etres.
+\end{enumerate}
+
+\subsection{Convolution 2D}
+
+Soit une image $f$ et un filtre $h$ de taille impaire $d$. La
+convolution 2D est d\'efinie par~:
+\begin{equation}
+  f'(i,j) = (f \star h)(i,j) =
+  \sum_{n=-\frac{d-1}{2}}^{\frac{d-1}{2}}
+  \sum_{m=-\frac{d-1}{2}}^{\frac{d-1}{2}}
+  f(i-n, j-m)\,h(n,m)
+\end{equation}
+
+\noindent La sortie pour $1$ filtre est une carte 2D~; pour $K$
+filtres on obtient $K$ cartes 2D.
+
+\subsection{Convolution vs corr\'elation crois\'ee}
+
+La corr\'elation crois\'ee (\emph{cross-correlation}) est
+similaire mais sans sym\'etrisation du masque~:
+\begin{equation}
+  f'(i,j) = (f \otimes h)(i,j) =
+  \sum_{n}\sum_{m} f(i+n, j+m)\,h(n,m)
+\end{equation}
+En pratique, les frameworks Deep Learning impl\'ementent la
+corr\'elation crois\'ee (plus simple) et les filtres sont appris.
+
+\subsection{Convolution sur tenseurs (couche convolutionnelle)}
+
+Pour une image couleur (3 canaux) ou une carte de features
+profonde, la convolution s'applique sur toute la profondeur~:
+\begin{equation}
+  f'(i,j) = \sum_{k=1}^{K} \sum_{n}\sum_{m}
+  f(i-n, j-m, k)\,h(n,m,k) + b
+\end{equation}
+
+\noindent Chaque filtre produit une carte 2D~; $F$ filtres
+produisent $F$ cartes empil\'ees en un \textbf{tenseur} de
+profondeur $F$.
+
+\begin{important}
+  La couche convolutionnelle est une op\'eration affine
+  (convolution lin\'eaire + biais), suivie d'une non-lin\'earit\'e
+  (ReLU, sigmo\"ide, etc.).
+\end{important}
+
+% ===================================================================
+\section{Le pooling}
+% ===================================================================
+
+\subsection{Objectif}
+
+Le \textbf{pooling} (sous-\'echantillonnage) permet de~:
+\begin{itemize}
+  \item R\'eduire la r\'esolution spatiale.
+  \item Apporter une invariance aux translations locales.
+  \item Diminuer le nombre de param\`etres.
+\end{itemize}
+
+\subsection{Max pooling}
+
+La valeur maximale dans une fen\^etre $p \times p$ est retenue avec
+un pas (stride) $s$~:
+\begin{itemize}
+  \item Exemple~: fen\^etre $2\times 2$, stride $2$ $\Rightarrow$
+    division par $2$ de chaque dimension spatiale.
+  \item Offre une invariance partielle aux translations~: un
+    d\'ecalage inf\'erieur \`a la taille de la fen\^etre de pooling
+    ne modifie pas n\'ecessairement le maximum.
+\end{itemize}
+
+\subsection{Types de pooling}
+
+\begin{tabular}{ll}
+\toprule
+Type & Op\'eration \\
+\midrule
+Max pooling & Maximum dans la fen\^etre \\
+Average pooling & Moyenne dans la fen\^etre \\
+Sum pooling & Somme (pond\'er\'ee par un param\`etre appris) \\
+\bottomrule
+\end{tabular}
+
+% ===================================================================
+\section{Architecture d'un ConvNet}
+% ===================================================================
+
+Un r\'eseau convolutionnel (ConvNet / CNN) est constitu\'e de
+l'empilement de blocs \'el\'ementaires~:
+\begin{equation}
+  \boxed{\text{Convolution} + \text{Non-lin\'earit\'e} +
+    \text{Pooling}}
+\end{equation}
+
+\noindent Apr\`es plusieurs blocs, les cartes de features sont
+aplaties et connect\'ees \`a des couches enti\`erement connect\'ees
+(fully connected) pour la classification finale.
+
+\begin{important}
+  Les ConvNets exploitent la structure locale des donn\'ees~:
+  pixel voisins, \'echantillons temporels proches, etc. Chaque
+  bloc extrait des motifs de plus en plus abstraits.
+\end{important}
+
+% ===================================================================
+\section{\'Etude de cas~: LeNet-5 (LeCun et al., 1989)}
+% ===================================================================
+
+\subsection{Architecture}
+
+LeNet-5 est le premier r\'eseau convolutionnel moderne, d\'evelopp\'e
+pour la reconnaissance de chiffres manuscrits (MNIST).
+
+\begin{center}
+\begin{tabular}{clccc}
+\toprule
+Couche & Type & Taille & Maps $\times$ Dim. & \# Param. \\
+\midrule
+Entr\'ee & Image & $32\times 32$ & $1 \times 32 \times 32$ & 0 \\
+C1 & Convolution ($5\times5$, 6 filtres) & & $6 \times 28 \times 28$ & 156 \\
+S2 & Pooling ($2\times2$, stride 2) & & $6 \times 14 \times 14$ & 12 \\
+C3 & Convolution ($5\times5$, 16 filtres) & & $16 \times 10 \times 10$ & 1516 \\
+S4 & Pooling ($2\times2$, stride 2) & & $16 \times 5 \times 5$ & 32 \\
+C5 & Convolution ($5\times5$, 120 filtres) & & $120 \times 1 \times 1$ & 48\,210 \\
+F6 & Fully connected & & 84 & 10\,164 \\
+F7 & Fully connected (sortie) & & 10 & 850 \\
+\midrule
+\multicolumn{4}{r}{Total} & $\sim$60\,000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{D\'etails}
+
+\begin{description}
+  \item[C1]~: $6$ filtres $5\times5$, pas de padding $\Rightarrow$
+    $28\times28$. Param\`etres~: $(5\times5 + 1)\times 6 = 156$.
+  \item[S2]~: sous-\'echantillonnage $2\times2$ stride $2$, somme
+    pond\'er\'ee + biais $\Rightarrow$ $14\times14$.
+  \item[C3]~: $16$ filtres $5\times5$, connexion s\'lective aux
+    cartes de S2 (non fully connected) $\Rightarrow$ $10\times10$.
+  \item[S4]~: identique \`a S2 $\Rightarrow$ $5\times5$.
+  \item[C5]~: $120$ filtres $5\times5\times16$ (profondeur totale)
+    $\Rightarrow$ cartes $1\times1$ (vecteur de $120$).
+  \item[F6]~: $84$ neurones fully connected.
+  \item[F7]~: $10$ neurones de sortie (softmax).
+\end{description}
+
+\subsection{R\'esultats sur MNIST}
+
+\begin{itemize}
+  \item Ensemble original~: $60\,000$ images, erreur test~$0{,}95\%$.
+  \item Avec $540\,000$ distortions artificielles~: erreur test
+    $0{,}8\%$.
+  \item D\'eploiement r\'eussi pour la lecture de codes postaux
+    aux \'Etats-Unis.
+\end{itemize}
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quelle est la principale limitation des MLP pour les
+    images~?
+    \begin{enumerate}
+      \item Ils sont trop lents \`a l'inf\'erence
+      \item Explosion du nombre de param\`etres et ignorance de la
+        topologie spatiale
+      \item Ils ne peuvent pas apprendre
+      \item Ils n\'ecessitent trop de donn\'ees
+    \end{enumerate}
+    \textbf{R\'eponse~: b (explosion des param\`etres et perte de
+    la topologie).}
+
+  \item Que permet le partage de poids (shared weights)~?
+    \begin{enumerate}
+      \item Augmenter le nombre de param\`etres
+      \item R\'eduire consid\'erablement le nombre de param\`etres
+        \`a apprendre
+      \item Acc\'el\'erer le calcul
+      \item \'Eviter le sur-apprentissage
+    \end{enumerate}
+    \textbf{R\'eponse~: b (r\'eduction du nombre de param\`etres).}
+
+  \item Quelle est la diff\'erence entre convolution et
+    corr\'elation crois\'ee~?
+    \begin{enumerate}
+      \item Aucune
+      \item La corr\'elation crois\'ee ne sym\'etrise pas le masque
+      \item La convolution est plus rapide
+      \item La corr\'elation crois\'ee utilise des filtres plus
+        grands
+    \end{enumerate}
+    \textbf{R\'eponse~: b (pas de sym\'etrisation du masque).}
+
+  \item Quel est le r\^ole d'une couche de pooling~?
+    \begin{enumerate}
+      \item Augmenter la r\'esolution
+      \item Apporter une invariance aux translations locales et
+        r\'eduire la dimension spatiale
+      \item Remplacer la convolution
+      \item Initialiser les poids
+    \end{enumerate}
+    \textbf{R\'eponse~: b (invariance aux translations et
+    sous-\'echantillonnage).}
+
+  \item Dans LeNet-5, combien de filtres la couche C1
+    poss\`ede-t-elle~?
+    \begin{enumerate}
+      \item 1
+      \item 6
+      \item 16
+      \item 120
+    \end{enumerate}
+    \textbf{R\'eponse~: b (6 filtres $5\times5$).}
+
+  \item Quelle est la taille des cartes de sortie de C1 dans
+    LeNet-5~?
+    \begin{enumerate}
+      \item $32\times32$
+      \item $28\times28$
+      \item $14\times14$
+      \item $10\times10$
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($28\times28$, convolution $5\times5$
+    sans padding).}
+
+  \item Combien de param\`etres LeNet-5 a-t-il au total~?
+    \begin{enumerate}
+      \item $\sim$6\,000
+      \item $\sim$60\,000
+      \item $\sim$600\,000
+      \item $\sim$6\,000\,000
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($\sim$60\,000 param\`etres).}
+
+  \item Quel jeu de donn\'ees a servi pour \'evaluer LeNet-5~?
+    \begin{enumerate}
+      \item ImageNet
+      \item MNIST
+      \item CIFAR-10
+      \item COCO
+    \end{enumerate}
+    \textbf{R\'eponse~: b (MNIST, chiffres manuscrits).}
+
+  \item Quelle performance LeNet-5 atteint-elle sur MNIST avec
+    distortions artificielles~?
+    \begin{enumerate}
+      \item $5\%$ d'erreur
+      \item $0{,}8\%$ d'erreur
+      \item $10\%$ d'erreur
+      \item $0{,}1\%$ d'erreur
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($0{,}8\%$ d'erreur test).}
+
+  \item Qui a propos\'e LeNet-5~?
+    \begin{enumerate}
+      \item Hinton et al.
+      \item LeCun et al.
+      \item Krizhevsky et al.
+      \item Goodfellow et al.
+    \end{enumerate}
+    \textbf{R\'eponse~: b (LeCun et al., 1989).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{LeCun1989}
+  Y.~LeCun, B.~Boser, J.~S.~Denker, D.~Henderson, R.~E.~Howard,
+  W.~Hubbard, L.~D.~Jackel.
+  \newblock \emph{Backpropagation applied to handwritten zip code
+    recognition}.
+  \newblock Neural Computation, 1(4):541--551, 1989.
+
+\bibitem{Goodfellow2016}
+  I.~Goodfellow, Y.~Bengio, A.~Courville.
+  \newblock \emph{Deep Learning}.
+  \newblock MIT Press, 2016.
+
+\end{thebibliography}
+
+\end{document}

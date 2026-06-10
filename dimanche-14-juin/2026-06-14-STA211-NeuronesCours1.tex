@@ -1,0 +1,492 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- R\'eseaux de neurones (cours 1)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large R\'eseaux de neurones -- Cours 1 \\[2pt]
+\small Du neurone formel au perceptron multicouche, r\'etropropagation
+et optimisation}
+\author{Nicolas Thome (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente les fondements des r\'eseaux de neurones
+profonds (Deep Learning), couvrant le neurone formel (McCulloch \&
+Pitts, 1943), le perceptron, le perceptron multicouche (MLP),
+l'apprentissage par r\'etropropagation du gradient (backpropagation),
+les fonctions d'activation (seuil, sigmo\"ide, tanh, softmax),
+et les aspects pratiques d'optimisation (descente de gradient
+stochastique, r\'egularisation).
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Contexte}
+% ===================================================================
+
+Le Deep Learning constitue une rupture dans la reconnaissance des
+signaux de bas niveau (images, audio, texte). Avant le DL, les
+repr\'esentations interm\'ediaires \'etaient con\c{c}ues
+artisanalement (handcrafted features). Depuis le DL, ces
+repr\'esentations sont apprises automatiquement, ce qui offre~:
+\begin{itemize}
+  \item Des performances exp\'erimentales sup\'erieures.
+  \item Un apprentissage de repr\'esentations de plus haut niveau
+    d'abstraction.
+  \item Une m\'ethodologie commune et ind\'ependante du domaine.
+\end{itemize}
+
+% ===================================================================
+\section{Le neurone formel}
+% ===================================================================
+
+\subsection{D\'efinition (McCulloch \& Pitts, 1943)}
+
+Le neurone formel est l'unit\'e de base des r\'eseaux de neurones.
+Il r\'ealise une transformation d'une entr\'ee vectorielle
+$\mathbf{x} \in \mathbb{R}^m$ en une sortie scalaire
+$\hat{y} \in \mathbb{R}$ en deux \'etapes~:
+
+\begin{enumerate}
+  \item \textbf{Combinaison lin\'eaire (affine)}~:
+    $\displaystyle s = \mathbf{w}^\intercal \mathbf{x} + b =
+    \sum_{i=1}^m w_i x_i + b$
+  \item \textbf{Activation non lin\'eaire}~:
+    $\hat{y} = f(s)$
+\end{enumerate}
+
+\noindent o\`u $\mathbf{w} \in \mathbb{R}^m$ est le vecteur de
+poids synaptiques, $b \in \mathbb{R}$ le biais, et $f$ la fonction
+d'activation.
+
+\subsection{Fonctions d'activation}
+
+\paragraph{Fonction seuil (Heaviside)}~:
+\begin{equation}
+  H(z) = \begin{cases}
+    1 & \text{si } z \geq 0 \\
+    0 & \text{sinon}
+  \end{cases}
+\end{equation}
+Interpr\'etation biologique~: le neurone est activ\'e
+($\hat{y}=1$) si la somme pond\'er\'ee d\'epasse le seuil $-b$.
+
+\paragraph{Fonction sigmo\"ide}~:
+\begin{equation}
+  \sigma(z) = \frac{1}{1 + e^{-a z}}
+\end{equation}
+Propri\'et\'es~: lisse, d\'erivable, interpr\'etation probabiliste
+($\hat{y} \sim P(1|\mathbf{x})$). Saturante aux extr\'emit\'es.
+
+\paragraph{Fonction tanh}~:
+\begin{equation}
+  \tanh(z) = \frac{e^{z} - e^{-z}}{e^{z} + e^{-z}}
+\end{equation}
+\newpage
+
+\subsection{Classification binaire}
+
+Avec une activation sigmo\"ide, la sortie du neurone
+$\hat{y} = \sigma(\mathbf{w}^\intercal \mathbf{x} + b)$ repr\'esente
+la probabilit\'e d'appartenance \`a la classe 1~:
+\begin{equation}
+  \mathbf{x} \text{ est classe 1 si } \mathbf{w}^\intercal
+  \mathbf{x} + b > 0 \quad (\hat{y} > 0{,}5)
+\end{equation}
+La fronti\`ere de d\'ecision est \textbf{lin\'eaire}~:
+$\mathbf{w}^\intercal \mathbf{x} + b = 0$.
+
+% ===================================================================
+\section{Le perceptron}
+% ===================================================================
+
+\subsection{Classification multiclasse}
+
+Pour traiter $K$ classes, on utilise $K$ neurones en sortie
+(perceptron). Chaque neurone de sortie $k$ calcule~:
+\begin{equation}
+  s_k = \mathbf{w}_k^\intercal \mathbf{x} + b_k,
+  \quad \hat{y}_k = f(s_k)
+\end{equation}
+
+\noindent En \'ecriture matricielle~:
+$\mathbf{s} = \mathbf{x} \mathbf{W} + \mathbf{b}$,
+o\`u $\mathbf{W} \in \mathbb{R}^{m \times K}$ et
+$\mathbf{b} \in \mathbb{R}^{1 \times K}$.
+
+\subsection{Softmax}
+
+Pour la classification multiclasse, on utilise l'activation
+\textbf{softmax}~:
+\begin{equation}
+  \hat{y}_k = \frac{e^{s_k}}{\sum_{k'=1}^K e^{s_{k'}}}
+\end{equation}
+Interpr\'etation probabiliste~: $\hat{y}_k \sim P(k|\mathbf{x},
+\mathbf{W})$. Le perceptron avec softmax \'equivaut \`a la
+\textbf{r\'egression logistique} (LR).
+
+\subsection{Limite de la classification lin\'eaire}
+
+Le perceptron monocouche est limit\'e aux fronti\`eres de d\'ecision
+lin\'eaires. Le probl\`eme du XOR (ou exclusif) n'est pas
+s\'eparable lin\'eairement.
+
+% ===================================================================
+\section{Perceptron multicouche (MLP)}
+% ===================================================================
+
+\subsection{Architecture}
+
+On ajoute une ou plusieurs \textbf{couches cach\'ees} entre
+l'entr\'ee et la sortie~:
+\begin{equation}
+  \mathbf{h} = f(\mathbf{x} \mathbf{W}_h + \mathbf{b}_h),
+  \quad \hat{\mathbf{y}} = f(\mathbf{h} \mathbf{W}_y +
+  \mathbf{b}_y)
+\end{equation}
+
+\noindent $\mathbf{h} \in \mathbb{R}^L$ est la couche cach\'ee
+(projection de $\mathbf{x}$ dans un nouvel espace). Avec une
+activation non lin\'eaire $f$, la fronti\`ere de d\'ecision devient
+\textbf{non lin\'eaire}.
+
+\subsection{R\'eseaux profonds (DNN)}
+
+En ajoutant davantage de couches cach\'ees, on obtient un r\'eseau
+de neurones profond (Deep Neural Network). Chaque couche projette
+la couche pr\'ec\'edente dans un nouvel espace, apprenant
+progressivement des repr\'esentations interm\'ediaires utiles pour
+la t\^ache.
+
+% ===================================================================
+\section{Apprentissage}
+% ===================================================================
+
+\subsection{Apprentissage supervis\'e}
+
+Soit un ensemble d'apprentissage $\mathcal{A} =
+\{(\mathbf{x}_i, \mathbf{y}_i^*)\}_{i=1}^N$, avec
+$\mathbf{y}_i^*$ encod\'e en one-hot. On d\'efinit une fonction
+de perte $\ell(\hat{\mathbf{y}}_i, \mathbf{y}_i^*)$ et on
+cherche $\mathbf{W} = \arg\min \mathcal{L}$.
+
+\subsection{Fonction de perte~: entropie crois\'ee}
+
+Pour la classification, on utilise l'entropie crois\'ee
+(Cross-Entropy)~:
+\begin{equation}
+  \ell_{CE}(\hat{\mathbf{y}}_i, \mathbf{y}_i^*) =
+  -\sum_{c=1}^K y_{c,i}^* \log \hat{y}_{c,i} =
+  -\log \hat{y}_{c^*, i}
+\end{equation}
+La perte totale sur l'ensemble d'apprentissage~:
+\begin{equation}
+  \mathcal{L}_{CE}(\mathbf{W}, \mathbf{b}) =
+  \frac{1}{N} \sum_{i=1}^N \ell_{CE}(\hat{\mathbf{y}}_i,
+  \mathbf{y}_i^*)
+\end{equation}
+
+\subsection{Descente de gradient}
+
+On met \`a jour les param\`etres dans la direction oppos\'ee au
+gradient~:
+\begin{equation}
+  \mathbf{W}^{(t+1)} = \mathbf{W}^{(t)} -
+  \eta \frac{\partial \mathcal{L}_{CE}}{\partial \mathbf{W}}
+\end{equation}
+o\`u $\eta$ est le taux d'apprentissage (learning rate).
+
+\subsection{R\'etropropagation (backpropagation)}
+
+Le gradient se calcule par \textbf{r\'etropropagation} de l'erreur
+en utilisant la r\`egle de d\'erivation en cha\^ine~:
+\begin{equation}
+  \frac{\partial \ell}{\partial x} =
+  \frac{\partial \ell}{\partial \hat{y}}
+  \frac{\partial \hat{y}}{\partial x}
+\end{equation}
+
+\paragraph{Pour la r\'egression logistique}~:
+\begin{align}
+  \frac{\partial \ell_{CE}}{\partial \hat{y}_i} &=
+  -\frac{1}{\hat{y}_{c^*, i}} \\
+  \frac{\partial \ell_{CE}}{\partial \mathbf{s}_i} &= \hat{\mathbf{y}}_i -
+  \mathbf{y}_i^* = \boldsymbol\delta_i^y \\
+  \frac{\partial \ell_{CE}}{\partial \mathbf{W}} &=
+  \mathbf{x}_i^\intercal \boldsymbol\delta_i^y
+\end{align}
+
+\paragraph{Pour le perceptron (1 couche cach\'ee)}~:
+\begin{align}
+  \boldsymbol\delta_i^h &= \boldsymbol\delta_i^y \mathbf{W}_y^\intercal
+  \odot \mathbf{h}_i \odot (1 - \mathbf{h}_i) \\
+  \frac{\partial \ell}{\partial \mathbf{W}_h} &=
+  \mathbf{x}_i^\intercal \boldsymbol\delta_i^h \\
+  \frac{\partial \ell}{\partial \mathbf{W}_y} &=
+  \mathbf{h}_i^\intercal \boldsymbol\delta_i^y
+\end{align}
+
+\paragraph{Cas g\'en\'eral (couche $l$)}~:
+\begin{align}
+  \frac{\partial \mathcal{L}}{\partial \mathbf{U}_l} &=
+  \boldsymbol\Delta_l = \boldsymbol\Delta_{l+1} \mathbf{W}_{l+1}^\intercal
+  \odot \mathbf{H}_l \odot (1 - \mathbf{H}_l) \\
+  \frac{\partial \mathcal{L}}{\partial \mathbf{W}_l} &=
+  \mathbf{H}_{l-1}^\intercal \boldsymbol\Delta_l
+\end{align}
+
+\subsection{Descente de gradient stochastique (SGD)}
+
+Le calcul du gradient complet $\nabla_{\mathbf{w}}$ sur tout
+l'ensemble d'apprentissage est trop co\^uteux. Approximations~:
+\begin{itemize}
+  \item \textbf{En ligne (online)}~: un seul exemple par mise \`a jour.
+  \item \textbf{Minibatch}~: $B < N$ exemples par mise \`a jour.
+\end{itemize}
+Le gradient bruit\'e permet plus de mises \`a jour et une
+convergence plus rapide en pratique.
+
+\subsection{Plan de taux d'apprentissage (learning rate decay)}
+
+Le taux d'apprentissage $\eta$ peut d\'ecro\^itre au cours de
+l'entra\^inement~:
+\begin{itemize}
+  \item D\'ecroissance inverse~: $\eta_t = \frac{\eta_0}{1 + r \cdot t}$
+  \item D\'ecroissance exponentielle~: $\eta_t = \eta_0 e^{-\lambda t}$
+  \item D\'ecroissance par paliers~: $\eta_t = \eta_0 r^{\lfloor t / t_u \rfloor}$
+\end{itemize}
+
+% ===================================================================
+\section{R\'egularisation et g\'en\'eralisation}
+% ===================================================================
+
+\subsection{Sur-apprentissage (overfitting)}
+L'objectif n'est pas de minimiser la perte sur l'ensemble
+d'apprentissage, mais de g\'en\'eraliser \`a des donn\'ees non
+vues. Un \'ecart \'elev\'e entre la perte d'apprentissage et la
+perte de test indique du sur-apprentissage.
+
+\subsection{R\'egularisation}
+
+Ajout d'un terme de p\'enalit\'e $R(\mathbf{W})$ dans l'objectif~:
+\begin{equation}
+  \mathcal{L}(\mathbf{W}) = \mathcal{L}_{CE}(\mathbf{W}) +
+  \alpha R(\mathbf{W})
+\end{equation}
+
+\begin{itemize}
+  \item \textbf{$L_2$ (weight decay)}~: $R(\mathbf{W}) =
+    \|\mathbf{W}\|^2$ (le plus courant).
+  \item \textbf{$L_1$}~: $R(\mathbf{W}) = \|\mathbf{W}\|_1$
+    (favorise la parcimonie).
+  \item \textbf{Dropout}~: d\'esactive al\'eatoirement des neurones
+    pendant l'entra\^inement.
+\end{itemize}
+
+\subsection{Hyper-param\`etres}
+
+R\'eseaux de neurones~: nombreux hyper-param\`etres \`a r\'egler~:
+\begin{itemize}
+  \item Param\`etres d'optimisation~: learning rate, weight decay,
+    plan de decay, nombre d'\'epoques.
+  \item Param\`etres d'architecture~: nombre de couches, nombre de
+    neurones, type de non-lin\'earit\'e.
+\end{itemize}
+L'ajustement se fait sur un ensemble de validation.
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quelle est la sortie d'un neurone formel~?
+    \begin{enumerate}
+      \item $\hat{y} = \mathbf{w}^\intercal \mathbf{x} + b$
+      \item $\hat{y} = f(\mathbf{w}^\intercal \mathbf{x} + b)$
+      \item $\hat{y} = \mathbf{x} \mathbf{W} + \mathbf{b}$
+      \item $\hat{y} = f(\mathbf{x})$
+    \end{enumerate}
+    \textbf{R\'eponse~: b (combinaison lin\'eaire puis activation).}
+
+  \item Quelle fonction d'activation donne une interpr\'etation
+    probabiliste en classification binaire~?
+    \begin{enumerate}
+      \item Seuil (Heaviside)
+      \item Sigmo\"ide
+      \item Tanh
+      \item ReLU
+    \end{enumerate}
+    \textbf{R\'eponse~: b (sigmo\"ide, $\hat{y} \sim P(1|\mathbf{x})$).}
+
+  \item Quelle activation est utilis\'ee pour la classification
+    multiclasse~?
+    \begin{enumerate}
+      \item Sigmo\"ide
+      \item Tanh
+      \item Softmax
+      \item Seuil
+    \end{enumerate}
+    \textbf{R\'eponse~: c (softmax).}
+
+  \item Le perceptron monocouche \'equivaut \`a~:
+    \begin{enumerate}
+      \item La r\'egression lin\'eaire
+      \item La r\'egression logistique
+      \item L'analyse discriminante
+      \item Les SVMs
+    \end{enumerate}
+    \textbf{R\'eponse~: b (r\'egression logistique).}
+
+  \item Quel probl\`eme illustre la limite de la classification
+    lin\'eaire~?
+    \begin{enumerate}
+      \item Le XOR
+      \item Le AND
+      \item Le OR
+      \item Le clustering
+    \end{enumerate}
+    \textbf{R\'eponse~: a (XOR, non s\'eparable lin\'eairement).}
+
+  \item Comment s'appelle la technique de calcul du gradient dans
+    un MLP~?
+    \begin{enumerate}
+      \item Gradient boosting
+      \item R\'etropropagation (backpropagation)
+      \item Descente de gradient
+      \item Forward propagation
+    \end{enumerate}
+    \textbf{R\'eponse~: b (r\'etropropagation du gradient).}
+
+  \item Quelle approximation du gradient est utilis\'ee pour les
+    grands jeux de donn\'ees~?
+    \begin{enumerate}
+      \item Gradient complet
+      \item SGD (minibatch)
+      \item Newton-Raphson
+      \item BFGS
+    \end{enumerate}
+    \textbf{R\'eponse~: b (SGD minibatch).}
+
+  \item Que p\'enalise la r\'egularisation $L_2$ (weight decay)~?
+    \begin{enumerate}
+      \item La somme des poids en valeur absolue
+      \item Le carr\'e de la norme des poids
+      \item Le nombre de couches
+      \item Le taux d'apprentissage
+    \end{enumerate}
+    \textbf{R\'eponse~: b (carr\'e de la norme $\|\mathbf{W}\|^2$).}
+
+  \item Quel est le r\^ole d'un ensemble de validation~?
+    \begin{enumerate}
+      \item Apprendre les param\`etres
+      \item R\'egler les hyper-param\`etres
+      \item Calculer la perte finale
+      \item Initialiser les poids
+    \end{enumerate}
+    \textbf{R\'eponse~: b (r\'egler les hyper-param\`etres).}
+
+  \item Qui a propos\'e le neurone formel en 1943~?
+    \begin{enumerate}
+      \item Rosenblatt
+      \item McCulloch \& Pitts
+      \item LeCun
+      \item Hinton
+    \end{enumerate}
+    \textbf{R\'eponse~: b (McCulloch \& Pitts, 1943).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{MP43}
+  W.~S.~McCulloch, W.~Pitts.
+  \newblock \emph{A logical calculus of the ideas immanent in
+    nervous activity}.
+  \newblock Bull. Math. Biophysics, 5:115--133, 1943.
+
+\bibitem{Rosenblatt1958}
+  F.~Rosenblatt.
+  \newblock \emph{The perceptron: A probabilistic model for
+    information storage and organization in the brain}.
+  \newblock Psychological Review, 65(6):386--408, 1958.
+
+\bibitem{Werbos1974}
+  P.~Werbos.
+  \newblock \emph{Beyond regression: New tools for prediction and
+    analysis in the behavioral sciences}.
+  \newblock Ph.D. thesis, Harvard University, 1974.
+
+\bibitem{Cybenko1989}
+  G.~Cybenko.
+  \newblock \emph{Approximation by superpositions of a sigmoidal
+    function}.
+  \newblock Math. Control Signals Systems, 2(4):303--314, 1989.
+
+\bibitem{LeCun1989}
+  Y.~LeCun et al.
+  \newblock \emph{Backpropagation applied to handwritten zip code
+    recognition}.
+  \newblock Neural Computation, 1(4):541--551, 1989.
+
+\end{thebibliography}
+
+\end{document}

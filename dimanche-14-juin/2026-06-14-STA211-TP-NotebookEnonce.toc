@@ -1,0 +1,12 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Structure du notebook}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Partie 1 -- Deep Learning avec Keras}{2}{subsection.1.1}%
+\contentsline {paragraph}{Ex0 -- Chargement des donn\'ees (2 cellules code)~:}{2}{subsection.1.1}%
+\contentsline {paragraph}{Ex1 -- R\'egression logistique (5 cellules code)~:}{2}{subsection.1.1}%
+\contentsline {paragraph}{Ex2 -- MLP (2 cellules code)~:}{2}{Item.5}%
+\contentsline {paragraph}{Ex3 -- CNN (2 cellules code)~:}{2}{Item.8}%
+\contentsline {subsection}{\numberline {1.2}Partie 2 -- Manifold Untangling}{2}{subsection.1.2}%
+\contentsline {paragraph}{Ex4 -- t-SNE (8 cellules code)~:}{2}{subsection.1.2}%
+\contentsline {paragraph}{Ex5 -- Repr\'esentations internes (3 cellules code)~:}{3}{Item.18}%
+\contentsline {section}{\numberline {2}Instructions pour l'\'etudiant}{3}{section.2}%
+\contentsline {section}{Questions cl\'es (QCM)}{4}{Item.27}%

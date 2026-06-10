@@ -1,0 +1,441 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Recherche de r\`egles d'association}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Recherche de r\`egles d'association}
+\author{Vincent Audigier, Nd\`eye Niang}
+\date{12 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente les m\'ethodes de recherche de r\`egles
+d'association, initialement d\'evelopp\'ees pour l'analyse des
+paniers d'achat (Agrawal et al., 1993). Elle couvre les concepts
+fondamentaux (items, transactions, itemsets, support, confiance),
+l'algorithme Apriori et sa propri\'et\'e d'anti-monotonie, les
+algorithmes alternatifs (représentation horizontale et verticale),
+les indices de pertinence (lift, conviction, leverage) ainsi que des
+exemples d'application sur donn\'ees supermarch\'e et German Credit.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Introduction}
+% ===================================================================
+
+Les m\'ethodes de recherche de r\`egles d'association ont \'et\'e
+propos\'ees par \cite{Agrawal1993} pour d\'ecouvrir quels produits
+\'etaient achet\'es conjointement dans les bases de donn\'ees des
+ventes de supermarch\'e. Elles permettent d'extraire des r\`egles
+du type~:
+
+\begin{quote}
+  \textit{``Lorsqu'un client ach\`ete du pain et du beurre, alors
+    neuf fois sur dix il ach\`ete en m\^eme temps du lait.''}
+\end{quote}
+
+Bien que d\'evelopp\'ees initialement pour le marketing, ces
+m\'ethodes s'appliquent \'egalement au webmining (analyse de
+consultation de pages web), au text mining (cooccurrences de
+termes), etc.
+
+% ===================================================================
+\section{D\'efinitions et concepts de base}
+% ===================================================================
+
+\subsection{Items, transactions et r\`egles}
+
+On d\'efinit $I = \{it_1, it_2, \dots, it_p\}$ l'ensemble des
+\textbf{items} (produits d'un supermarch\'e par exemple). Une
+\textbf{transaction} $tr_j$ est un sous-ensemble non vide de $I$~;
+on note $T = \{tr_1, tr_2, \dots, tr_n\}$ l'ensemble des
+$n$ transactions (contenus de caddies).
+
+Une \textbf{r\`egle d'association} est une implication
+$A \rightarrow B$ o\`u $A \subset I$, $B \subset I$ et
+$A \cap B = \emptyset$. $A$ est la pr\'emisse (ant\'ec\'edent),
+$B$ la conclusion (cons\'equent). Les ensembles $A$ et $B$ sont
+appel\'es \textbf{itemsets}.
+
+\subsection{Support et confiance}
+
+\begin{definition}[Support]
+  Le support d'un itemset $X$ est la proportion de transactions
+  contenant $X$~:
+  \begin{equation}
+    \text{supp}(X) = \frac{|\{t \in T : X \subseteq t\}|}{|T|}
+  \end{equation}
+\end{definition}
+
+\begin{definition}[Confiance]
+  La confiance d'une r\`egle $A \rightarrow B$ est la proportion
+  de transactions contenant $B$ parmi celles contenant $A$~:
+  \begin{equation}
+    \text{conf}(A \rightarrow B) = \frac{\text{supp}(A \cup B)}{\text{supp}(A)}
+  \end{equation}
+\end{definition}
+
+\begin{important}
+  Le support mesure la \textbf{g\'en\'eralit\'e} d'une r\`egle~;
+  la confiance mesure sa \textbf{fiabilit\'e}. On impose
+  g\'en\'eralement des seuils minimaux $\text{supp}_{\min}$ et
+  $\text{conf}_{\min}$.
+\end{important}
+
+% ===================================================================
+\section{L'algorithme Apriori}
+% ===================================================================
+
+L'algorithme Apriori (\cite{Agrawal1994}) proc\`ede en deux
+\'etapes~: g\'en\'eration des itemsets fr\'equents puis extraction
+des r\`egles.
+
+\subsection{Recherche des itemsets fr\'equents}
+
+On explore le treillis des itemsets par parcours en largeur (de
+taille 1 jusqu'\`a $p$). \`A chaque niveau $k$, on g\'en\`ere les
+candidats de taille $k$ \`a partir des itemsets fr\'equents de
+taille $k-1$, puis on \'elague ceux dont le support est inf\'erieur
+\`a $\text{supp}_{\min}$.
+
+La propri\'et\'e d'\textbf{anti-monotonie} garantit l'\'elagage~:
+\begin{important}
+  Tout sur-ensemble d'un itemset non fr\'equent est n\'ecessairement
+  non fr\'equent.
+\end{important}
+
+Si un itemset de taille $k-1$ a un support $< \text{supp}_{\min}$,
+tous ses sur-ensembles de taille $k$ peuvent \^etre \'elimin\'es
+sans calcul suppl\'ementaire.
+
+\subsection{Extraction des r\`egles}
+
+\`A partir des itemsets fr\'equents, on g\'en\`ere toutes les
+r\`egles $A \rightarrow B$ telles que
+$\text{conf}(A \rightarrow B) \geq \text{conf}_{\min}$.
+
+% ===================================================================
+\section{Algorithmes alternatifs}
+% ===================================================================
+
+\subsection{Repr\'esentation horizontale}
+
+Les donn\'ees sont stock\'ees sous forme d'une liste de transactions
+(une ligne par transaction, chaque ligne contient la liste des items
+achet\'es). Apriori utilise cette repr\'esentation.
+
+\subsection{Repr\'esentation verticale}
+
+Les donn\'ees sont stock\'ees sous forme d'une liste d'items~: pour
+chaque item, on stocke la liste des identifiants de transactions
+qui le contiennent (format \emph{tid-list}). Avantage~: le support
+d'un itemset s'obtient par intersection des tid-lists.
+
+% ===================================================================
+\section{Indices de pertinence des r\`egles}
+% ===================================================================
+
+\subsection{Faiblesse de l'approche support-confiance}
+
+Une r\`egle peut avoir une confiance \'elev\'ee mais \^etre
+trompeuse si le cons\'equent est fr\'equent dans la population.
+Par exemple, si 90\,\% des clients ach\`etent du lait, une r\`egle
+$X \rightarrow \text{lait}$ aura une confiance d'au moins 90\,\%
+quel que soit $X$.
+
+\subsection{Indices compl\'ementaires}
+
+\begin{definition}[Lift]
+  Le lift mesure l'\'ecart \`a l'ind\'ependance~:
+  \begin{equation}
+    \text{lift}(A \rightarrow B) = \frac{\text{supp}(A \cup B)}{%
+      \text{supp}(A)\,\text{supp}(B)}
+  \end{equation}
+  Interpr\'etation~:
+  \begin{itemize}
+    \item $\text{lift} > 1$~: association positive (items achet\'es
+      plus souvent ensemble que sous l'ind\'ependance).
+    \item $\text{lift} = 1$~: ind\'ependance.
+    \item $\text{lift} < 1$~: association n\'egative.
+  \end{itemize}
+\end{definition}
+
+\begin{definition}[Conviction]
+  \begin{equation}
+    \text{conviction}(A \rightarrow B) = \frac{1 - \text{supp}(B)}{%
+      1 - \text{conf}(A \rightarrow B)}
+  \end{equation}
+  Mesure la d\'ependance directionnelle~: plus la conviction est
+  grande, plus la r\`egle est robuste.
+\end{definition}
+
+\begin{definition}[Leverage]
+  \begin{equation}
+    \text{leverage}(A \rightarrow B) = \text{supp}(A \cup B) -
+    \text{supp}(A)\,\text{supp}(B)
+  \end{equation}
+\end{definition}
+
+% ===================================================================
+\section{Exemples}
+% ===================================================================
+
+\subsection{Supermarch\'e}
+
+Soit 5 transactions~:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Transaction & Items \\
+\midrule
+$tr_1$ & $\{ \text{pain}, \text{lait}, \text{beurre}, \text{bi\`ere} \}$ \\
+$tr_2$ & $\{ \text{pain}, \text{beurre} \}$ \\
+$tr_3$ & $\{ \text{bi\`ere}, \text{cacahu\`etes} \}$ \\
+$tr_4$ & $\{ \text{pain}, \text{lait}, \text{beurre} \}$ \\
+$tr_5$ & $\{ \text{pain}, \text{lait} \}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Avec $\text{supp}_{\min} = 0{,}4$~:
+\begin{itemize}
+  \item $\text{supp}(\{\text{pain}\}) = 4/5 = 0{,}8$~: fr\'equent.
+  \item $\text{supp}(\{\text{pain}, \text{beurre}\}) = 3/5 = 0{,}6$~: fr\'equent.
+  \item $\text{supp}(\{\text{cacahu\`etes}\}) = 1/5 = 0{,}2$~: non fr\'equent.
+\end{itemize}
+
+R\`egle $\{\text{pain}\} \rightarrow \{\text{beurre}\}$~:
+\begin{itemize}
+  \item $\text{supp} = 3/5 = 0{,}6$
+  \item $\text{conf} = 3/4 = 0{,}75$
+  \item $\text{lift} = 0{,}6 / (0{,}8 \times 0{,}6) = 1{,}25 > 1$
+\end{itemize}
+
+\subsection{German Credit}
+
+Les r\`egles d'association peuvent \^etre extraites apr\`es
+discr\'etisation des variables quantitatives avec l'algorithme
+Apriori via le package R \texttt{arules}.
+
+\begin{lstlisting}[language=R]
+library(arules)
+
+# Discretisation des variables quantitatives
+don_disc <- discretizeDF(don, default = list(method = "interval",
+                         breaks = 3))
+
+# Extraction des regles
+regles <- apriori(don_disc,
+                  parameter = list(supp = 0.05, conf = 0.3,
+                                   target = "rules"))
+inspect(head(regles, 5))
+\end{lstlisting}
+
+% ===================================================================
+\section{Conclusion}
+% ===================================================================
+
+Les m\'ethodes de recherche de r\`egles d'association permettent
+d'extraire des connaissances sous forme de r\`egles
+interpr\'etables \`a partir de grandes bases de donn\'ees.
+L'algorithme Apriori reste la m\'ethode de r\'ef\'erence gr\^ace
+\`a son \'elagage par anti-monotonie. Les indices de pertinence
+(lift, conviction, leverage) compl\`etent l'approche
+support-confiance pour \'eviter les r\`egles trompeuses.
+
+Applications principales~:
+\begin{itemize}
+  \item Analyse de paniers d'achat (marketing).
+  \item Webmining (analyse de navigation).
+  \item Text mining (cooccurrences de termes).
+  \item Analyse de donn\'ees m\'edicales (associations de
+    sympt\^omes).
+\end{itemize}
+
+% ===================================================================
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Que repr\'esente le support d'un itemset $X$~?
+    \begin{enumerate}
+      \item La probabilit\'e de $X$ sachant $Y$
+      \item La proportion de transactions contenant $X$
+      \item La force de l'association $X \Rightarrow Y$
+      \item Le nombre d'items dans $X$
+    \end{enumerate}
+    \textbf{R\'eponse~: b (proportion de transactions contenant $X$).}
+
+  \item Que mesure la confiance d'une r\`egle $A \rightarrow B$~?
+    \begin{enumerate}
+      \item $\displaystyle \frac{\text{supp}(A \cup B)}{\text{supp}(A)}$
+      \item $\displaystyle \frac{\text{supp}(A)}{\text{supp}(B)}$
+      \item $\displaystyle \frac{\text{supp}(A \cup B)}{\text{supp}(B)}$
+      \item $\displaystyle \frac{\text{supp}(A)}{\text{supp}(A \cup B)}$
+    \end{enumerate}
+    \textbf{R\'eponse~: a ($\text{supp}(A \cup B) / \text{supp}(A)$).}
+
+  \item Quelle propri\'et\'e permet l'\'elagage dans Apriori~?
+    \begin{enumerate}
+      \item La monotonie du support
+      \item L'anti-monotonie du support
+      \item La sym\'etrie de la confiance
+      \item La transitivit\'e du lift
+    \end{enumerate}
+    \textbf{R\'eponse~: b (anti-monotonie~: tout sur-ensemble d'un
+    itemset non fr\'equent est non fr\'equent).}
+
+  \item Un lift $> 1$ indique~:
+    \begin{enumerate}
+      \item Une association n\'egative
+      \item Une association positive
+      \item Aucune association
+      \item Une erreur de calcul
+    \end{enumerate}
+    \textbf{R\'eponse~: b (association positive).}
+
+  \item Quelle est la particularit\'e de la repr\'esentation
+    verticale des donn\'ees~?
+    \begin{enumerate}
+      \item Chaque ligne est une transaction
+      \item Pour chaque item, on stocke la liste des transactions
+        (tid-list)
+      \item Les donn\'ees sont stock\'ees sous forme matricielle
+      \item Elle n\'ecessite moins de m\'emoire qu'Apriori
+    \end{enumerate}
+    \textbf{R\'eponse~: b (format tid-list).}
+
+  \item Quel package R impl\'emente l'algorithme Apriori~?
+    \begin{enumerate}
+      \item \texttt{arules}
+      \item \texttt{cluster}
+      \item \texttt{FactoMineR}
+      \item \texttt{MASS}
+    \end{enumerate}
+    \textbf{R\'eponse~: a (\texttt{arules}).}
+
+  \item Que mesure la conviction d'une r\`egle~?
+    \begin{enumerate}
+      \item Le support conditionnel
+      \item La d\'ependance directionnelle entre pr\'emisse et
+        conclusion
+      \item La fr\'equence de l'itemset
+      \item La dissimilarit\'e entre items
+    \end{enumerate}
+    \textbf{R\'eponse~: b (d\'ependance directionnelle).}
+
+  \item Dans l'exemple du supermarch\'e avec 5 transactions,
+    quel est le support de $\{\text{pain}, \text{beurre}\}$~?
+    \begin{enumerate}
+      \item $3/5 = 0{,}6$
+      \item $4/5 = 0{,}8$
+      \item $2/5 = 0{,}4$
+      \item $1/5 = 0{,}2$
+    \end{enumerate}
+    \textbf{R\'eponse~: a ($3/5$).}
+
+  \item Quel est l'inconv\'enient de l'approche support-confiance~?
+    \begin{enumerate}
+      \item Elle est trop complexe
+      \item Une r\`egle peut avoir une confiance \'elev\'ee mais
+        \^etre trompeuse si le cons\'equent est fr\'equent
+      \item Elle ne fonctionne que pour les donn\'ees binaires
+      \item Elle n\'ecessite trop de m\'emoire
+    \end{enumerate}
+    \textbf{R\'eponse~: b (confiance \'elev\'ee mais r\`egle
+    trompeuse).}
+
+  \item Qui a propos\'e l'algorithme Apriori~?
+    \begin{enumerate}
+      \item Vigneau et Qannari
+      \item Agrawal, Imieli\'nski et Swami
+      \item Chavent et al.
+      \item Breiman
+    \end{enumerate}
+    \textbf{R\'eponse~: b (Agrawal, Imieli\'nski et Swami, 1993).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{Agrawal1993}
+  R.~Agrawal, T.~Imieli\'nski, A.~Swami.
+  \newblock \emph{Mining association rules between sets of items in
+    large databases}.
+  \newblock Proc. ACM SIGMOD, 22(2):207--216, 1993.
+
+\bibitem{Agrawal1994}
+  R.~Agrawal, R.~Srikant.
+  \newblock \emph{Fast algorithms for mining association rules in
+    large databases}.
+  \newblock Proc. VLDB, 487--499, 1994.
+
+\bibitem{Plasse2006}
+  M.~Plasse.
+  \newblock \emph{Regroupement d'items dans les probl\`emes de
+    recherche de r\`egles d'association}.
+  \newblock Th\`ese de doctorat, CNAM, 2006.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,30 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Partie 1 : Deep Learning avec Keras}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Exercice 0 : Chargement des donn\'ees MNIST}{2}{subsection.1.1}%
+\contentsline {paragraph}{Question~:}{2}{lstnumber.-1.4}%
+\contentsline {subsection}{\numberline {1.2}Exercice 1 : R\'egression logistique}{2}{subsection.1.2}%
+\contentsline {paragraph}{Mod\`ele~:}{2}{subsection.1.2}%
+\contentsline {paragraph}{Nombre de param\`etres~:}{2}{subsection.1.2}%
+\contentsline {paragraph}{One-hot encoding~:}{2}{lstnumber.-2.3}%
+\contentsline {paragraph}{Entropie crois\'ee~:}{2}{lstnumber.-3.2}%
+\contentsline {paragraph}{Convexit\'e~:}{2}{lstnumber.-3.2}%
+\contentsline {paragraph}{R\'esultat attendu~:}{2}{lstnumber.-4.6}%
+\contentsline {subsection}{\numberline {1.3}Exercice 2 : Perceptron multi-couches (MLP)}{2}{subsection.1.3}%
+\contentsline {paragraph}{Nombre de param\`etres~:}{2}{subsection.1.3}%
+\contentsline {paragraph}{Non-convexit\'e~:}{2}{lstnumber.-5.5}%
+\contentsline {paragraph}{R\'esultat attendu~:}{3}{lstnumber.-5.5}%
+\contentsline {subsection}{\numberline {1.4}Exercice 3 : R\'eseau de neurones convolutif (CNN)}{3}{subsection.1.4}%
+\contentsline {paragraph}{Architecture LeNet-like~:}{3}{lstnumber.-6.2}%
+\contentsline {paragraph}{R\'esultat attendu~:}{3}{lstnumber.-7.9}%
+\contentsline {paragraph}{Sauvegarde du mod\`ele~:}{3}{lstnumber.-7.9}%
+\contentsline {section}{\numberline {2}Partie 2 : Deep Learning et Manifold Untangling}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Exercice 4 : Visualisation avec t-SNE}{3}{subsection.2.1}%
+\contentsline {paragraph}{t-SNE~:}{3}{subsection.2.1}%
+\contentsline {paragraph}{Trois m\'etriques de s\'eparation~:}{3}{lstnumber.-9.4}%
+\contentsline {paragraph}{Comparaison ACP vs t-SNE~:}{4}{lstnumber.-10.10}%
+\contentsline {subsection}{\numberline {2.2}Exercice 5 : Repr\'esentations internes des r\'eseaux}{4}{subsection.2.2}%
+\contentsline {paragraph}{Objectif~:}{4}{subsection.2.2}%
+\contentsline {paragraph}{Chargement du mod\`ele~:}{4}{subsection.2.2}%
+\contentsline {paragraph}{Extraction des repr\'esentations latentes~:}{4}{lstnumber.-11.5}%
+\contentsline {paragraph}{R\'esultat~:}{4}{lstnumber.-12.3}%
+\contentsline {section}{Questions cl\'es (QCM)}{5}{lstnumber.-12.3}%

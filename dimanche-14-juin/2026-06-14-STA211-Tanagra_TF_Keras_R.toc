@@ -1,0 +1,9 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Installation sous R}{2}{section.1}%
+\contentsline {section}{\numberline {2}Donn\'ees}{2}{section.2}%
+\contentsline {section}{\numberline {3}Perceptron simple}{2}{section.3}%
+\contentsline {paragraph}{Performances~:}{2}{lstnumber.-4.6}%
+\contentsline {section}{\numberline {4}Perceptron multicouche}{3}{section.4}%
+\contentsline {paragraph}{Performances~:}{3}{lstnumber.-5.4}%
+\contentsline {section}{\numberline {5}Comparaison R vs Python}{3}{section.5}%
+\contentsline {section}{Questions cl\'es (QCM)}{4}{section.5}%

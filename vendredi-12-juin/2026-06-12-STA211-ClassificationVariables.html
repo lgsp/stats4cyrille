@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Classification de variables — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; Classification de variables</h1>
+<p class="subtitle">Fiche r&eacute;capitulative &mdash; 12 juin 2026 &mdash; V. Audigier, N. Niang</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#objectifs">Objectifs et contexte</a></li>
+    <li><a href="#hierarchiques">M&eacute;thodes hi&eacute;rarchiques</a></li>
+    <li><a href="#partitionnement">Partitionnement direct</a></li>
+    <li><a href="#application">Application aux donn&eacute;es German Credit</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="objectifs">1. Objectifs et contexte</h2>
+<!-- ============================================ -->
+
+<p>Quand les variables sont nombreuses, il est parfois tr&egrave;s utile de les regrouper en groupes homog&egrave;nes. Ceci peut servir &agrave;&nbsp;:</p>
+<ul>
+    <li>Analyser la multicolin&eacute;arit&eacute; entre les variables.</li>
+    <li>R&eacute;duire le nombre de variables en leur substituant un petit nombre de variables latentes synth&eacute;tiques repr&eacute;sentatives de chaque classe.</li>
+</ul>
+
+<p>On distingue trois strat&eacute;gies de partitionnement&nbsp;:</p>
+<ol>
+    <li>Les m&eacute;thodes hi&eacute;rarchiques <strong>ascendantes</strong> (CAH).</li>
+    <li>Les m&eacute;thodes hi&eacute;rarchiques <strong>descendantes</strong>.</li>
+    <li>Les m&eacute;thodes de <strong>partitionnement direct</strong>.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="hierarchiques">2. M&eacute;thodes hi&eacute;rarchiques</h2>
+<!-- ============================================ -->
+
+<h3>2.1 M&eacute;thode ascendante (CAH)</h3>
+
+<p>Les groupements se font par agglom&eacute;ration progressive des variables deux &agrave; deux. On r&eacute;unit les variables les plus proches au sens d&rsquo;une dissimilarit&eacute;, en utilisant un crit&egrave;re d&rsquo;agr&eacute;gation.</p>
+
+<p>La complexit&eacute; est en $O(p^3)$ o&ugrave; $p$ est le nombre de variables.</p>
+
+<h4>Indices de similarit&eacute;/dissimilarit&eacute;</h4>
+
+<p>Le choix de l&rsquo;indice d&eacute;pend de la nature des variables.</p>
+
+<p><strong>Variables quantitatives&nbsp;:</strong> le coefficient de corr&eacute;lation lin&eacute;aire au carr&eacute; $r_{jj'}^2$ est l&rsquo;indice naturel de similarit&eacute;. La dissimilarit&eacute; associ&eacute;e $d = 1 - r^2$ est une distance euclidienne.</p>
+
+<p><strong>Variables qualitatives&nbsp;:</strong> les indices les plus classiques sont le $\chi^2$ de contingence, le Tschuprow ($T$) et le Cramer ($V$).</p>
+
+<p><strong>Variables binaires&nbsp;:</strong> plusieurs indices d&eacute;finis &agrave; partir du tableau de contingence $2\times2$ ($N_{11}, N_{10}, N_{01}, N_{00}$)&nbsp;:</p>
+
+<table>
+<tr><th>Indice</th><th>Formule</th></tr>
+<tr><td>Sokal-Michener</td><td>$\frac{N_{11}+N_{00}}{N_{11}+N_{01}+N_{10}+N_{00}}$</td></tr>
+<tr><td>Jaccard</td><td>$\frac{N_{11}}{N_{11}+N_{01}+N_{10}}$</td></tr>
+<tr><td>Russel-Rao</td><td>$\frac{N_{11}}{N_{11}+N_{01}+N_{10}+N_{00}}$</td></tr>
+<tr><td>Ochiai</td><td>$\frac{N_{11}}{\sqrt{(N_{11}+N_{01})(N_{11}+N_{10})}}$</td></tr>
+<tr><td>Dice</td><td>$\frac{2N_{11}}{2N_{11}+N_{01}+N_{10}}$</td></tr>
+<tr><td>Rogers-Tanimoto</td><td>$\frac{N_{11}+N_{00}}{N_{11}+2(N_{01}+N_{10})+N_{00}}$</td></tr>
+<tr><td>Kulzinsky</td><td>$\frac{N_{11}}{N_{01}+N_{10}}$</td></tr>
+</table>
+
+<div class="info-box">
+<strong>Remarque :</strong> Les mesures de dissimilarit&eacute; associ&eacute;es sont toutes euclidiennes (Fichet &amp; le Calve, 1984).
+</div>
+
+<p><strong>Variables mixtes&nbsp;:</strong> deux m&eacute;thodes propos&eacute;es par Hummel, Edelmann &amp; Kopp-Schneider (2017)&nbsp;:</p>
+<ul>
+    <li><strong>CluMix-ama</strong>&nbsp;: similarit&eacute; bas&eacute;e sur la valeur absolue du $\gamma$ de Goodman-Kruskal pour les couples mixtes.</li>
+    <li><strong>CluMix-dcor</strong>&nbsp;: similarit&eacute; bas&eacute;e sur une distance de Gower entre individus.</li>
+</ul>
+<p>Ces m&eacute;thodes sont impl&eacute;ment&eacute;es dans le package R <code>CluMix</code>.</p>
+
+<h4>Crit&egrave;res d&rsquo;agr&eacute;gation</h4>
+
+<table>
+<tr><th>Crit&egrave;re</th><th>Distance entre groupes $A$ et $B$</th></tr>
+<tr><td>Saut minimum</td><td>$\min_{i \in A, j \in B} d(i,j)$</td></tr>
+<tr><td>Saut maximum</td><td>$\max_{i \in A, j \in B} d(i,j)$</td></tr>
+<tr><td>Lien moyen</td><td>$\frac{1}{|A||B|} \sum_{i \in A} \sum_{j \in B} d(i,j)$</td></tr>
+<tr><td>Ward</td><td>$\frac{|A||B|}{|A|+|B|} \| \mu_A - \mu_B \|^2$</td></tr>
+</table>
+
+<h3>2.2 M&eacute;thode descendante (VARCLUS)</h3>
+
+<p>Proc&egrave;de par dichotomies successives pour construire un arbre hi&eacute;rarchique. M&eacute;thode VARCLUS (SAS)&nbsp;:</p>
+<ol>
+    <li>R&eacute;aliser une ACP des variables.</li>
+    <li>Si la seconde valeur propre $> 1$, retenir les deux premi&egrave;res composantes.</li>
+    <li>Affecter chaque variable &agrave; la composante avec laquelle elle est le plus corr&eacute;l&eacute;e.</li>
+    <li>R&eacute;p&eacute;ter sur chaque groupe tant que la seconde valeur propre $> 1$.</li>
+</ol>
+
+<div class="warn-box">
+<strong>&Agrave; retenir :</strong> VARCLUS est diff&eacute;rente de ClustOfVar. Il existe une impl&eacute;mentation Python (<code>variable-clustering</code>) mais pas d&rsquo;impl&eacute;mentation R standard.
+</div>
+
+<!-- ============================================ -->
+<h2 id="partitionnement">3. Partitionnement direct</h2>
+<!-- ============================================ -->
+
+<h3>3.1 M&eacute;thode CLV (Vigneau &amp; Qannari, 2003)</h3>
+
+<p>Destin&eacute;e aux variables quantitatives. Approche similaire aux $K$-means, maximisant un crit&egrave;re de colin&eacute;arit&eacute; intra-classe&nbsp;:</p>
+
+<div class="formula">
+$\displaystyle \sum_{k=1}^K \sum_{j=1}^p \delta_{k,j} \; \text{cov}^2(x_j, u_k) \quad\text{sous contrainte}\quad \|u_k\| = 1$
+</div>
+
+<p>o&ugrave; $\delta_{k,j}=1$ si la variable $j$ est dans la classe $k$, et $u_k$ est la premi&egrave;re composante principale de la classe $k$.</p>
+
+<p>Algorithme&nbsp;:</p>
+<ol>
+    <li>Initialiser les classes.</li>
+    <li>&Eacute;tape d&rsquo;affectation&nbsp;: calculer $\delta_{k,j}$ (affecter chaque variable &agrave; la classe dont le centro&iuml;de est le plus proche).</li>
+    <li>&Eacute;tape de mise &agrave; jour&nbsp;: recalculer $u_k$ (1&egrave;re CP de chaque classe).</li>
+    <li>R&eacute;p&eacute;ter jusqu&rsquo;&agrave; convergence.</li>
+</ol>
+
+<h3>3.2 ClustOfVar (Chavent et al., 2012)</h3>
+
+<p>G&eacute;n&eacute;ralisation de CLV aux variables qualitatives ou mixtes&nbsp;:</p>
+<ul>
+    <li>Utilise les composantes principales de l&rsquo;ACM (qualitatives) ou de l&rsquo;AFDM (mixtes) comme centro&iuml;de $u_k$.</li>
+    <li>Similarit&eacute; mesur&eacute;e par le carr&eacute; du rapport de corr&eacute;lation (qualitative) ou le carr&eacute; de la corr&eacute;lation (quantitative).</li>
+</ul>
+
+<div class="warn-box">
+<strong>&Agrave; retenir :</strong> Les algorithmes de partitionnement direct de variables restent sensibles &agrave; leur initialisation. Tester plusieurs initialisations et retenir celle optimisant le crit&egrave;re.
+</div>
+
+<!-- ============================================ -->
+<h2 id="application">4. Application aux donn&eacute;es German Credit</h2>
+<!-- ============================================ -->
+
+<p>Jeu de donn&eacute;es German Credit ($n=1000$, $p=21$, 7 quantitatives, 14 qualitatives). Objectif&nbsp;: classifier les variables mixtes.</p>
+
+<h3>4.1 Chargement et CAH avec ClustOfVar</h3>
+
+<div class="code-block"><span class="kw">library</span>(CluMix); <span class="kw">library</span>(ClustOfVar)
+<span class="kw">library</span>(cluster); <span class="kw">library</span>(FactoMineR)
+
+don &lt;- <span class="fn">read.table</span>(
+  <span class="str">"https://archive.ics.uci.edu/ml/machine-learning-</span>
+<span class="str">   databases/statlog/german/german.data"</span>,
+  sep = <span class="str">" "</span>, stringsAsFactors = <span class="kw">TRUE</span>)
+
+var.factor &lt;- <span class="kw">which</span>(<span class="fn">sapply</span>(don, class) == <span class="str">"factor"</span>)
+var.numeric &lt;- <span class="kw">which</span>(<span class="fn">sapply</span>(don, class) %in% <span class="fn">c</span>(<span class="str">"numeric"</span>, <span class="str">"integer"</span>))
+
+<span class="fn">set.seed</span>(1234)
+res.cah.hclustvar &lt;- <span class="fn">hclustvar</span>(
+  X.quanti = don[,var.numeric], X.quali = don[,var.factor])
+k_hclustvar &lt;- 4
+res.cutree &lt;- <span class="fn">cutreevar</span>(res.cah.hclustvar, k = k_hclustvar)</div>
+
+<h3>4.2 CAH avec CluMix</h3>
+
+<div class="code-block"><span class="cm"># CluMix-ama</span>
+res.dendro_ama &lt;- <span class="fn">dendro.variables</span>(don)
+res.dendro_ama &lt;- <span class="fn">as.hclust</span>(res.dendro_ama)
+k_ama &lt;- 3; part.cah.CluMix_ama &lt;- <span class="fn">cutree</span>(res.dendro_ama, k = k_ama)
+
+<span class="cm"># CluMix-dcor</span>
+res.dendro_dcor &lt;- <span class="fn">dendro.variables</span>(don, method = <span class="str">"distcor"</span>)
+res.dendro_dcor &lt;- <span class="fn">as.hclust</span>(res.dendro_dcor)
+k_dcor &lt;- 4; part.cah.CluMix_dcor &lt;- <span class="fn">cutree</span>(res.dendro_dcor, k = k_dcor)</div>
+
+<h3>4.3 Partitionnement avec ClustOfVar et PAM</h3>
+
+<div class="code-block">res.kmeansvar &lt;- <span class="fn">kmeansvar</span>(
+  X.quanti = don[,var.numeric], X.quali = don[,var.factor],
+  init = k_hclustvar, nstart = 100)
+
+<span class="cm"># Meilleure initialisation via CAH ou tirage al&eacute;atoire</span>
+myrandominit &lt;- <span class="kw">function</span>(matdist, nb.centres){
+  random_centre &lt;- <span class="fn">sample</span>(<span class="fn">seq.int</span>(<span class="fn">ncol</span>(don)), size = nb.centres)
+  random_part &lt;- <span class="fn">apply</span>(matdist[,random_centre], 1, which.min)
+  <span class="kw">return</span>(random_part)
+}
+matsim &lt;- <span class="fn">PairApply</span>(don, mixedVarSim, symmetric = <span class="kw">TRUE</span>)
+matdist &lt;- <span class="kw">as.matrix</span>(<span class="fn">sqrt</span>(<span class="fn">round</span>(1 - matsim, 5)))
+random_init &lt;- <span class="fn">replicate</span>(100, <span class="fn">myrandominit</span>(matdist, k_hclustvar),
+                         simplify = <span class="kw">FALSE</span>)
+list.init &lt;- <span class="fn">c</span>(list(cah.CluMix_dcor = part.cah.CluMix_dcor,
+                  cah.hclustvar = part.cah.hclustvar),
+               random_init)
+
+<span class="cm"># PAM sur dissimilarit&eacute;s</span>
+diss.CluMix_ama &lt;- <span class="fn">dist.variables</span>(don)
+res.pam_ama &lt;- <span class="fn">pam</span>(diss.CluMix_ama, diss = <span class="kw">TRUE</span>, k = k_ama)</div>
+
+<h3>4.4 R&eacute;sultats : quatre groupes de variables</h3>
+
+<p>Une ACM sur le tableau des partitions met en &eacute;vidence quatre groupes&nbsp;:</p>
+
+<ol>
+    <li><strong>Profil personnel</strong>&nbsp;: Length.of.current.employment, Sex.Marital.Status, Duration.in.Current.address, Age.years, Housing, No.of.dependents.</li>
+    <li><strong>Type de cr&eacute;dit et profil financier</strong>&nbsp;: Duration, Purpose, Credit.Amount, Instalment.per.cent, Guarantors, Job, Telephone, Foreign.Worker.</li>
+    <li><strong>Actifs du demandeur</strong>&nbsp;: Status, Savings account/bonds, Other.installment.plans, Creditability.</li>
+    <li><strong>Historique</strong>&nbsp;: History, No.of.Credits.at.this.Bank.</li>
+</ol>
+
+<div class="info-box">
+<strong>Observation :</strong> La variable Creditability (r&eacute;ponse) est li&eacute;e au groupe des actifs, ce qui sugg&egrave;re une relation privil&eacute;gi&eacute;e avec ces variables.
+</div>
+
+<!-- ============================================ -->
+<h2 id="conclusion">5. Conclusion</h2>
+<!-- ============================================ -->
+
+<p>La classification de variables vise &agrave; regrouper les variables en classes homog&egrave;nes&nbsp;: les variables d&rsquo;un m&ecirc;me groupe sont fortement li&eacute;es, celles de groupes diff&eacute;rents sont faiblement li&eacute;es.</p>
+
+<p>Applications importantes&nbsp;:</p>
+<ul>
+    <li><strong>Fuzzy forests</strong>&nbsp;: variante des for&ecirc;ts al&eacute;atoires qui classifie d&rsquo;abord les variables corr&eacute;l&eacute;es, puis effectue une s&eacute;lection backward au sein de chaque groupe (package R <code>fuzzyforest</code>).</li>
+    <li><strong>Biclustering</strong> (co-clustering)&nbsp;: classification simultan&eacute;e des individus et des variables pour identifier des groupes d&rsquo;individus caract&eacute;ris&eacute;s par des sous-ensembles de variables.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="qcm">6. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quel est l'objectif principal de la classification de variables ?",
+        options: ["Classifier les individus en groupes homog\u00e8nes", "Regrouper les variables en classes homog\u00e8nes", "R\u00e9duire le nombre d'individus", "Augmenter la dimension des donn\u00e9es"],
+        correct: 1,
+        expl: "L'objectif est de regrouper les variables en classes homog\u00e8nes pour analyser la multicolin\u00e9arit\u00e9 ou r\u00e9duire la dimension."
+    },
+    {
+        q: "Quelle est la complexit\u00e9 de la CAH de variables ?",
+        options: ["O(n\u00b2)", "O(p\u00b3)", "O(n)", "O(p)"],
+        correct: 1,
+        expl: "La complexit\u00e9 est en O(p\u00b3) o\u00f9 p est le nombre de variables."
+    },
+    {
+        q: "Quel indice de similarit\u00e9 est naturel pour des variables quantitatives ?",
+        options: ["Le \u03c7\u00b2", "Le V de Cramer", "La corr\u00e9lation au carr\u00e9 r\u00b2", "Le Jaccard"],
+        correct: 2,
+        expl: "Le coefficient de corr\u00e9lation lin\u00e9aire au carr\u00e9 r\u00b2 est l'indice naturel pour les variables quantitatives."
+    },
+    {
+        q: "Dans la m\u00e9thode VARCLUS, quel crit\u00e8re d\u00e9clenche une division ?",
+        options: ["La premi\u00e8re valeur propre > 1", "La seconde valeur propre > 1", "Le nombre de variables > 10", "Le crit\u00e8re de Ward"],
+        correct: 1,
+        expl: "La division est d\u00e9clench\u00e9e quand la seconde valeur propre de l'ACP est > 1."
+    },
+    {
+        q: "Quel crit\u00e8re est maximis\u00e9 par la m\u00e9thode CLV ?",
+        options: ["La variance inter-classe", "La colin\u00e9arit\u00e9 intra-classe \u03a3 cov\u00b2(x\u1d63, u_k)", "Le \u03c7\u00b2 de contingence", "La distance entre centro\u00efdes"],
+        correct: 1,
+        expl: "CLV maximise la somme des carr\u00e9s des covariances entre les variables et le centro\u00efde u_k."
+    },
+    {
+        q: "Que repr\u00e9sente u_k dans la m\u00e9thode CLV ?",
+        options: ["La moyenne des variables de la classe k", "La premi\u00e8re composante principale de la classe k", "Le m\u00e9do\u00efde de la classe k", "La variance de la classe k"],
+        correct: 1,
+        expl: "u_k est la premi\u00e8re composante principale (1\u00e8re CP) de la classe k."
+    },
+    {
+        q: "Comment ClustOfVar \u00e9tend CLV aux donn\u00e9es mixtes ?",
+        options: ["En utilisant la distance de Gower", "En utilisant l'AFDM pour d\u00e9finir les centro\u00efdes", "En supprimant les variables qualitatives", "En transformant les variables en binaires"],
+        correct: 1,
+        expl: "ClustOfVar utilise l'AFDM (Analyse Factorielle de Donn\u00e9es Mixtes) pour d\u00e9finir les centro\u00efdes."
+    },
+    {
+        q: "Quel package R impl\u00e9mente ClustOfVar ?",
+        options: ["cluster", "ClustOfVar", "CluMix", "FactoMineR"],
+        correct: 1,
+        expl: "Le package R ClustOfVar impl\u00e9mente la m\u00e9thode de Chavent et al. (2012)."
+    },
+    {
+        q: "Que sont les fuzzy forests ?",
+        options: ["For\u00eats al\u00e9atoires avec classification pr\u00e9alable des variables", "For\u00eats al\u00e9atoires sans \u00e9lagage", "For\u00eats al\u00e9atoires sur donn\u00e9es floues", "Une m\u00e9thode de classification de variables"],
+        correct: 0,
+        expl: "Les fuzzy forests classifient d'abord les variables corr\u00e9l\u00e9es, puis effectuent une s\u00e9lection backward dans chaque groupe."
+    },
+    {
+        q: "Qu'est-ce que le biclustering ?",
+        options: ["Une classification d'individus seulement", "Une classification de variables seulement", "Une classification simultan\u00e9e d'individus et de variables", "Une m\u00e9thode de r\u00e9gression"],
+        correct: 2,
+        expl: "Le biclustering (co-clustering) classifie simultan\u00e9ment les individus et les variables."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

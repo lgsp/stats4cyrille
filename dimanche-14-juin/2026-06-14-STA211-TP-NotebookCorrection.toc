@@ -1,0 +1,12 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}R\'esultats des exercices}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Ex0 -- Chargement}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Ex1 -- R\'egression logistique}{2}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Ex2 -- MLP}{2}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Ex3 -- CNN}{2}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Ex4 -- t-SNE et m\'etriques de s\'eparation}{2}{subsection.1.5}%
+\contentsline {paragraph}{Observation~:}{2}{subsection.1.5}%
+\contentsline {subsection}{\numberline {1.6}Ex5 -- Manifold Untangling}{3}{subsection.1.6}%
+\contentsline {paragraph}{R\'esultat~:}{3}{subsection.1.6}%
+\contentsline {section}{\numberline {2}Performances r\'ecapitulatives}{3}{section.2}%
+\contentsline {section}{Questions cl\'es (QCM)}{4}{section.2}%

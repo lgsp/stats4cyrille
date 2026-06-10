@@ -1,0 +1,186 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+
+\newtheorem*{important}{\`A retenir}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Notebook Correction (Keras)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Notebook Jupyter -- Correction \\[2pt]
+\small DL-STA211-correction.ipynb -- Solutions et r\'esultats}
+\author{N. Thome (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Ce notebook ex\'ecut\'e fournit les solutions du TP Keras.
+Les performances obtenues et les visualisations t-SNE du manifold
+untangling y sont document\'ees.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{R\'esultats des exercices}
+% ===================================================================
+
+\subsection{Ex0 -- Chargement}
+
+Ex\'ecution r\'eussie (2 cellules). Donn\'ees MNIST charg\'ees,
+reshape, normalisation, affichage des 200 premi\`eres images.
+
+\subsection{Ex1 -- R\'egression logistique}
+
+5 cellules ex\'ecut\'ees.
+
+\begin{itemize}
+  \item Mod\`ele~: 7\,850 param\`etres (Softmax \`a 10 classes).
+  \item Apprentissage~: SGD, lr=0.5, batch=100, 10 \'epoques.
+  \item \textbf{Accuracy test~: $\sim$92\,\%} (confirm\'e).
+\end{itemize}
+
+\begin{lstlisting}
+# Cell 7 - fit
+batch_size = 100
+nb_epoch = 10
+model.fit(X_train, Y_train, batch_size=batch_size,
+          epochs=nb_epoch, verbose=1)
+# Cell 8 - evaluate
+scores = model.evaluate(X_test, Y_test, verbose=0)
+print("%s: %.2f%%" % (model.metrics_names[0], scores[0]*100))
+print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
+\end{lstlisting}
+
+\subsection{Ex2 -- MLP}
+
+2 cellules ex\'ecut\'ees.
+
+\begin{itemize}
+  \item Mod\`ele~: 79\,510 param\`etres (couche cach\'ee 100D).
+  \item \textbf{Accuracy test~: $\sim$98\,\%} (sup\'erieur \`a LR).
+\end{itemize}
+
+\subsection{Ex3 -- CNN}
+
+3 cellules ex\'ecut\'ees.
+
+\begin{itemize}
+  \item Architecture LeNet-like~: Conv16 $\rightarrow$ Pool
+    $\rightarrow$ Conv32 $\rightarrow$ Pool $\rightarrow$ Flat
+    $\rightarrow$ Dense100 $\rightarrow$ Dense10.
+  \item 20 \'epoques.
+  \item \textbf{Accuracy test~: $\sim$99\,\%} (meilleur score).
+\end{itemize}
+
+\subsection{Ex4 -- t-SNE et m\'etriques de s\'eparation}
+
+12 cellules ex\'ecut\'ees.
+
+\begin{itemize}
+  \item t-SNE~: 2 composantes, init='pca', perplexity=30,
+    verbose=2.
+  \item ConvexHull~: enveloppe convexe par classe.
+  \item Ellipses~: GaussianMixture (1 composante,
+    covariance\_type='full').
+  \item Neighborhood Hit (NH)~: k=6, score moyen sur les 10
+    classes.
+\end{itemize}
+
+\paragraph{Observation~:} la s\'eparation des classes dans
+l'espace t-SNE est nette, contrairement \`a l'ACP (classes
+emm\^el\'ees). t-SNE s\'epare bien les vari\'et\'es non
+lin\'eaires.
+
+\subsection{Ex5 -- Manifold Untangling}
+
+5 cellules ex\'ecut\'ees.
+
+\begin{itemize}
+  \item Chargement du MLP (ou CNN) sauvegard\'e.
+  \item Suppression des couches hautes par \texttt{pop()}.
+  \item Extraction des repr\'esentations internes (latentes)
+    par \texttt{model.predict(X\_test)}.
+  \item Projection t-SNE des repr\'esentations.
+\end{itemize}
+
+\paragraph{R\'esultat~:} les classes sont bien mieux s\'epar\'ees
+dans l'espace latent que dans l'espace d'entr\'ee original.
+Le CNN offre une s\'eparation encore meilleure que le MLP.
+
+% ===================================================================
+\section{Performances r\'ecapitulatives}
+% ===================================================================
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Mod\`ele & Accuracy test & Temps (20 \'epoques) \\
+\midrule
+R\'egression logistique & 92\,\% & rapide (CPU) \\
+MLP (1 couche cach\'ee) & 98\,\% & mod\'er\'e \\
+CNN (LeNet-like) & 99\,\% & lent (GPU recommand\'e) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{important}
+  La progression des performances refl\`ete la capacit\'e
+  croissante des mod\`eles \`a apprendre des repr\'esentations
+  de plus en plus abstraites~: lin\'eaire (LR) $\rightarrow$
+  non lin\'eaire peu profond (MLP) $\rightarrow$ non lin\'eaire
+  profond avec structure spatiale (CNN).
+\end{important}
+
+\newpage
+\section*{Questions cl\'es (QCM)}
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+  \item Accuracy de la r\'egression logistique sur MNIST~?
+    \textbf{R. $\sim$92\,\%.}
+  \item Accuracy du MLP sur MNIST~? \textbf{R. $\sim$98\,\%.}
+  \item Accuracy du CNN sur MNIST~? \textbf{R. $\sim$99\,\%.}
+  \item Quel mod\`ele donne le meilleur score~?
+    \textbf{R. Le CNN.}
+  \item Combien de couches de convolution dans le CNN du TP~?
+    \textbf{R. 2 (Conv16 + Conv32).}
+  \item Combien de neurones dans la couche cach\'ee du CNN~?
+    \textbf{R. 100.}
+  \item Quelle m\'ethode de r\'eduction non lin\'eaire est
+    utilis\'ee~? \textbf{R. t-SNE.}
+  \item Les classes sont-elles mieux s\'epar\'ees dans l'espace
+    latent ou dans l'espace d'entr\'ee~?
+    \textbf{R. Dans l'espace latent (manifold untangling).}
+  \item Quelle m\'ethode Keras supprime la derni\`ere couche~?
+    \textbf{R. model.pop().}
+  \item Quel optimiseur est utilis\'e pour tous les mod\`eles~?
+    \textbf{R. SGD (learning\_rate=0.5).}
+\end{enumerate}
+
+\end{document}

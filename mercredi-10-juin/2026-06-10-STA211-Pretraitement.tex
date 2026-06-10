@@ -1,0 +1,727 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+
+% ---- Style des titres ----
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+% ---- Style listings ----
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+% ---- En-têtes / pieds ----
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Pré-traitement}
+\fancyhead[R]{\small Fiche récapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---- Theorem-like environment ----
+\theoremstyle{definition}
+\newtheorem*{definition}{Définition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{À retenir}
+
+\title{\textbf{Fiche récapitulative -- STA211}\\[4pt]
+\large Exploitation des méthodes exploratoires\\pour le pré-traitement des données}
+\author{}
+\date{10 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche synthétise le cours d'Exploitation des méthodes exploratoires pour le
+pré-traitement des données (V. Audigier, N. Niang). Le pré-traitement transforme
+les données brutes en un format adapté à l'analyse. Les méthodes exploratoires
+aident à comprendre la structure des données avant d'appliquer des modèles
+prédictifs.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Présentation}
+% ===================================================================
+
+Le pré-traitement est une étape cruciale de tout processus d'analyse de données.
+Les données brutes contiennent souvent des imperfections~: valeurs aberrantes,
+données manquantes, échelles hétérogènes, variables redondantes, etc. Ignorer
+ces problèmes conduit à des résultats biaisés ou peu robustes.
+
+Les méthodes exploratoires jouent un double rôle~:
+\begin{enumerate}
+  \item \textbf{Diagnostic}~: mettre en évidence les caractéristiques des données
+    (distributions, corrélations, atypiques, manquantes).
+  \item \textbf{Transformation}~: corriger ou adapter les données pour les rendre
+    compatibles avec les méthodes d'analyse ultérieures.
+\end{enumerate}
+
+Questions clés abordées dans ce cours~:
+\begin{itemize}
+  \item Comment transformer les variables (quantitatives et qualitatives)~?
+  \item Comment détecter et traiter les points atypiques~?
+  \item Comment gérer les données manquantes~?
+  \item Comment réduire la dimension des données~?
+  \item Comment traiter les données volumineuses~?
+\end{itemize}
+
+% ===================================================================
+\section{Transformation des variables quantitatives}
+% ===================================================================
+
+\subsection{Discrétisation}
+
+La discrétisation transforme une variable continue en classes discrètes.
+Utile pour~: aplicabilité de certains algorithmes, interprétabilité,
+robustesse au bruit.
+
+\begin{description}[style=nextline]
+  \item[Règles métier] Découpage selon des seuils ayant un sens métier.
+    Exemple~: âge en classes~: $[0,18[$, $[18,25[$, $[25,45[$, $[45,65[$,
+    $65+$. Simple, pertinent mais subjectif.
+  \item[Quantiles] Classes d'effectifs égaux (déciles, quartiles).
+    Exemple~: âge en 3 quantiles~: $[18,32[$, $[32,51[$, $[51,95]$.
+    Objectif mais peut créer des frontières artificielles.
+  \item[CAH / $k$-means] On regroupe les valeurs par clustering univarié
+    puis on utilise les clusters comme catégories. S'adapte à la structure
+    naturelle des données.
+  \item[MDLPC] \textit{Minimum Description Length Principle Cut}~:
+    discrétisation supervisée qui minimise la perte d'information vis-à-vis
+    d'une cible $Y$. Choisit les coupures qui maximisent le gain d'information.
+\end{description}
+
+\begin{important}
+  La discrétisation fait perdre de l'information (perte de granularité).
+  À utiliser avec parcimonie, et valider l'impact sur l'analyse aval.
+\end{important}
+
+\subsection{Linéarité}
+
+De nombreux modèles (régression linéaire, ACP) supposent des relations
+linéaires entre variables. Une transformation peut linéariser la relation.
+
+\textbf{Détection}~:
+\begin{itemize}
+  \item Coefficient de Pearson $r$~: mesure la corrélation linéaire.
+  \item Coefficient de Spearman $\rho$~: mesure la corrélation de rang
+    (monotone, pas forcément linéaire).
+  \item Si $|r| \approx |\rho|$~: relation approximativement linéaire.
+  \item Si $|\rho| > |r|$~: relation monotone mais non linéaire → besoin
+    de transformation.
+\end{itemize}
+
+\textbf{Transformation de Box-Cox}~:
+\[
+y^{(\lambda)} =
+\begin{cases}
+  \dfrac{y^\lambda - 1}{\lambda} & \text{si } \lambda \neq 0,\\[6pt]
+  \log(y)                         & \text{si } \lambda = 0.
+\end{cases}
+\]
+Le paramètre $\lambda$ est estimé par maximum de vraisemblance (ou
+\textit{profile likelihood}). On cherche $\lambda$ tel que $y^{(\lambda)}$
+soit le plus linéaire possible par rapport aux autres variables.
+
+\subsection{Normalité}
+
+De nombreux tests et modèles supposent la normalité des résidus ou des
+variables.
+
+\textbf{Indicateurs de non-normalité}~:
+\begin{itemize}
+  \item Asymétrie (\textit{skewness})~:
+    \[
+    \gamma_1 = \mathbb{E}\!\left[\left(\frac{X-\mu}{\sigma}\right)^{\!3}\right].
+    \]
+    $\gamma_1 = 0$ pour une normale. $\gamma_1 > 0$~: queue à droite.
+    $\gamma_1 < 0$~: queue à gauche.
+  \item Aplatissement (\textit{kurtosis})~:
+    \[
+    \gamma_2 = \mathbb{E}\!\left[\left(\frac{X-\mu}{\sigma}\right)^{\!4}\right] - 3.
+    \]
+    $\gamma_2 = 0$ pour une normale. $\gamma_2 > 0$~: distribution
+    leptikurtique (pointue). $\gamma_2 < 0$~: platykurtique (aplatie).
+  \item Test de Shapiro-Wilk, test de Jarque-Bera.
+  \item QQ-plot~: quantiles empiriques vs quantiles théoriques.
+    L'alignement des points sur la diagonale indique la normalité.
+\end{itemize}
+
+\textbf{Transformations correctives}~:
+\begin{itemize}
+  \item Logarithme~: $\log(x)$ pour des données strictement positives
+    avec asymétrie droite.
+  \item Racine carrée~: $\sqrt{x}$ pour des données de comptage.
+  \item Box-Cox (cf.~ci-dessus)~: généralisation.
+  \item Yeo-Johnson~: analogue à Box-Cox mais accepte les valeurs
+    négatives.
+\end{itemize}
+
+% ===================================================================
+\section{Transformation des variables qualitatives}
+% ===================================================================
+
+\subsection{Regroupement de modalités}
+
+Les variables qualitatives comportent parfois un grand nombre de modalités,
+dont certaines très rares. Le regroupement vise à~:
+\begin{itemize}
+  \item Éviter les indicateurs binaires de faible effectif (instables).
+  \item Améliorer la parcimonie et l'interprétabilité.
+\end{itemize}
+
+\textbf{Méthodes}~:
+\begin{enumerate}
+  \item Expertise métier~: regroupement basé sur la connaissance du domaine.
+  \item Clustering des modalités~: on représente chaque modalité par son
+    profil (e.g.\ via ACM), puis on regroupe les modalités proches.
+  \item Fusion supervisée~: pour une cible $Y$ donnée, on regroupe les
+    modalités dont la moyenne de $Y$ est similaire (test de Student ou
+    ANOVA).
+\end{enumerate}
+
+\subsection{Analyse factorielle}
+
+L'analyse factorielle (ACM, AFDM) permet de convertir des variables
+qualitatives en représentations numériques continues. Les coordonnées
+des individus sur les axes factoriels deviennent de nouvelles variables
+quantitatives.
+
+\begin{itemize}
+  \item \textbf{ACM (MCA)}~: pour données qualitatives uniquement.
+    Transforme le tableau disjonctif complet en composantes continues.
+  \item \textbf{AFDM (FAMD)}~: pour données mixtes (quantitatives +
+    qualitatives). Combine ACP (pour les quantitatives) et ACM (pour
+    les qualitatives).
+\end{itemize}
+
+\begin{important}
+  L'analyse factorielle n'est pas seulement une méthode de visualisation~:
+  c'est aussi un outil de pré-traitement pour remplacer des variables
+  brutes par des composantes synthétiques.
+\end{important}
+
+% ===================================================================
+\section{Détection des points atypiques}
+% ===================================================================
+
+\subsection{Méthodes univariées}
+
+\textbf{Z-score}~:
+\[
+z_i = \frac{x_i - \bar{x}}{s},
+\]
+où $\bar{x}$ est la moyenne et $s$ l'écart-type. On considère comme
+atypique une observation avec $|z_i| > 3$ (seuil de la normale à 99,7~\%).
+Limite~: la moyenne et l'écart-type sont sensibles aux valeurs extrêmes
+(effet de masquage).
+
+\textbf{Intervalle interquartile (IQR)}~:
+\[
+\text{IQR} = Q_3 - Q_1.
+\]
+Sont atypiques les valeurs $< Q_1 - 1{,}5 \times \text{IQR}$ ou
+$> Q_3 + 1{,}5 \times \text{IQR}$. Plus robuste que le Z-score car
+basé sur les quartiles.
+
+\subsection{Méthodes multivariées}
+
+\textbf{Distance de Mahalanobis}~:
+\[
+D_i^2 = (\mathbf{x}_i - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1}
+        (\mathbf{x}_i - \boldsymbol{\mu}).
+\]
+Sous hypothèse de normalité multivariée, $D_i^2 \sim \chi^2_p$ avec $p$
+le nombre de variables.
+On considère atypiques les individus dont la $p$-valeur associée est
+$< 0{,}001$ (ou autre seuil).
+
+En pratique, $\boldsymbol{\mu}$ et $\boldsymbol{\Sigma}$ sont estimés
+sur l'échantillon, mais ces estimateurs sont sensibles aux atypiques.
+On utilise alors l'estimateur MCD (\textit{Minimum Covariance
+Determinant}) qui minimise le déterminant de la matrice de covariance
+sur un sous-ensemble robuste.
+
+\textbf{Isolation Forest}~\cite{liu2008isolation} :
+\begin{itemize}
+  \item Algorithme non supervisé basé sur des arbres de décision aléatoires.
+  \item Principe~: on isole chaque observation en partitionnant
+    aléatoirement l'espace des variables.
+  \item Un point atypique est isolé en moins de coupes (chemin plus court
+    dans l'arbre) qu'un point normal.
+\end{itemize}
+Score d'anomalie~:
+\[
+s(x, n) = 2^{-\frac{\mathbb{E}[h(x)]}{c(n)}}, \qquad
+c(n) = 2H(n-1) - \frac{2(n-1)}{n},
+\]
+où $h(x)$ est la longueur du chemin dans l'arbre, $c(n)$ un facteur de
+normalisation et $H(i)$ le $i$-ième nombre harmonique.
+$s \to 1$~: atypique, $s \to 0$~: normal.
+
+% ===================================================================
+\section{Gestion des données manquantes}
+% ===================================================================
+
+\subsection{Mécanismes de manquance}
+
+\begin{description}[style=nextline]
+  \item[MCAR] (\textit{Missing Completely At Random})~: la probabilité
+    de manquance ne dépend ni des données observées ni des données
+    manquantes. Exemple~: questionnaire perdu aléatoirement.
+  \item[MAR] (\textit{Missing At Random})~: la probabilité de manquance
+    dépend des données observées mais pas des données manquantes.
+    Exemple~: les hommes répondent moins à une question sur le poids.
+  \item[MNAR] (\textit{Missing Not At Random})~: la probabilité de
+    manquance dépend des données manquantes elles-mêmes.
+    Exemple~: les personnes à haut revenu ne déclarent pas leur revenu.
+\end{description}
+
+\begin{important}
+  Le mécanisme de manquance est une hypothèse non testable
+  (car on n'observe pas les données manquantes). Il faut justifier
+  son choix par des arguments métier.
+\end{important}
+
+\subsection{Approches par suppression}
+
+\begin{itemize}
+  \item \textbf{Listwise deletion (analyse des cas complets)}~:
+    on supprime toute ligne comportant au moins une valeur manquante.
+    Simple mais~: (i) perte de puissance, (ii) biais sauf si MCAR.
+  \item \textbf{Pairwise deletion}~: on utilise toutes les observations
+    disponibles pour chaque calcul (moyenne, corrélation). La matrice de
+    covariance peut ne pas être définie positive.
+\end{itemize}
+
+\subsection{Imputation simple}
+
+\begin{itemize}
+  \item \textbf{Moyenne / médiane}~: remplace la valeur manquante par la
+    moyenne (ou médiane) de la variable. Attenue la variance et les
+    corrélations.
+  \item \textbf{Imputation par régression}~: on prédit la valeur manquante
+    à partir des autres variables. Tendance à renforcer les relations
+    existantes.
+  \item \textbf{Hot-deck ($k$-NN)}~: on trouve les $k$ plus proches voisins
+    complets et on impute par leur moyenne (ou un tirage aléatoire).
+\end{itemize}
+
+\subsection{Imputation multiple -- MICE}
+
+\textbf{MICE} (\textit{Multiple Imputation by Chained Equations})~:
+méthode itérative qui génère $m$ jeux de données imputés, en tenant
+compte de l'incertitude d'imputation.
+
+\textbf{Algorithme}~:
+\begin{enumerate}
+  \item Imputation initiale provisoire (e.g.\ moyenne).
+  \item Pour chaque variable $X_j$ contenant des valeurs manquantes~:
+    \begin{enumerate}
+      \item Régression de $X_j$ sur toutes les autres variables
+        (sur les observations où $X_j$ est observée).
+      \item Imputation des valeurs manquantes de $X_j$ par tirage
+        dans la distribution prédictive (valeur prédite + bruit).
+    \end{enumerate}
+  \item Répéter l'étape 2 pendant plusieurs cycles (5--10) pour
+    stabiliser les imputations.
+  \item Répéter tout le processus $m$ fois (typiquement $m=5$ ou
+    $m=20$) → $m$ jeux de données complets.
+  \item Analyser chaque jeu séparément et combiner les résultats
+    avec les règles de Rubin.
+\end{enumerate}
+
+\textbf{Règles de Rubin}~:
+\[
+\bar{Q} = \frac{1}{m}\sum_{j=1}^m \hat{Q}_j,\qquad
+B = \frac{1}{m-1}\sum_{j=1}^m (\hat{Q}_j - \bar{Q})^2,\qquad
+T = \bar{U} + \left(1 + \frac{1}{m}\right)B.
+\]
+où $\hat{Q}_j$ est l'estimation du paramètre d'intérêt sur le
+$j$-ème jeu imputé, $U_j$ sa variance estimée,
+$\bar{U} = \frac{1}{m}\sum U_j$ la variance intra-imputation,
+$B$ la variance inter-imputation, et $T$ la variance totale.
+
+\section{Réduction de dimension}
+
+\subsection{Sélection \textit{vs} extraction}
+
+Deux stratégies complémentaires~:
+\begin{itemize}
+  \item \textbf{Sélection de variables}~: choisir un sous-ensemble des
+    variables originales. Avantage~: interprétabilité préservée.
+    Inconvénient~: information redondante partiellement perdue.
+  \item \textbf{Extraction de caractéristiques}~: créer de nouvelles
+    variables synthétiques (composantes, facteurs). Avantage~: capte
+    l'information de toutes les variables. Inconvénient~: perte
+    d'interprétabilité directe.
+\end{itemize}
+
+\subsection{Méthodes d'extraction}
+
+\begin{description}[style=nextline]
+  \item[ACP (PCA)] Trouve les directions de variance maximale dans
+    l'espace des variables. Les composantes principales sont
+    orthogonales. Adaptée aux variables numériques.
+  \item[ACM (MCA)] Version de l'ACP pour variables qualitatives.
+    Appliquée au tableau disjonctif complet.
+  \item[AFDM (FAMD)] Mélange ACP + ACM pour données mixtes.
+  \item[PLS (\textit{Partial Least Squares})] Trouve des composantes
+    qui maximisent la covariance entre $X$ et $Y$. Supervisée.
+\end{description}
+
+\subsection{Méthodes de sélection}
+
+\begin{itemize}
+  \item \textbf{Best subset}~: testing all $2^p$ subsets. Impossible
+    pour $p$ grand.
+  \item \textbf{Sélection pas-à-pas}~: forward (ajout), backward
+    (retrait), stepwise (les deux).
+  \item \textbf{Régularisation (Lasso, Ridge, Elastic Net)}~:
+    \[
+    \hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}}
+    \| \mathbf{y} - \mathbf{X}\boldsymbol{\beta} \|_2^2
+    + \lambda \, \|\boldsymbol{\beta}\|_q^q,
+    \]
+    avec $q=1$ (Lasso, fait de la sélection), $q=2$ (Ridge, réduit
+    sans sélectionner), ou un mélange (Elastic Net).
+\end{itemize}
+
+\subsection{Clustering de variables}
+
+Objectif~: identifier des groupes de variables corrélées pour détecter
+la redondance.
+
+Démarche~:
+\begin{enumerate}
+  \item Calculer la matrice de corrélation $\mathbf{R}$.
+  \item Définir une distance entre variables, par exemple
+    $d(X_j, X_k) = 1 - |r_{jk}|$.
+  \item Appliquer une CAH sur les variables (et non sur les individus).
+\end{enumerate}
+
+Chaque cluster peut ensuite être résumé par une variable synthétique
+(la première composante de l'ACP intra-cluster).
+
+% ===================================================================
+\section{Pré-traitement des données volumineuses}
+% ===================================================================
+
+Avec des jeux de données massifs, les méthodes classiques deviennent
+coûteuses, voire impossibles à exécuter en mémoire.
+
+\textbf{Stratégies}~:
+\begin{itemize}
+  \item \textbf{Échantillonnage}~: réduire la taille des données.
+    \begin{itemize}
+      \item Aléatoire simple~: tirage uniforme sans remise.
+      \item Systématique~: on sélectionne 1 individu tous les $k$.
+      \item Stratifié~: tirage par strates pour préserver la structure.
+    \end{itemize}
+  \item \textbf{Sous-échantillonnage pour Isolation Forest}~: chaque
+    arbre est construit sur un petit sous-échantillon (e.g.\ 256
+    individus). Cela améliore la robustesse et réduit le coût.
+  \item \textbf{Parallélisation}~: diviser les données en blocs,
+    traiter chaque bloc indépendamment, puis combiner les résultats.
+  \item \textbf{Algorithmes en ligne (\textit{streaming})}~: mise à
+    jour incrémentale des paramètres (e.g.\ SGD, ACP incrémentale).
+\end{itemize}
+
+% ===================================================================
+\section{Code Python -- Exemples}
+% ===================================================================
+
+\begin{lstlisting}[language=Python, caption=Box-Cox et détection d'atypiques]
+import numpy as np
+from scipy.stats import boxcox
+from scipy.spatial.distance import mahalanobis
+
+# --- Transformation Box-Cox ---
+data = np.array([1, 2, 3, 5, 10, 20, 50])
+transformed, lambda_opt = boxcox(data)
+print(f"lambda optimal: {lambda_opt:.3f}")
+
+# --- Distance de Mahalanobis robuste ---
+from sklearn.covariance import MinCovDet
+X = np.random.randn(100, 5)
+mcd = MinCovDet().fit(X)
+dist = mcd.mahalanobis(X)
+seuil = np.sqrt(mcd.dof_)  # approx chi2(p)
+outliers = dist > seuil
+print(f"Atteinte robuste Mahalanobis: {outliers.sum()} atypiques")
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=Isolation Forest]
+from sklearn.ensemble import IsolationForest
+rng = np.random.RandomState(42)
+X = 0.3 * rng.randn(100, 2)
+X_outliers = rng.uniform(low=-4, high=4, size=(20, 2))
+X = np.vstack([X, X_outliers])
+
+model = IsolationForest(contamination=0.1, random_state=rng)
+y_pred = model.fit_predict(X)
+# -1 = outlier, 1 = normal
+print(f"Atteinte Isolation Forest: {(y_pred == -1).sum()} atypiques")
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=Imputation multiple avec IterativeImputer]
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+import pandas as pd
+
+df = pd.DataFrame({
+    'X1': [1, 2, np.nan, 4, 5],
+    'X2': [5, np.nan, 3, 2, 1],
+    'X3': [1, 1, 0, 0, 1]
+})
+imp = IterativeImputer(max_iter=10, random_state=0)
+df_imputed = pd.DataFrame(imp.fit_transform(df),
+                          columns=df.columns)
+print(df_imputed)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption=ACP et Lasso]
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LassoCV
+from sklearn.preprocessing import StandardScaler
+
+# ACP
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+print(f"Variance expliquee: {pca.explained_variance_ratio_}")
+
+# Lasso
+lasso = LassoCV(cv=5, random_state=0).fit(X_scaled, y)
+print(f"Variables selectionnees: {np.where(lasso.coef_ != 0)[0]}")
+\end{lstlisting}
+
+% ===================================================================
+\section{Code R -- Exemples}
+% ===================================================================
+
+\begin{lstlisting}[language=R, caption=Box-Cox et Mahalanobis]
+library(MASS)
+library(robustbase)
+
+# --- Box-Cox ---
+boxcox(lm(mpg ~ ., data = mtcars))
+
+# --- Distance de Mahalanobis robuste ---
+data(iris)
+X <- iris[, 1:4]
+mcd <- covMcd(X)
+dist <- mahalanobis(X, center = mcd$center, cov = mcd$cov)
+seuil <- qchisq(0.999, df = ncol(X))
+outliers <- dist > seuil
+cat("Atteinte Mahalanobis robuste:", sum(outliers), "atypiques\n")
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Isolation Forest avec isotree]
+library(isotree)
+set.seed(42)
+iso <- isolation.forest(X, ntrees = 100, sample_size = 256,
+                        ndim = ncol(X))
+scores <- predict(iso, X)
+cat("Score d'anomalie (moy.):", mean(scores), "\n")
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption=Imputation multiple avec mice]
+library(mice)
+data(nhanes)
+imp <- mice(nhanes, m = 5, method = 'pmm', seed = 123)
+# Combinaison des resultats (regression)
+fit <- with(imp, lm(bmi ~ age + chl))
+pooled <- pool(fit)
+summary(pooled)
+\end{lstlisting}
+
+\begin{lstlisting}[language=R, caption={ACP, FAMD et Lasso}]
+library(FactoMineR)
+library(glmnet)
+
+# ACP
+res.pca <- PCA(iris[, 1:4], scale.unit = TRUE, graph = FALSE)
+print(res.pca$eig[1:2, ])
+
+# FAMD (donnees mixtes)
+data(geomorphology)
+res.famd <- FAMD(geomorphology, graph = FALSE)
+
+# Lasso
+X <- as.matrix(iris[, 1:4])
+y <- iris[, 5]
+cv.lasso <- cv.glmnet(X, as.numeric(y), alpha = 1, nfolds = 5)
+coef(cv.lasso, s = "lambda.1se")
+\end{lstlisting}
+
+% ===================================================================
+\section*{Questions clés (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions clés (QCM)}
+
+Voici 10 questions pour vérifier votre compréhension. Les réponses
+sont fournies ci-dessous.
+
+\begin{enumerate}
+
+  \item Quelle transformation est recommandée pour linéariser une
+    relation monotone non linéaire~?
+    \begin{enumerate}
+      \item Transformation logarithmique
+      \item Transformation de Box-Cox
+      \item Centrage-réduction
+      \item Discrétisation par quantiles
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Le coefficient de Spearman mesure~:
+    \begin{enumerate}
+      \item La corrélation linéaire entre deux variables
+      \item La corrélation de rang (monotone)
+      \item La proportion de variance expliquée
+      \item La distance entre deux distributions
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Dans la distance de Mahalanobis, la matrice utilisée est~:
+    \begin{enumerate}
+      \item La matrice des corrélations
+      \item L'inverse de la matrice de variance-covariance
+      \item La matrice des distances euclidiennes
+      \item La matrice identité
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Un point atypique dans Isolation Forest a~:
+    \begin{enumerate}
+      \item Un chemin long dans l'arbre
+      \item Un chemin court dans l'arbre
+      \item Un score proche de 0
+      \item Une forte contribution à l'inertie
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Le mécanisme MAR signifie que la probabilité de manquance~:
+    \begin{enumerate}
+      \item Est indépendante de toutes les données
+      \item Dépend des données observées uniquement
+      \item Dépend des données manquantes uniquement
+      \item Dépend des données observées et manquantes
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Dans MICE, le nombre $m$ de jeux de données imputés est
+    typiquement~:
+    \begin{enumerate}
+      \item $m=1$
+      \item $m=5$ à $20$
+      \item $m=100$ à $500$
+      \item $m$ est choisi par validation croisée
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Le Lasso effectue de la sélection de variables car~:
+    \begin{enumerate}
+      \item Il utilise la norme $\ell_2$
+      \item Il utilise la norme $\ell_1$
+      \item Il estime les coefficients par MCCO
+      \item Il orthogonalise les prédicteurs
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item L'AFDM est adaptée aux données~:
+    \begin{enumerate}
+      \item Uniquement qualitatives
+      \item Uniquement quantitatives
+      \item Mixtes (qualitatives et quantitatives)
+      \item Textuelles
+    \end{enumerate}
+    \textbf{Réponse~: c}
+
+  \item Le clustering de variables permet de~:
+    \begin{enumerate}
+      \item Regrouper des individus similaires
+      \item Identifier des groupes de variables corrélées
+      \item Réduire le nombre d'individus
+      \item Détecter des points atypiques
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+  \item Pour des données volumineuses, une stratégie courante
+    dans Isolation Forest est~:
+    \begin{enumerate}
+      \item Utiliser tous les individus pour chaque arbre
+      \item Sous-échantillonner les individus pour chaque arbre
+      \item Augmenter le nombre de variables
+      \item Utiliser une ACP en amont
+    \end{enumerate}
+    \textbf{Réponse~: b}
+
+\end{enumerate}
+
+% ===================================================================
+% Bibliographie
+% ===================================================================
+\begin{thebibliography}{9}
+
+\bibitem{liu2008isolation}
+F.T.~Liu, K.M.~Ting, Z.-H.~Zhou.
+\newblock Isolation Forest.
+\newblock \emph{ICDM}, 2008.
+
+\bibitem{audigier2023}
+V.~Audigier, N.~Niang.
+\newblock Exploitation des méthodes exploratoires pour le pré-traitement
+  des données.
+\newblock Cours STA211, 2023.
+
+\bibitem{vanbuuren2018}
+S.~van~Buuren.
+\newblock \emph{Flexible Imputation of Missing Data}.
+\newblock 2nd ed., CRC Press, 2018.
+
+\bibitem{tibshirani1996}
+R.~Tibshirani.
+\newblock Regression Shrinkage and Selection via the Lasso.
+\newblock \emph{JRSS B}, 58(1):267--288, 1996.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,395 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{pystyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  language=Python
+}
+\lstset{style=pystyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- TP Deep Learning avec Keras}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Travaux Pratiques \\[2pt]
+\small Deep Learning avec Keras et Manifold Untangling}
+\author{Nicolas Thome (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Ce TP pratique la biblioth\`eque Keras sur MNIST~: r\'egression
+logistique, MLP, CNN (type LeNet), puis visualise le \emph{manifold
+untangling} par t-SNE, enveloppes convexes, ellipses et
+Neighborhood Hit.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Partie 1 : Deep Learning avec Keras}
+% ===================================================================
+
+\subsection{Exercice 0 : Chargement des donn\'ees MNIST}
+
+MNIST~: 60\,000 images train, 10\,000 test, $28\times28$,
+10 classes (chiffres 0--9).
+
+\begin{lstlisting}
+from keras.datasets import mnist
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+X_train = X_train.reshape(60000, 784).astype('float32') / 255
+X_test  = X_test.reshape(10000, 784).astype('float32') / 255
+\end{lstlisting}
+
+Afficher les 200 premi\`eres images avec Matplotlib.
+
+\paragraph{Question~:} espace des images~? $\mathbb{R}^{784}$.
+
+\subsection{Exercice 1 : R\'egression logistique}
+
+\paragraph{Mod\`ele~:} $p(\hat{y}_{c,i}|\mathbf{x}_i) =
+\frac{e^{\langle\mathbf{x}_i;\mathbf{w}_c\rangle + b_c}}
+{\sum_{c'} e^{\langle\mathbf{x}_i;\mathbf{w}_{c'}\rangle + b_{c'}}}$
+
+\paragraph{Nombre de param\`etres~:} $784\times 10 + 10 = 7\,850$.
+
+\begin{lstlisting}
+model = Sequential()
+model.add(Dense(10, input_dim=784, name='fc1'))
+model.add(Activation('softmax'))
+\end{lstlisting}
+
+\paragraph{One-hot encoding~:}
+\begin{lstlisting}
+from keras.utils import np_utils
+Y_train = np_utils.to_categorical(y_train, 10)
+\end{lstlisting}
+
+\paragraph{Entropie crois\'ee~:}
+$\mathcal{L}_{\mathbf{W},\mathbf{b}}(\mathcal{D}) =
+-\frac{1}{N}\sum_{i=1}^N \log(\hat{y}_{c^*,i})$
+
+\paragraph{Convexit\'e~:} oui, LR + cross-entropy = probl\`eme
+convexe $\Rightarrow$ minimum global assur\'e avec bon pas.
+
+\begin{lstlisting}
+sgd = SGD(learning_rate=0.5)
+model.compile(loss='categorical_crossentropy',
+              optimizer=sgd, metrics=['accuracy'])
+model.fit(X_train, Y_train, batch_size=100,
+          epochs=10, verbose=1)
+scores = model.evaluate(X_test, Y_test, verbose=0)
+\end{lstlisting}
+
+\paragraph{R\'esultat attendu~:} $\sim$92\,\% accuracy test.
+
+\subsection{Exercice 2 : Perceptron multi-couches (MLP)}
+
+Une couche cach\'ee $L=100$, sigmo\"ide, softmax en sortie.
+
+\paragraph{Nombre de param\`etres~:}
+$784\times 100 + 100 + 100\times 10 + 10 = 79\,510$.
+
+\begin{lstlisting}
+model = Sequential()
+model.add(Dense(100, input_dim=784, name='fc1'))
+model.add(Activation('sigmoid'))
+model.add(Dense(10, name='fc2'))
+model.add(Activation('softmax'))
+\end{lstlisting}
+
+\paragraph{Non-convexit\'e~:} MLP + sigmo\"ide = probl\`eme non
+convexe. Pas de garantie de minimum global.
+
+\paragraph{R\'esultat attendu~:} $\sim$98\,\% accuracy test.
+
+\subsection{Exercice 3 : R\'eseau de neurones convolutif (CNN)}
+
+Reformatage~: $28\times28\times1$.
+
+\begin{lstlisting}
+X_train = X_train.reshape(-1, 28, 28, 1)
+X_test  = X_test.reshape(-1, 28, 28, 1)
+\end{lstlisting}
+
+\paragraph{Architecture LeNet-like~:}
+\begin{enumerate}
+  \item Conv2D(16, $5\times5$, ReLU) + MaxPooling($2\times2$)
+  \item Conv2D(32, $5\times5$, ReLU) + MaxPooling($2\times2$)
+  \item Flatten + Dense(100, sigmo\"ide) + Dense(10, softmax)
+\end{enumerate}
+
+\begin{lstlisting}
+model = Sequential()
+model.add(Conv2D(16, kernel_size=(5,5),
+          activation='relu', input_shape=(28,28,1)))
+model.add(MaxPooling2D(pool_size=(2,2)))
+model.add(Conv2D(32, (5,5), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2,2)))
+model.add(Flatten())
+model.add(Dense(100, activation='sigmoid'))
+model.add(Dense(10, activation='softmax'))
+\end{lstlisting}
+
+\paragraph{R\'esultat attendu~:} $\sim$99\,\% accuracy test.
+
+\paragraph{Sauvegarde du mod\`ele~:}
+\begin{lstlisting}
+def saveModel(model, savename):
+    model_yaml = model.to_yaml()
+    with open(savename+".yaml", "w") as f:
+        f.write(model_yaml)
+    model.save_weights(savename+".h5")
+\end{lstlisting}
+
+% ===================================================================
+\section{Partie 2 : Deep Learning et Manifold Untangling}
+% ===================================================================
+
+\subsection{Exercice 4 : Visualisation avec t-SNE}
+
+\paragraph{t-SNE~:} r\'eduction non lin\'eaire en 2D qui pr\'eserve
+les proximit\'es entre points.
+
+\begin{lstlisting}
+from sklearn.manifold import TSNE
+tsne = TSNE(n_components=2, init='pca',
+            perplexity=30, verbose=2)
+X_r = tsne.fit_transform(X_test[:1000])
+\end{lstlisting}
+
+\paragraph{Trois m\'etriques de s\'eparation~:}
+\begin{enumerate}
+  \item \textbf{Enveloppe convexe (ConvexHull)}~: p\'erim\`etre
+    minimum contenant tous les points d'une classe.
+  \item \textbf{Ellipse de meilleure approximation}~: ajustement
+    d'une gaussienne 2D par classe (GaussianMixture).
+  \item \textbf{Neighborhood Hit (NH)}~: pour chaque point,
+    proportion des $k$ plus proches voisins de la m\^{e}me classe.
+    Moyenn\'ee sur toute la base.
+\end{enumerate}
+
+\begin{lstlisting}
+def neighboring_hit(points, labels, k=6):
+    nbrs = NearestNeighbors(n_neighbors=k+1,
+                            algorithm='ball_tree').fit(points)
+    distances, indices = nbrs.kneighbors(points)
+    txs = 0.0
+    for i in range(len(points)):
+        tx = sum(1 for j in range(1, k+1)
+                 if labels[indices[i,j]] == labels[i]) / k
+        txs += tx
+    return txs / len(points)
+\end{lstlisting}
+
+\paragraph{Comparaison ACP vs t-SNE~:} t-SNE s\'epare mieux
+les classes non lin\'eairement s\'eparables.
+
+\subsection{Exercice 5 : Repr\'esentations internes des r\'eseaux}
+
+\paragraph{Objectif~:} visualiser l'effet de \emph{manifold
+untangling} -- les r\'eseaux de neurones transforment un espace
+d'entr\'ee peu s\'eparable en un espace latent lin\'eairement
+s\'eparable.
+
+\paragraph{Chargement du mod\`ele~:}
+\begin{lstlisting}
+def loadModel(savename):
+    with open(savename+".yaml", "r") as f:
+        model = model_from_yaml(f.read())
+    model.load_weights(savename+".h5")
+    return model
+\end{lstlisting}
+
+\paragraph{Extraction des repr\'esentations latentes~:}
+\begin{lstlisting}
+model.pop()  # supprime la couche softmax
+model.pop()  # supprime la couche FC
+representations = model.predict(X_test)
+\end{lstlisting}
+
+\paragraph{R\'esultat~:} Les repr\'esentations internes (MLP cach\'e
+100D ou CNN) montrent une bien meilleure s\'eparation des classes
+que l'espace d'entr\'ee original, visible par t-SNE.
+
+\begin{important}
+  Le \emph{manifold untangling} est la capacit\'e des r\'eseaux
+  profonds \`a \guillemotleft{}d\'em\^eler\guillemotright{} les
+  vari\'et\'es des donn\'ees, rendant les classes lin\'eairement
+  s\'eparables dans l'espace des repr\'esentations internes.
+\end{important}
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+  \item Combien de param\`etres un mod\`ele de r\'egression
+    logistique a-t-il sur MNIST ($28\times28$, 10 classes)~?
+    \begin{enumerate}
+      \item 784
+      \item 7\,850
+      \item 10\,000
+      \item 79\,510
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($784\times10 + 10 = 7\,850$).}
+
+  \item La fonction de co\^ut de la r\'egression logistique
+    (cross-entropy) est-elle convexe~?
+    \begin{enumerate}
+      \item Oui, minimum global garanti
+      \item Non, minimum local seulement
+      \item Seulement avec SGD
+      \item Cela d\'epend de l'initialisation
+    \end{enumerate}
+    \textbf{R\'eponse~: a (LR + cross-entropy = convexe).}
+
+  \item Combien de param\`etres un MLP avec 1 couche cach\'ee
+    de 100 neurones a-t-il sur MNIST~?
+    \begin{enumerate}
+      \item 7\,850
+      \item 79\,510
+      \item 100\,000
+      \item 797\,000
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($784\times100{+}100{+}100\times10{+}10$).}
+
+  \item Quelle accuracy peut-on attendre du MLP sur MNIST~?
+    \begin{enumerate}
+      \item 85\,\%
+      \item 92\,\%
+      \item 98\,\%
+      \item 99\,\%
+    \end{enumerate}
+    \textbf{R\'eponse~: c ($\sim$98\,\%).}
+
+  \item Quelle accuracy peut-on attendre du CNN (LeNet-like)
+    sur MNIST~?
+    \begin{enumerate}
+      \item 85\,\%
+      \item 92\,\%
+      \item 98\,\%
+      \item 99\,\%
+    \end{enumerate}
+    \textbf{R\'eponse~: d ($\sim$99\,\%).}
+
+  \item Que signifie l'acronyme t-SNE~?
+    \begin{enumerate}
+      \item \emph{t-Statistics and Neural Embedding}
+      \item \emph{t-Distributed Stochastic Neighbor Embedding}
+      \item \emph{Topological Sample Neighborhood Estimation}
+      \item \emph{Tensor-Structured Nonlinear Embedding}
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Que mesure la m\'etrique Neighborhood Hit (NH)~?
+    \begin{enumerate}
+      \item La distance moyenne entre classes
+      \item Le taux de voisins de m\^{e}me classe parmi les $k$ plus
+        proches voisins
+      \item La variance intra-classe
+      \item Le nombre de clusters
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Quel est le principe du \emph{manifold untangling}~?
+    \begin{enumerate}
+      \item R\'eduire la dimension des donn\'ees
+      \item D\'em\^{e}ler les vari\'et\'es pour rendre les classes
+        s\'eparables dans l'espace latent
+      \item Augmenter le nombre de param\`etres
+      \item Initialiser les poids al\'eatoirement
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Comment extraire la couche cach\'ee d'un mod\`ele Keras~?
+    \begin{enumerate}
+      \item model.predict(layer=hidden)
+      \item model.pop() puis model.predict()
+      \item model.get\_layer('hidden').output
+      \item model.forward(hidden=True)
+    \end{enumerate}
+    \textbf{R\'eponse~: b ou c (pop + predict ou get\_layer).}
+
+  \item Quelle m\'ethode de visualisation non lin\'eaire est
+    utilis\'ee dans le TP~?
+    \begin{enumerate}
+      \item ACP
+      \item t-SNE
+      \item LDA
+      \item k-means
+    \end{enumerate}
+    \textbf{R\'eponse~: b (t-SNE).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{chollet2015}
+  F.~Chollet.
+  \newblock \emph{Keras}. \url{https://keras.io}, 2015.
+
+\bibitem{tsne08}
+  L.~van der Maaten, G.~Hinton.
+  \newblock \emph{Visualizing Data using t-SNE}.
+  \newblock JMLR, 9:2579--2605, 2008.
+
+\bibitem{lecun1989}
+  Y.~LeCun et al.
+  \newblock \emph{Backpropagation applied to handwritten zip code
+    recognition}.
+  \newblock Neural Computation, 1(4):541--551, 1989.
+
+\end{thebibliography}
+
+\end{document}

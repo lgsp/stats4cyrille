@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Réseaux de neurones — Cours 1 — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; R&eacute;seaux de neurones &mdash; Cours 1</h1>
+<p class="subtitle">Du neurone formel au MLP, r&eacute;tropropagation et optimisation &mdash; 14 juin 2026 &mdash; N. Thome</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#contexte">Contexte</a></li>
+    <li><a href="#neurone">Le neurone formel</a></li>
+    <li><a href="#perceptron">Le perceptron</a></li>
+    <li><a href="#mlp">Perceptron multicouche (MLP)</a></li>
+    <li><a href="#apprentissage">Apprentissage</a></li>
+    <li><a href="#regularisation">R&eacute;gularisation et g&eacute;n&eacute;ralisation</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="contexte">1. Contexte</h2>
+<!-- ============================================ -->
+
+<p>Le Deep Learning constitue une rupture dans la reconnaissance des signaux de bas niveau (images, audio, texte). Avant le DL, les repr&eacute;sentations interm&eacute;diaires &eacute;taient con&ccedil;ues artisanalement (<em>handcrafted features</em>). Depuis le DL, ces repr&eacute;sentations sont apprises automatiquement.</p>
+
+<div class="info-box">
+<strong>Avantages du DL :</strong> performances exp&eacute;rimentales sup&eacute;rieures, apprentissage de repr&eacute;sentations de plus haut niveau d&rsquo;abstraction, m&eacute;thodologie commune et ind&eacute;pendante du domaine.
+</div>
+
+<!-- ============================================ -->
+<h2 id="neurone">2. Le neurone formel</h2>
+<!-- ============================================ -->
+
+<h3>2.1 D&eacute;finition (McCulloch &amp; Pitts, 1943)</h3>
+
+<p>Unit&eacute; de base des r&eacute;seaux de neurones. Transforme une entr&eacute;e vectorielle $\mathbf{x} \in \mathbb{R}^m$ en une sortie scalaire $\hat{y} \in \mathbb{R}$ en deux &eacute;tapes :</p>
+
+<div class="formula">
+$\hat{y} = f(\mathbf{w}^\intercal \mathbf{x} + b)$
+</div>
+
+<ol>
+    <li><strong>Combinaison lin&eacute;aire</strong> : $s = \mathbf{w}^\intercal \mathbf{x} + b = \sum_{i=1}^m w_i x_i + b$</li>
+    <li><strong>Activation non lin&eacute;aire</strong> : $\hat{y} = f(s)$</li>
+</ol>
+
+<h3>2.2 Fonctions d&rsquo;activation</h3>
+
+<table>
+<tr><th>Fonction</th><th>Formule</th><th>Propri&eacute;t&eacute;s</th></tr>
+<tr><td>Seuil (Heaviside)</td><td>$H(z) = 1\text{ si }z\ge0,\ 0\text{ sinon}$</td><td>Interpr&eacute;tation biologique</td></tr>
+<tr><td>Sigmo&iuml;de</td><td>$\sigma(z) = \frac{1}{1+e^{-az}}$</td><td>Lisse, d&eacute;rivable, interpr&eacute;tation probabiliste</td></tr>
+<tr><td>Tanh</td><td>$\tanh(z) = \frac{e^{z}-e^{-z}}{e^{z}+e^{-z}}$</td><td>Centr&eacute;e en 0</td></tr>
+</table>
+
+<h3>2.3 Classification binaire</h3>
+
+<p>Avec activation sigmo&iuml;de : $\hat{y} = \sigma(\mathbf{w}^\intercal \mathbf{x} + b) \sim P(1|\mathbf{x})$. Fronti&egrave;re de d&eacute;cision <strong>lin&eacute;aire</strong> : $\mathbf{w}^\intercal \mathbf{x} + b = 0$.</p>
+
+<!-- ============================================ -->
+<h2 id="perceptron">3. Le perceptron</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Classification multiclasse</h3>
+
+<p>On utilise $K$ neurones en sortie. Chaque neurone $k$ calcule : $s_k = \mathbf{w}_k^\intercal \mathbf{x} + b_k$, $\hat{y}_k = f(s_k)$.</p>
+
+<p>En &eacute;criture matricielle : $\mathbf{s} = \mathbf{x}\mathbf{W} + \mathbf{b}$, avec $\mathbf{W} \in \mathbb{R}^{m\times K}$.</p>
+
+<h3>3.2 Softmax</h3>
+
+<div class="formula">
+$\hat{y}_k = \dfrac{e^{s_k}}{\sum_{k'=1}^K e^{s_{k'}}}$
+</div>
+
+<p>Interpr&eacute;tation probabiliste : $\hat{y}_k \sim P(k|\mathbf{x}, \mathbf{W})$. Le perceptron avec softmax &eacute;quivaut &agrave; la <strong>r&eacute;gression logistique</strong> (LR).</p>
+
+<h3>3.3 Limite lin&eacute;aire</h3>
+
+<div class="warn-box">
+<strong>Probl&egrave;me XOR :</strong> Le perceptron monocouche est limit&eacute; aux fronti&egrave;res de d&eacute;cision lin&eacute;aires. Le probl&egrave;me du XOR (ou exclusif) n&rsquo;est pas s&eacute;parable lin&eacute;airement.
+</div>
+
+<!-- ============================================ -->
+<h2 id="mlp">4. Perceptron multicouche (MLP)</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Architecture</h3>
+
+<p>On ajoute une ou plusieurs <strong>couches cach&eacute;es</strong> :</p>
+
+<div class="formula">
+$\mathbf{h} = f(\mathbf{x}\mathbf{W}_h + \mathbf{b}_h)$, $\hat{\mathbf{y}} = f(\mathbf{h}\mathbf{W}_y + \mathbf{b}_y)$
+</div>
+
+<p>La couche cach&eacute;e $\mathbf{h} \in \mathbb{R}^L$ projette $\mathbf{x}$ dans un nouvel espace. Avec activation non lin&eacute;aire, la fronti&egrave;re devient <strong>non lin&eacute;aire</strong>.</p>
+
+<h3>4.2 R&eacute;seaux profonds (DNN)</h3>
+
+<p>En ajoutant davantage de couches cach&eacute;es, on obtient un r&eacute;seau de neurones profond (Deep Neural Network). Chaque couche projette la couche pr&eacute;c&eacute;dente dans un nouvel espace, apprenant des repr&eacute;sentations interm&eacute;diaires utiles.</p>
+
+<!-- ============================================ -->
+<h2 id="apprentissage">5. Apprentissage</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Apprentissage supervis&eacute;</h3>
+
+<p>Ensemble d&rsquo;apprentissage $\mathcal{A} = \{(\mathbf{x}_i, \mathbf{y}_i^*)\}_{i=1}^N$, $\mathbf{y}_i^*$ encod&eacute; en one-hot. On minimise une fonction de perte.</p>
+
+<h3>5.2 Entropie crois&eacute;e (Cross-Entropy)</h3>
+
+<div class="formula">
+$\ell_{CE}(\hat{\mathbf{y}}_i, \mathbf{y}_i^*) = -\sum_{c=1}^K y_{c,i}^* \log \hat{y}_{c,i} = -\log \hat{y}_{c^*, i}$
+</div>
+
+<p>Perte totale : $\mathcal{L}_{CE}(\mathbf{W}, \mathbf{b}) = \frac{1}{N} \sum_{i=1}^N \ell_{CE}(\hat{\mathbf{y}}_i, \mathbf{y}_i^*)$.</p>
+
+<h3>5.3 Descente de gradient</h3>
+
+<div class="formula">
+$\mathbf{W}^{(t+1)} = \mathbf{W}^{(t)} - \eta \frac{\partial \mathcal{L}_{CE}}{\partial \mathbf{W}}$
+</div>
+
+<h3>5.4 R&eacute;tropropagation (backpropagation)</h3>
+
+<p>Calcul du gradient par r&eacute;tropropagation de l&rsquo;erreur via la r&egrave;gle de d&eacute;rivation en cha&icirc;ne :</p>
+
+<div class="formula">
+$\dfrac{\partial \ell}{\partial x} = \dfrac{\partial \ell}{\partial \hat{y}} \dfrac{\partial \hat{y}}{\partial x}$
+</div>
+
+<p><strong>R&eacute;gression logistique :</strong> $\frac{\partial \ell_{CE}}{\partial \mathbf{s}_i} = \hat{\mathbf{y}}_i - \mathbf{y}_i^* = \boldsymbol\delta_i^y$, $\frac{\partial \ell_{CE}}{\partial \mathbf{W}} = \mathbf{x}_i^\intercal \boldsymbol\delta_i^y$</p>
+
+<p><strong>Perceptron (1 couche cach&eacute;e) :</strong> $\boldsymbol\delta_i^h = \boldsymbol\delta_i^y \mathbf{W}_y^\intercal \odot \mathbf{h}_i \odot (1 - \mathbf{h}_i)$, $\frac{\partial \ell}{\partial \mathbf{W}_h} = \mathbf{x}_i^\intercal \boldsymbol\delta_i^h$</p>
+
+<h3>5.5 SGD (Stochastic Gradient Descent)</h3>
+
+<p>Le gradient complet est trop co&ucirc;teux. Approximations :</p>
+<ul>
+    <li><strong>Online</strong> : un seul exemple par mise &agrave; jour</li>
+    <li><strong>Minibatch</strong> : $B \ll N$ exemples par mise &agrave; jour</li>
+</ul>
+
+<div class="info-box">
+<strong>Avantage :</strong> plus de mises &agrave; jour, convergence plus rapide en pratique malgr&eacute; un gradient bruit&eacute;.
+</div>
+
+<h3>5.6 Plan de taux d&rsquo;apprentissage</h3>
+<ul>
+    <li>D&eacute;croissance inverse : $\eta_t = \eta_0 / (1 + r\cdot t)$</li>
+    <li>Exponentielle : $\eta_t = \eta_0 e^{-\lambda t}$</li>
+    <li>Par paliers : $\eta_t = \eta_0 r^{\lfloor t/t_u\rfloor}$</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="regularisation">6. R&eacute;gularisation et g&eacute;n&eacute;ralisation</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Sur-apprentissage (overfitting)</h3>
+<p>&Eacute;cart &eacute;lev&eacute; perte train $\gg$ perte test. L&rsquo;objectif est de g&eacute;n&eacute;raliser &agrave; des donn&eacute;es non vues.</p>
+
+<h3>6.2 R&eacute;gularisation</h3>
+
+<div class="formula">
+$\mathcal{L}(\mathbf{W}) = \mathcal{L}_{CE}(\mathbf{W}) + \alpha R(\mathbf{W})$
+</div>
+
+<table>
+<tr><th>Type</th><th>Formule</th><th>Effet</th></tr>
+<tr><td>$L_2$ (weight decay)</td><td>$R(\mathbf{W}) = \|\mathbf{W}\|^2$</td><td>P&eacute;nalise les grands poids</td></tr>
+<tr><td>$L_1$</td><td>$R(\mathbf{W}) = \|\mathbf{W}\|_1$</td><td>Favorise la parcimonie</td></tr>
+<tr><td>Dropout</td><td>D&eacute;sactive al&eacute;atoirement des neurones</td><td>Emp&ecirc;che la co-adaptation</td></tr>
+</table>
+
+<h3>6.3 Hyper-param&egrave;tres</h3>
+<p>Optimisation : learning rate, weight decay, decay schedule, # &eacute;poques. Architecture : # couches, # neurones, type d&rsquo;activation. Ajustement sur ensemble de validation.</p>
+
+<!-- ============================================ -->
+<h2 id="qcm">7. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quelle est la sortie d'un neurone formel ?",
+        options: ["w\u1d47x + b", "f(w\u1d47x + b)", "xW + b", "f(x)"],
+        correct: 1,
+        expl: "Combinaison lin\u00e9aire puis activation non lin\u00e9aire : \u0177 = f(w\u1d47x + b)."
+    },
+    {
+        q: "Quelle fonction d'activation donne une interpr\u00e9tation probabiliste en classification binaire ?",
+        options: ["Seuil (Heaviside)", "Sigmo\u00efde", "Tanh", "ReLU"],
+        correct: 1,
+        expl: "La sigmo\u00efde donne \u0177 ~ P(1|x), comprise entre 0 et 1."
+    },
+    {
+        q: "Quelle activation est utilis\u00e9e pour la classification multiclasse ?",
+        options: ["Sigmo\u00efde", "Tanh", "Softmax", "Seuil"],
+        correct: 2,
+        expl: "Softmax normalise les sorties en probabilit\u00e9s sur K classes."
+    },
+    {
+        q: "Le perceptron monocouche \u00e9quivaut \u00e0 :",
+        options: ["R\u00e9gression lin\u00e9aire", "R\u00e9gression logistique", "ADL", "SVM"],
+        correct: 1,
+        expl: "Perceptron + softmax = r\u00e9gression logistique (LR)."
+    },
+    {
+        q: "Quel probl\u00e8me illustre la limite de la classification lin\u00e9aire ?",
+        options: ["XOR", "AND", "OR", "Clustering"],
+        correct: 0,
+        expl: "Le XOR n'est pas s\u00e9parable lin\u00e9airement."
+    },
+    {
+        q: "Comment s'appelle la technique de calcul du gradient dans un MLP ?",
+        options: ["Gradient boosting", "R\u00e9tropropagation", "Descente de gradient", "Forward propagation"],
+        correct: 1,
+        expl: "Backpropagation : r\u00e9tropropagation de l'erreur via la r\u00e8gle de cha\u00eene."
+    },
+    {
+        q: "Quelle approximation du gradient est utilis\u00e9e pour les grands jeux de donn\u00e9es ?",
+        options: ["Gradient complet", "SGD minibatch", "Newton-Raphson", "BFGS"],
+        correct: 1,
+        expl: "SGD minibatch approxime le gradient avec B << N exemples."
+    },
+    {
+        q: "Que p\u00e9nalise la r\u00e9gularisation L2 (weight decay) ?",
+        options: ["Somme des poids en valeur absolue", "Carr\u00e9 de la norme des poids", "Nombre de couches", "Taux d'apprentissage"],
+        correct: 1,
+        expl: "R(W) = ||W||\u00b2 p\u00e9nalise les grands poids."
+    },
+    {
+        q: "Quel est le r\u00f4le d'un ensemble de validation ?",
+        options: ["Apprendre les param\u00e8tres", "R\u00e9gler les hyper-param\u00e8tres", "Calculer la perte finale", "Initialiser les poids"],
+        correct: 1,
+        expl: "La validation sert \u00e0 r\u00e9gler les hyper-param\u00e8tres (architecture, learning rate...)."
+    },
+    {
+        q: "Qui a propos\u00e9 le neurone formel en 1943 ?",
+        options: ["Rosenblatt", "McCulloch & Pitts", "LeCun", "Hinton"],
+        correct: 1,
+        expl: "McCulloch & Pitts (1943) ont propos\u00e9 le premier mod\u00e8le de neurone formel."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

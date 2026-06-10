@@ -1,0 +1,584 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Application MICE}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Application MICE~: imputation multiple sur les donn\'ees Diab\`ete}
+\author{}
+\date{10 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente un cas pratique d'imputation multiple par
+\'equations cha\^{i}n\'ees (MICE) sur le jeu de donn\'ees Diab\`ete
+(Pima Indians Diabetes). Elle couvre l'analyse exploratoire du
+dispositif de manquance, la mise en \oe uvre de l'algorithme MICE,
+la v\'erification de la convergence, la comparaison des m\'ethodes
+d'imputation, le pooling des mod\`eles, et l'analyse de sensibilit\'e.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Introduction}
+% ===================================================================
+
+L'\'etude de cas applique la m\'ethode d'imputation multiple par
+\'equations cha\^{i}n\'ees (MICE) aux donn\'ees \textbf{Diab\`ete}
+(Pima Indians Diabetes Database). L'objectif est de traiter les
+valeurs manquantes avant une classification supervis\'ee (pr\'ediction
+du diab\`ete).
+
+Donn\'ees~: \url{https://github.com/niharikagulati/diabetesprediction}
+
+\subsection{Chargement des packages}
+
+\begin{lstlisting}[language=R]
+library(mice)
+library(micemd)
+library(FactoMineR)
+library(parallel)
+library(DescTools)
+library(VIM)
+library(mvtnorm)
+library(funModeling)
+\end{lstlisting}
+
+\subsection{Importation}
+
+\begin{lstlisting}[language=R]
+load("diabetes.Rdata")
+dim(diabetes)  # 768 x 9
+\end{lstlisting}
+
+Le jeu de donn\'ees contient 768 observations et 9 variables~:
+8 pr\'edicteurs (Preg, Glucose, BP, Skin.Thick, Insulin, BMI, DPF,
+Age) et la r\'eponse binaire Outcome.
+
+% ===================================================================
+\section{Analyse exploratoire}
+% ===================================================================
+
+\subsection{Liens entre variables}
+
+\begin{lstlisting}[language=R]
+summary(diabetes)
+pairs(diabetes[, 1:8], cex = .2)
+matcor <- cor(diabetes[,1:8], use = "pairwise.complete.obs")
+PlotCorr(matcor)
+
+boxplot(diabetes[,"Age"] ~ diabetes$Outcome)
+sapply(colnames(diabetes)[1:8],
+  FUN = function(xx, diabetes){
+    boxplot(diabetes[,xx] ~ diabetes$Outcome,
+            main = xx, ylab = xx, xlab = "outcome")
+  }, diabetes = diabetes)
+\end{lstlisting}
+
+\subsection{Analyse du dispositif de manquance}
+
+\textbf{Analyse univari\'ee}~: on utilise \texttt{aggr} du package
+VIM pour visualiser la proportion de valeurs manquantes par variable.
+
+\begin{lstlisting}[language=R]
+res.aggr <- aggr(diabetes)
+res.aggr$missings
+cbind(res.aggr$tabcomb, res.aggr$percent)
+\end{lstlisting}
+
+\textbf{Analyse bivari\'ee}~: on utilise le V de Cramer entre les
+indicatrices de manquance pour d\'etecter des structures.
+
+\begin{lstlisting}[language=R]
+var.na <- which(res.aggr$missing$Count > 0)
+pattern <- is.na(diabetes[, var.na])
+matcram <- PairApply(pattern, CramerV)
+PlotCorr(matcram)
+\end{lstlisting}
+
+\textbf{Analyse multivari\'ee}~: une ACM sur le pattern de manquance.
+
+\begin{lstlisting}[language=R]
+MCA(pattern)
+\end{lstlisting}
+
+\subsection{Nature du m\'ecanisme de manquance}
+
+On explore les liens entre valeurs manquantes et observ\'ees~:
+
+\begin{lstlisting}[language=R]
+# Une variable complete (Age) et une incomplete (Skin.Thick)
+marginmatrix(diabetes[, c("Age", "Skin.Thick")])
+# Rouge = individus avec valeur manquante sur Skin.Thick
+# Les individus incomplets semblent plus ages
+
+# Tous les couples
+marginmatrix(diabetes[,-ncol(diabetes)], cex = .2, gap = 0)
+
+# Matrixplot
+matrixplot(diabetes, sortby = 8)
+\end{lstlisting}
+
+\begin{important}
+  Si les individus avec valeur manquante sur une variable ont des
+  distributions diff\'erentes sur une autre variable (compl\`ete),
+  le m\'ecanisme est probablement MAR (Missing At Random).
+\end{important}
+
+\textbf{ACM sur donn\'ees discr\'etis\'ees}~:
+
+\begin{lstlisting}[language=R]
+d_bins <- discretize_get_bins(data = diabetes)
+diabetes.cat <- discretize_df(diabetes, d_bins)
+res.mca <- MCA(diabetes.cat, graph = FALSE,
+               level.ventil = 0.04)
+plot(res.mca, choix = "ind", invisible = "ind")
+\end{lstlisting}
+
+% ===================================================================
+\section{Imputation multiple avec MICE}
+% ===================================================================
+
+\subsection{Param\`etres par d\'efaut}
+
+La fonction \texttt{mice} du package \texttt{mice} utilise par
+d\'efaut~:
+\begin{itemize}
+  \item $m = 5$ tableaux imput\'es.
+  \item \texttt{maxit = 5} it\'erations.
+  \item M\'ethodes par d\'efaut~: \texttt{pmm} (predictive mean
+    matching) pour les variables num\'eriques, \texttt{logreg} pour
+    les binaires, \texttt{polyreg} pour les multinomiales.
+\end{itemize}
+
+On lance MICE avec $m = 5$ et \texttt{maxit = 50}~:
+
+\begin{lstlisting}[language=R]
+res.mice <- mice(diabetes, maxit = 50, printFlag = FALSE)
+tableau1 <- complete(res.mice, 1)
+summary(tableau1)
+\end{lstlisting}
+
+\subsection{V\'erification de la convergence}
+
+\begin{lstlisting}[language=R]
+plot(res.mice)
+\end{lstlisting}
+
+Les courbes de convergence doivent montrer une stabilisation des
+param\`etres au fil des it\'erations (pas de tendance monotone).
+
+\subsection{Comparaison des distributions imput\'ees vs observ\'ees}
+
+\begin{lstlisting}[language=R]
+densityplot(res.mice)
+\end{lstlisting}
+
+Les distributions des valeurs imput\'ees (en rouge) doivent
+ressembler \`a celles des valeurs observ\'ees (en bleu) si le
+mod\`ele d'imputation est correct.
+
+\subsection{Analyse par marginmatrix}
+
+On compare les couples de variables avant et apr\`es imputation~:
+
+\begin{lstlisting}[language=R]
+diabetes.vim <- cbind.data.frame(complete(res.mice),
+                                 is.na(diabetes))
+colnames(diabetes.vim) <- c(colnames(diabetes),
+  paste0(colnames(diabetes), "_imp"))
+
+# Couple Age - Skin.Thick
+par(mfrow = c(1, 2))
+marginmatrix(diabetes[, c("Age", "Skin.Thick")])
+marginmatrix(diabetes.vim[, c("Age", "Skin.Thick",
+  "Age_imp", "Skin.Thick_imp")], delimiter = "_imp")
+
+# Tous les couples
+marginmatrix(diabetes.vim, delimiter = "_imp")
+\end{lstlisting}
+
+Les points imput\'es (en marron/jaune) doivent se situer dans le
+nuage des points observ\'es.
+
+\subsection{Overimputation}
+
+L'overimputation consiste \`a traiter chaque valeur observ\'ee comme
+manquante, l'imputer, et comparer l'imputation \`a la valeur r\'eelle.
+
+\begin{lstlisting}[language=R]
+nnodes <- detectCores() - 1
+
+# Imputation avec m = 100 pour overimputation
+res.mice.over <- mice.par(diabetes, m = 100,
+  nnodes = nnodes, maxit = 20)
+
+# Overimputation sur BMI (variable 6)
+plotinds <- sample(seq(nrow(diabetes)), size = 30)
+res.over <- overimpute(res.mice.over,
+  plotinds = plotinds,
+  plotvar = 6,
+  nnodes = nnodes)
+\end{lstlisting}
+
+\begin{important}
+  L'overimputation est un outil de diagnostic~: si les valeurs
+  imput\'ees sont syst\'ematiquement \'eloign\'ees des valeurs
+  observ\'ees, le mod\`ele d'imputation est inadapt\'e.
+\end{important}
+
+% ===================================================================
+\section{Choix des m\'ethodes d'imputation}
+% ===================================================================
+
+\subsection{M\'ethodes disponibles pour MICE}
+
+On examine les m\'ethodes par d\'efaut et on teste des alternatives
+pour BMI~:
+
+\begin{lstlisting}[language=R]
+res.mice$method  # methodes par defaut
+# On teste trois methodes pour BMI
+par(mfrow = c(2, 2), mar = c(4, 4, 2, 1) + 0.1)
+for (method.imp in c("rf", "norm", "norm.boot")){
+  method <- res.mice$method
+  method["BMI"] <- method.imp
+  res.mice.tmp <- mice(diabetes, method = method,
+    maxit = 20, printFlag = FALSE)
+  print(densityplot(res.mice.tmp, ~ BMI, main = method.imp))
+}
+\end{lstlisting}
+
+M\'ethodes test\'ees~:
+\begin{itemize}
+  \item \texttt{pmm} (d\'efaut)~: Predictive Mean Matching.
+  \item \texttt{norm}~: r\'egression lin\'eaire bay\'esienne.
+  \item \texttt{norm.boot}~: r\'egression lin\'eaire avec bootstrap.
+  \item \texttt{rf}~: For\^et al\'eatoire.
+\end{itemize}
+
+\subsection{Comparaison par overimputation}
+
+On compare \texttt{norm} et \texttt{rf} via overimputation~:
+
+\begin{lstlisting}[language=R]
+# norm
+method <- res.mice$method
+method["BMI"] <- "norm"
+res.mice.over.norm <- mice.par(diabetes, m = 100,
+  nnodes = nnodes, maxit = 20, method = method)
+res.over.norm <- overimpute(res.mice.over.norm,
+  plotinds = plotinds, plotvars = 6, nnodes = nnodes)
+
+# rf
+method["BMI"] <- "rf"
+res.mice.over.rf <- mice.par(diabetes, m = 100,
+  nnodes = nnodes, maxit = 20, method = method)
+res.over.rf <- overimpute(res.mice.over.rf,
+  plotinds = plotinds, plotvars = 6, nnodes = nnodes)
+\end{lstlisting}
+
+% ===================================================================
+\section{Analyse apr\`es imputation}
+% ===================================================================
+
+\subsection{R\'egression logistique sur chaque tableau imput\'e}
+
+On ajuste un mod\`ele de r\'egression logistique sur chaque tableau
+imput\'e avec \texttt{with.mids}~:
+
+\begin{lstlisting}[language=R]
+fit <- with(res.mice,
+  glm(Outcome ~ Preg + Glucose + BP + Skin.Thick
+    + Insulin + BMI + DPF + Age, family = binomial))
+length(fit$analyses)  # 5 modeles (un par tableau impute)
+\end{lstlisting}
+
+\subsection{Pooling des r\'esultats (r\`egles de Rubin)}
+
+\begin{lstlisting}[language=R]
+res.pool <- pool(fit)
+summary(res.pool)
+\end{lstlisting}
+
+Le \texttt{pooling} combine les estimations des $m$ mod\`eles en
+utilisant les r\`egles de Rubin~:
+\begin{itemize}
+  \item $\bar{\theta} = \frac{1}{m}\sum_{k=1}^m \hat{\theta}_k$
+    (moyenne des estimations).
+  \item Variance totale~: $T = W + (1 + \frac{1}{m})B$, o\`u $W$
+    est la variance intra-imputation et $B$ la variance
+    inter-imputation.
+\end{itemize}
+
+\subsection{Comparaison avec les cas-complets}
+
+\begin{lstlisting}[language=R]
+res.glm.cc <- glm(Outcome ~ ., family = binomial,
+  data = diabetes)
+summary(res.glm.cc)
+\end{lstlisting}
+
+On compare les coefficients et les \'ecarts-types entre l'analyse
+sur cas-complets et l'analyse apr\`es imputation multiple. Des
+diff\'erences importantes peuvent indiquer un biais de s\'election
+d\^u aux donn\'ees manquantes.
+
+% ===================================================================
+\section{Analyse de sensibilit\'e}
+% ===================================================================
+
+L'analyse de sensibilit\'e par la m\'ethode du \textbf{delta}
+(\emph{delta adjustment}) permet de tester la robustesse des
+r\'esultats sous diff\'erents sc\'enarios pour le m\'ecanisme de
+manquance (notamment l'hypoth\`ese MNAR).
+
+On applique un d\'ecalage $\delta$ aux valeurs imput\'ees de
+Skin.Thick~:
+
+\begin{lstlisting}[language=R]
+boxplot(diabetes$Skin.Thick)
+delta <- c(0, 10, 20, 50)
+imp.all <- vector("list", length(delta))
+names(imp.all) <- delta
+post <- res.mice.over$post
+for (i in 1:length(delta)){
+  d <- delta[i]
+  cmd <- paste("imp[[j]][,i] <- imp[[j]][,i] +", d)
+  post["Skin.Thick"] <- cmd
+  imp <- mice(diabetes, post = post, maxit = 5,
+              seed = i, print = FALSE)
+  imp.all[[i]] <- imp
+}
+\end{lstlisting}
+
+On compare les distributions imput\'ees pour $\delta = 0$ et
+$\delta = 50$~:
+
+\begin{lstlisting}[language=R]
+par(mfrow = c(1, 2))
+bwplot(imp.all[["0"]])
+bwplot(imp.all[["50"]])
+densityplot(imp.all[["0"]], lwd = 3)
+densityplot(imp.all[["50"]], lwd = 3)
+\end{lstlisting}
+
+Si les conclusions de l'analyse changent peu malgr\'e un d\'ecalage
+important, les r\'esultats sont robustes \`a l'hypoth\`ese MNAR.
+
+% ===================================================================
+\section{R\'esum\'e du pipeline}
+% ===================================================================
+
+\begin{enumerate}
+  \item \textbf{Import}~: charger les donn\'ees et les packages
+    (mice, VIM, micemd, etc.).
+  \item \textbf{Analyse exploratoire}~: \'etudier les liens entre
+    variables (corr\'elations, boxplots).
+  \item \textbf{Analyse du pattern de manquance}~: univari\'ee
+    (aggr), bivari\'ee (V de Cramer), multivari\'ee (ACM).
+  \item \textbf{Nature du m\'ecanisme}~: marginmatrix, matrixplot.
+  \item \textbf{Imputation multiple}~: lancer mice() avec les
+    param\`etres choisis ($m$, maxit, m\'ethodes).
+  \item \textbf{Diagnostics}~: convergence (plot), distribution
+    (densityplot), marginmatrix, overimputation.
+  \item \textbf{Analyse des tableaux imput\'es}~: with.mids + pool.
+  \item \textbf{Comparaison avec cas-complets}~: v\'erifier la
+    pr\'esence de biais.
+  \item \textbf{Analyse de sensibilit\'e}~: delta adjustment pour
+    tester l'hypoth\`ese MNAR.
+\end{enumerate}
+
+% ===================================================================
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quel package R impl\'emente l'imputation multiple par
+    \'equations cha\^{i}n\'ees~?
+    \begin{enumerate}
+      \item VIM
+      \item mice
+      \item missMDA
+      \item Amelia
+    \end{enumerate}
+    \textbf{R\'eponse~: b (package \texttt{mice}).}
+
+  \item Quelle est la m\'ethode d'imputation par d\'efaut de
+    \texttt{mice} pour les variables num\'eriques~?
+    \begin{enumerate}
+      \item r\'egression lin\'eaire bay\'esienne
+      \item predictive mean matching (pmm)
+      \item for\^et al\'eatoire
+      \item moyenne conditionnelle
+    \end{enumerate}
+    \textbf{R\'eponse~: b (pmm).}
+
+  \item Combien de tableaux imput\'es sont cr\'e\'es par d\'efaut
+    par \texttt{mice()}~?
+    \begin{enumerate}
+      \item 3
+      \item 5
+      \item 10
+      \item 20
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($m = 5$ par d\'efaut).}
+
+  \item \`A quoi sert la fonction \texttt{plot(res.mice)}~?
+    \begin{enumerate}
+      \item Visualiser la distribution des donn\'ees
+      \item V\'erifier la convergence de l'algorithme MICE
+      \item Afficher les valeurs manquantes
+      \item Comparer les imputations
+    \end{enumerate}
+    \textbf{R\'eponse~: b (v\'erification de la convergence).}
+
+  \item Quelle fonction permet de comparer les distributions des
+    valeurs imput\'ees et observ\'ees~?
+    \begin{enumerate}
+      \item aggr
+      \item densityplot
+      \item marginmatrix
+      \item both a and b
+    \end{enumerate}
+    \textbf{R\'eponse~: d (densityplot et marginmatrix).}
+
+  \item Comment appelle-t-on la technique consistant \`a traiter
+    chaque valeur observ\'ee comme manquante pour \'evaluer le
+    mod\`ele d'imputation~?
+    \begin{enumerate}
+      \item Validation crois\'ee
+      \item Bootstrap
+      \item Overimputation
+      \item Delta adjustment
+    \end{enumerate}
+    \textbf{R\'eponse~: c (overimputation).}
+
+  \item Quelle fonction permet d'agr\'eger les r\'esultats de $m$
+    mod\`eles ajust\'es sur les tableaux imput\'es~?
+    \begin{enumerate}
+      \item with.mids
+      \item pool
+      \item complete
+      \item summary
+    \end{enumerate}
+    \textbf{R\'eponse~: b (pool).}
+
+  \item Dans l'analyse de sensibilit\'e par delta adjustment, que
+    repr\'esente $\delta$~?
+    \begin{enumerate}
+      \item Le nombre d'it\'erations suppl\'ementaires
+      \item Le d\'ecalage ajout\'e aux valeurs imput\'ees
+      \item Le seuil de d\'etection des atypiques
+      \item Le taux de valeurs manquantes
+    \end{enumerate}
+    \textbf{R\'eponse~: b (d\'ecalage $\delta$ ajout\'e aux valeurs
+    imput\'ees pour tester MNAR).}
+
+  \item L'analyse de sensibilit\'e par delta adjustment permet de
+    tester l'hypoth\`ese~:
+    \begin{enumerate}
+      \item MCAR
+      \item MAR
+      \item MNAR
+      \item Aucune
+    \end{enumerate}
+    \textbf{R\'eponse~: c (MNAR).}
+
+  \item Quel est l'avantage principal de l'imputation multiple par
+    rapport \`a l'imputation simple~?
+    \begin{enumerate}
+      \item Elle est plus rapide
+      \item Elle prend en compte l'incertitude due aux valeurs
+        manquantes
+      \item Elle ne n\'ecessite pas de mod\`ele
+      \item Elle ne produit qu'un seul tableau
+    \end{enumerate}
+    \textbf{R\'eponse~: b (prise en compte de l'incertitude via la
+    variance inter-imputation).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{audigier2025}
+  V.~Audigier.
+  \newblock \emph{Application mice}.
+  \newblock Cours CNAM, 2025.
+
+\bibitem{vanbuuren2018}
+  S.~van~Buuren.
+  \newblock \emph{Flexible Imputation of Missing Data}.
+  \newblock 2nd ed., CRC Press, 2018.
+
+\bibitem{mice}
+  S.~van~Buuren, K.~Groothuis-Oudshoorn.
+  \newblock mice~: Multivariate Imputation by Chained Equations in R.
+  \newblock \emph{Journal of Statistical Software}, 45(3), 2011.
+
+\bibitem{micemd}
+  V.~Audigier, F.~Husson.
+  \newblock \emph{micemd~: Multiple Imputation by Chained Equations
+    with Multilevel Data}.
+  \newblock \url{https://CRAN.R-project.org/package=micemd}
+
+\end{thebibliography}
+
+\end{document}

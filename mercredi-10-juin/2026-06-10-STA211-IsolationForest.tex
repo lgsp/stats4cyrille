@@ -1,0 +1,488 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Isolation Forest}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large D\'etection des points atypiques via \emph{Isolation Forest}}
+\author{}
+\date{10 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente la m\'ethode \emph{Isolation Forest} pour la d\'etection
+non supervis\'ee des valeurs atypiques. Elle couvre le principe (isolement
+rapide des anomalies par des arbres al\'eatoires), la construction des arbres,
+le calcul du score d'anomalie, le param\'etrage, et une application sur les
+donn\'ees German Credit avec le package R \texttt{isotree}.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Contexte}
+% ===================================================================
+
+La d\'etection des points atypiques (ou \emph{outliers}) est une \'etape
+importante en fouille de donn\'ees. Du point de vue g\'eom\'etrique, il s'agit
+de points qui s'\'ecartent significativement des autres~: ils sont peu nombreux
+et localis\'es dans une zone peu dense du nuage de points. Leur d\'etection est
+un enjeu car les analyses effectu\'ees sur des \'echantillons contenant ces
+points peuvent conduire \`a des r\'esultats tr\`es diff\'erents.
+
+\emph{Isolation Forest} (\cite{LiuTZ08}) est une m\'ethode de r\'ef\'erence
+qui s'appuie sur les for\^ets al\'eatoires dans un cadre non supervis\'e.
+
+% ===================================================================
+\section{Principe}
+% ===================================================================
+
+La d\'etection se fait ici d'un point de vue compl\`etement
+\textbf{non supervis\'e}. Les for\^ets \'etant des m\'ethodes supervis\'ees,
+la construction des arbres y est diff\'erente.
+
+Le principe d'\emph{Isolation Forest}~:
+\begin{enumerate}
+  \item Construire des arbres \textbf{au hasard} qui vont fournir
+    diff\'erents d\'ecoupages de l'espace.
+  \item Le postulat~: les valeurs atypiques vont rapidement \^etre isol\'ees
+    dans une r\'egion (peu de coupures n\'ecessaires), contrairement aux
+    observations normales qui seront isol\'ees \`a un niveau plus profond
+    de l'arbre.
+  \item On regarde \`a quelle profondeur de l'arbre une observation est
+    isol\'ee en moyenne. Ceci fournit un score par observation.
+  \item Les scores sont ensuite seuill\'es pour d\'eterminer les valeurs
+    atypiques.
+\end{enumerate}
+
+\begin{important}
+  L'id\'ee centrale~: plus une observation est isol\'ee rapidement (faible
+  profondeur), plus elle est susceptible d'\^etre atypique.
+\end{important}
+
+% ===================================================================
+\section{Construction des arbres au hasard}
+% ===================================================================
+
+\subsection{Algorithme de construction d'un arbre}
+
+\begin{enumerate}
+  \item S\'electionner au hasard une variable parmi les $p$ variables.
+  \item Choisir au hasard un point de coupure dans l'\'etendue de cette
+    variable.
+  \item Segmenter l'\'echantillon en deux sous-groupes.
+  \item R\'ep\'eter it\'erativement jusqu'\`a ce qu'un n\oe ud~:
+  \begin{enumerate}
+    \item ne contienne qu'un seul individu, ou
+    \item atteigne une profondeur pr\'ed\'efinie.
+  \end{enumerate}
+\end{enumerate}
+
+\subsection{Sous-\'echantillonnage et effet de masque}
+
+Pour construire une for\^et, la proc\'edure commence par un
+\textbf{sous-\'echantillonnage} afin de limiter \textbf{l'effet de masque}
+(\emph{masking effect}). Ce ph\'enom\`ene correspond au fait que la
+proc\'edure de d\'etection doit elle-m\^eme faire face aux valeurs atypiques.
+Les valeurs atypiques peuvent avoir un impact sur la m\'ethode de d\'etection
+et ainsi masquer certaines d'entre elles.
+
+En tirant un sous-\'echantillon, les points atypiques seront plus rapidement
+isol\'es et donc mieux d\'etect\'es.
+
+\subsection{For\^et}
+
+Une fois le sous-\'echantillonnage effectu\'e, on construit un premier arbre
+au hasard, puis on recommence $B$ fois pour obtenir une for\^et de $B$ arbres.
+
+% ===================================================================
+\section{Calcul du score}
+% ===================================================================
+
+\subsection{Profondeur d'isolement}
+
+\'Etant donn\'ee une observation $x$, on note $h(x)$ la profondeur de
+$x$ dans un arbre (nombre d'ar\^etes entre la racine et le n\oe ud
+terminal contenant $x$).
+
+Sur la base d'une for\^et de $B$ arbres, on note
+$\overline{h}(x) = \frac{1}{B} \sum_{b=1}^{B} h_b(x)$ la profondeur
+moyenne de $x$ dans la for\^et.
+
+\subsection{Normalisation par $c(n)$}
+
+Comme la profondeur d'un arbre d\'epend du nombre d'observations, on
+relativise $\overline{h}(x)$ par la profondeur moyenne attendue pour un
+arbre de $n$ observations~:
+
+\begin{equation}
+c(n) = 2 \times H(n-1) - \frac{2(n-1)}{n}
+\end{equation}
+
+o\`u $H(k) = \sum_{i=1}^{k} \frac{1}{i}$ est le $k$-i\`eme nombre
+harmonique. $c(n)$ est la profondeur moyenne d'un arbre construit au
+hasard sur $n$ observations.
+
+\subsection{Score d'anomalie}
+
+On d\'efinit le score de l'observation $x$~:
+
+\begin{equation}
+s(x, n) = 2^{-\frac{\overline{h}(x)}{c(n)}}
+\end{equation}
+
+\textbf{Interpr\'etation~:}
+\begin{itemize}
+  \item $s(x, n) \approx 0.5$~: l'observation est normale
+    ($\overline{h}(x) \approx c(n)$).
+  \item $s(x, n) \to 1$~: l'observation est tr\`es probablement atypique
+    ($\overline{h}(x) \ll c(n)$, isolement rapide).
+  \item $s(x, n) \to 0$~: l'observation est plut\^ot normale
+    ($\overline{h}(x) \gg c(n)$, isolement profond).
+\end{itemize}
+
+\begin{important}
+  Le score $s(x,n)$ est une standardisation de $\overline{h}(x)$ comprise
+  entre 0 et 1. Plus le score est proche de 1, plus l'observation est
+  atypique.
+\end{important}
+
+% ===================================================================
+\section{Param\'etrage}
+% ===================================================================
+
+La m\'ethode d\'epend de trois param\`etres principaux~:
+
+\subsection{Nombre d'arbres ($B$)}
+
+Le nombre d'arbres a une incidence sur la variance des profondeurs
+moyennes $\overline{h}(x)$. Plus $B$ est grand, plus l'estimation est
+stable. En pratique, $B = 100$ est souvent suffisant, $B = 300$ donne
+une tr\`es bonne stabilit\'e.
+
+\subsection{Taille du sous-\'echantillon}
+
+\cite{LiuTZ08} indiquent que tirer un sous-\'echantillon de
+\textbf{256 observations} est suffisant et qu'il n'y a pas de gain
+substantiel \`a choisir un nombre plus \'elev\'e. Cela permet de r\'eduire
+le co\^ut computationnel.
+
+\begin{remark}
+  Ce nombre de 256 est souvent repris dans la litt\'erature mais sa
+  port\'e reste limit\'ee (bas\'e sur une \'etude par simulation).
+\end{remark}
+
+\subsection{Seuillage des scores}
+
+Une fois le score calcul\'e pour chaque observation, il convient de le
+seuiller pour d\'eterminer les observations atypiques. Il n'y a pas de
+valeur seuil universelle.
+
+M\'ethode pratique~: observer la distribution des scores et chercher
+un d\'ecrochage (\emph{elbow}) dans la distribution. Les points au-del\`a
+du coude sont consid\'er\'es comme atypiques.
+
+% ===================================================================
+\section{Application aux donn\'ees German Credit}
+% ===================================================================
+
+On utilise le package \texttt{isotree} (\cite{Cortes2026}) sur les donn\'ees
+German Credit ($n=1000$, $p=21$, pas de valeurs manquantes).
+
+\subsection{Chargement et importation}
+
+\begin{lstlisting}[language=R]
+library(isotree)
+library(FactoMineR)
+
+don <- read.table(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases
+   /statlog/german/german.data",
+  sep = " ", stringsAsFactors = TRUE)
+\end{lstlisting}
+
+\subsection{Construction du mod\`ele}
+
+On applique \emph{Isolation Forest} avec $B = 300$ arbres et un
+sous-\'echantillon de taille 256~:
+
+\begin{lstlisting}[language=R]
+set.seed(1234)
+ntree <- 300
+sample_size <- 256
+
+model <- isolation.forest(don,
+  sample_size = sample_size,
+  ntrees = ntree)
+\end{lstlisting}
+
+\subsection{Stabilisation des scores}
+
+On \'etudie la stabilisation des scores en fonction du nombre d'arbres~:
+
+\begin{lstlisting}[language=R]
+subscores <- sapply(seq.int(ntree),
+  FUN = function(nbtree, model, don) {
+    submodel <- isotree.subset.trees(model,
+      trees_take = seq.int(nbtree))
+    predict.isolation_forest(submodel, newdata = don)
+  }, model = model, don = don)
+
+matplot(t(subscores), type = "b", pch = 14, cex = .1,
+  ylab = "score", xlab = "nombre d'arbres")
+\end{lstlisting}
+
+Les scores se stabilisent \`a partir de 100 arbres.
+
+\subsection{Seuillage et identification}
+
+\begin{lstlisting}[language=R]
+scores <- predict.isolation_forest(model, newdata = don)
+scores <- sort(scores, decreasing = TRUE)
+
+plot(scores, type = "b", pch = 16, cex = 0.2,
+     xlab = "rang")
+threshold <- 0.576
+abline(h = threshold, col = "red", lty = 2)
+
+which(scores > threshold)
+# 375 757 916 187 851 227 928 890 614
+\end{lstlisting}
+
+Neuf observations sont identifi\'ees comme atypiques avec un seuil
+de 0.576.
+
+\subsection{Post-analyse}
+
+L'\emph{Isolation Forest} fournit un score par observation sur la base
+de l'ensemble des variables, mais n'indique pas quelles variables
+expliquent ce caract\`ere atypique. On peut utiliser une analyse
+factorielle (AFDM) pour analyser les caract\'eristiques des individus
+atypiques~:
+
+\begin{lstlisting}[language=R]
+res.FAMD <- FAMD(don,
+  ind.sup = as.numeric(names(which(scores > threshold))),
+  sup.var = which(colnames(don) == "Creditability"),
+  graph = FALSE)
+plot(res.FAMD, choix = "ind", cex = .5)
+\end{lstlisting}
+
+Il s'agit ensuite d'identifier les variables contribuant \`a la
+construction des axes sur lesquels ces observations ont des
+coordonn\'ees \'elev\'ees.
+
+% ===================================================================
+\section{Conclusion}
+% ===================================================================
+
+\emph{Isolation Forest} est une m\'ethode de r\'ef\'erence pour la
+d\'etection des valeurs atypiques~:
+
+\begin{itemize}
+  \item Faible co\^ut algorithmique (complexit\'e lin\'eaire),
+    permettant de traiter des \'echantillons de grande taille.
+  \item Non sensible aux probl\`emes d'\'echelle (pas de
+    standardisation n\'ecessaire).
+  \item Extension aux donn\'ees mixtes directe.
+\end{itemize}
+
+Une fois les points atypiques identifi\'es, on peut~:
+\begin{itemize}
+  \item Utiliser des m\'ethodes d'analyse \emph{robustes}.
+  \item Remplacer les valeurs jug\'ees atypiques par des valeurs
+    manquantes puis effectuer une imputation.
+\end{itemize}
+
+Le package \texttt{isotree} (\cite{Cortes2026}) propose diff\'erentes
+extensions, notamment la segmentation selon des combinaisons de
+variables.
+
+% ===================================================================
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quel est le principe de base d'\emph{Isolation Forest}~?
+    \begin{enumerate}
+      \item Les points atypiques sont isol\'es rapidement par les arbres
+      \item Les points atypiques sont identifi\'es par leur distance au centre
+      \item Les points atypiques sont d\'etect\'es par des m\'ethodes
+        supervis\'ees
+      \item Les points atypiques sont toujours en profondeur maximale
+    \end{enumerate}
+    \textbf{R\'eponse~: a (isolement rapide des anomalies).}
+
+  \item Dans la construction d'un arbre, comment sont choisis la variable
+    et le point de coupure~?
+    \begin{enumerate}
+      \item Par optimisation d'un crit\`ere (Gini, entropie)
+      \item Au hasard
+      \item Par validation crois\'ee
+      \item Par recherche exhaustive
+    \end{enumerate}
+    \textbf{R\'eponse~: b (variable et point de coupure choisis au hasard).}
+
+  \item Quelle est la formule du score d'anomalie $s(x,n)$~?
+    \begin{enumerate}
+      \item $s(x,n) = 2^{-\overline{h}(x)/c(n)}$
+      \item $s(x,n) = \overline{h}(x)/c(n)$
+      \item $s(x,n) = 2^{\overline{h}(x)/c(n)}$
+      \item $s(x,n) = -\overline{h}(x)/c(n)$
+    \end{enumerate}
+    \textbf{R\'eponse~: a ($s(x,n) = 2^{-\overline{h}(x)/c(n)}$).}
+
+  \item Que repr\'esente $c(n)$ dans le calcul du score~?
+    \begin{enumerate}
+      \item La profondeur maximale de l'arbre
+      \item La profondeur moyenne attendue pour un arbre al\'eatoire
+        sur $n$ observations
+      \item Le nombre d'arbres dans la for\^et
+      \item La variance des scores
+    \end{enumerate}
+    \textbf{R\'eponse~: b (profondeur moyenne attendue).}
+
+  \item Un score $s(x,n) \approx 0.5$ indique~:
+    \begin{enumerate}
+      \item Une observation tr\`es atypique
+      \item Une observation normale
+      \item Une observation anormale
+      \item Une erreur de calcul
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($\overline{h}(x) \approx c(n)$, observation
+    normale).}
+
+  \item Quelle est la taille de sous-\'echantillon recommand\'ee par
+    Liu, Ting \& Zhou (2008)~?
+    \begin{enumerate}
+      \item 128
+      \item 256
+      \item 512
+      \item 1000
+    \end{enumerate}
+    \textbf{R\'eponse~: b (256 observations).}
+
+  \item Quel est l'int\'er\^et du sous-\'echantillonnage dans
+    \emph{Isolation Forest}~?
+    \begin{enumerate}
+      \item R\'eduire la variance du mod\`ele
+      \item Limiter l'effet de masque
+      \item Acc\'el\'erer l'entra\^inement seulement
+      \item \'Eviter le sur-apprentissage
+    \end{enumerate}
+    \textbf{R\'eponse~: b (limiter l'effet de masque).}
+
+  \item Quel package R impl\'emente \emph{Isolation Forest}~?
+    \begin{enumerate}
+      \item randomForest
+      \item isotree
+      \item rpart
+      \item xgboost
+    \end{enumerate}
+    \textbf{R\'eponse~: b (\texttt{isotree}).}
+
+  \item \emph{Isolation Forest} n\'ecessite-t-elle une standardisation
+    pr\'ealable des donn\'ees~?
+    \begin{enumerate}
+      \item Oui, toujours
+      \item Non, elle n'est pas sensible aux \'echelles
+      \item Oui, si les variables sont de natures diff\'erentes
+      \item Cela d\'epend du jeu de donn\'ees
+    \end{enumerate}
+    \textbf{R\'eponse~: b (non sensible aux \'echelles, pas de
+    standardisation n\'ecessaire).}
+
+  \item Dans l'application German Credit, combien d'observations sont
+    identifi\'ees comme atypiques avec le seuil de 0.576~?
+    \begin{enumerate}
+      \item 3
+      \item 6
+      \item 9
+      \item 12
+    \end{enumerate}
+    \textbf{R\'eponse~: c (9 observations atypiques).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{LiuTZ08}
+  F.~T.~Liu, K.~M.~Ting, Z.-H.~Zhou.
+  \newblock \emph{Isolation Forest}.
+  \newblock ICDM, pp.~413--422, IEEE, 2008.
+
+\bibitem{Cortes2026}
+  D.~Cortes.
+  \newblock \emph{isotree: Isolation-Based Outlier Detection}.
+  \newblock \url{https://doi.org/10.32614/CRAN.package.isotree}, 2026.
+
+\bibitem{Audigier2026}
+  V.~Audigier.
+  \newblock STA211~: d\'etection des points atypiques via
+    \emph{Isolation Forest}.
+  \newblock Cours CNAM, 2026.
+
+\bibitem{Rakotomalala2026}
+  R.~Rakotomalala.
+  \newblock D\'etection des anomalies~: \emph{Isolation Forest}.
+  \newblock \url{https://eric.univ-lyon2.fr/ricco/cours/slides/isolation_forest.pdf}
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,519 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Classification de variables}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Classification de variables}
+\author{Vincent Audigier, Nd\`eye Niang}
+\date{12 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente les m\'ethodes de classification de variables.
+Lorsque les variables sont nombreuses, il est utile de les regrouper en
+classes homog\`enes pour analyser la multicolin\'earit\'e ou r\'eduire
+la dimension. La fiche couvre les m\'ethodes hi\'erarchiques
+(ascendante et descendante), les m\'ethodes de partitionnement direct
+(CLV, ClustOfVar), les indices de similarit\'e selon la nature des
+variables (quantitative, qualitative, binaire, mixte), et une
+application sur les donn\'ees German Credit.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Objectifs et contexte}
+% ===================================================================
+
+Quand les variables sont nombreuses, il est parfois tr\`es utile de
+les regrouper en groupes homog\`enes. Ceci peut servir \`a~:
+\begin{itemize}
+  \item Analyser la multicolin\'earit\'e entre les variables.
+  \item R\'eduire le nombre de variables en leur substituant un petit
+    nombre de variables latentes synth\'etiques repr\'esentatives de
+    chaque classe.
+\end{itemize}
+
+On distingue trois strat\'egies de partitionnement~:
+\begin{enumerate}
+  \item Les m\'ethodes hi\'erarchiques \textbf{ascendantes}.
+  \item Les m\'ethodes hi\'erarchiques \textbf{descendantes}.
+  \item Les m\'ethodes de \textbf{partitionnement direct}.
+\end{enumerate}
+
+% ===================================================================
+\section{M\'ethodes hi\'erarchiques}
+% ===================================================================
+
+\subsection{M\'ethode ascendante (CAH)}
+
+Les groupements se font par agglom\'eration progressive des variables
+deux \`a deux. On r\'eunit les variables les plus proches au sens
+d'une dissimilarit\'e, en utilisant un crit\`ere d'agr\'egation.
+
+La complexit\'e est en $O(p^3)$ o\`u $p$ est le nombre de variables.
+
+\subsubsection{Indices de similarit\'e/dissimilarit\'e}
+
+Le choix de l'indice d\'epend de la nature des variables.
+
+\paragraph*{Variables quantitatives~:}
+le coefficient de corr\'elation lin\'eaire au carr\'e $r_{jj'}^2$
+est l'indice naturel de similarit\'e. La dissimilarit\'e associ\'ee
+$d = 1 - r^2$ est une distance euclidienne.
+
+\paragraph*{Variables qualitatives~:}
+les indices les plus classiques sont~:
+\begin{itemize}
+  \item $\chi^2$ de contingence
+  \item Tschuprow ($T$)
+  \item Cramer ($V$)
+\end{itemize}
+
+\paragraph*{Variables binaires~:}
+plusieurs indices d\'efinis \`a partir du tableau de contingence
+$2\times2$ ($N_{11}, N_{10}, N_{01}, N_{00}$)~:
+
+\begin{tabular}{ll}
+\toprule
+Indice & Formule \\
+\midrule
+Sokal-Michener & $\displaystyle \frac{N_{11}+N_{00}}{N_{11}+N_{01}+N_{10}+N_{00}}$ \\
+Jaccard & $\displaystyle \frac{N_{11}}{N_{11}+N_{01}+N_{10}}$ \\
+Russel-Rao & $\displaystyle \frac{N_{11}}{N_{11}+N_{01}+N_{10}+N_{00}}$ \\
+Ochiai & $\displaystyle \frac{N_{11}}{\sqrt{(N_{11}+N_{01})(N_{11}+N_{10})}}$ \\
+Dice & $\displaystyle \frac{N_{11}}{2N_{11}+N_{01}+N_{10}}$ \\
+Rogers-Tanimoto & $\displaystyle \frac{N_{11}+N_{00}}{N_{11}+2(N_{01}+N_{10})+N_{00}}$ \\
+Kulzinsky & $\displaystyle \frac{N_{11}}{N_{01}+N_{10}}$ \\
+\bottomrule
+\end{tabular}
+
+\begin{remark}
+  Les mesures de dissimilarit\'e associ\'ees sont toutes euclidiennes
+  (Fichet \& le Calve, 1984).
+\end{remark}
+
+\paragraph*{Variables mixtes~:}
+deux m\'ethodes propos\'ees par Hummel, Edelmann \& Kopp-Schneider
+(2017)~:
+\begin{itemize}
+  \item \textbf{CluMix-ama}~: similarit\'e bas\'ee sur la valeur
+    absolue du $\gamma$ de Goodman-Kruskal pour les couples mixtes.
+  \item \textbf{CluMix-dcor}~: similarit\'e bas\'ee sur une distance
+    de Gower entre individus.
+\end{itemize}
+Ces m\'ethodes sont impl\'ement\'ees dans le package R \texttt{CluMix}
+(archives CRAN).
+
+\subsubsection{Crit\`eres d'agr\'egation}
+
+Les crit\`eres sont les m\^emes que pour la CAH d'individus~:
+\begin{itemize}
+  \item Saut minimum (\emph{single linkage})
+  \item Saut maximum (\emph{complete linkage})
+  \item Saut moyen (\emph{average linkage})
+  \item Ward (si la dissimilarit\'e est une distance euclidienne)
+\end{itemize}
+
+\subsection{M\'ethode descendante}
+
+Proc\`ede par dichotomies successives pour construire un arbre
+hi\'erarchique. L'interpr\'etation des classes est plus ais\'ee car
+chaque classe est d\'ecrite par les r\`egles de divisions successives.
+
+\paragraph*{M\'ethode VARCLUS (SAS)~:}
+\begin{enumerate}
+  \item R\'ealiser une ACP des variables.
+  \item Si la seconde valeur propre $> 1$, retenir les deux premi\`eres
+    composantes.
+  \item Affecter chaque variable \`a la composante avec laquelle elle
+    est le plus corr\'el\'ee.
+  \item R\'ep\'eter sur chaque groupe tant que la seconde valeur
+    propre $> 1$.
+\end{enumerate}
+
+\begin{important}
+  La m\'ethode VARCLUS est diff\'erente de ClustOfVar. Il existe
+  une impl\'ementation Python (\texttt{variable-clustering}) mais pas
+  d'impl\'ementation R standard.
+\end{important}
+
+% ===================================================================
+\section{Partitionnement direct}
+% ===================================================================
+
+\subsection{M\'ethode CLV (Vigneau \& Qannari, 2003)}
+
+Destin\'ee aux variables quantitatives. Approche similaire aux
+$K$-means, maximisant un crit\`ere de colin\'earit\'e intra-classe~:
+
+\begin{equation}
+\sum_{k=1}^K \sum_{j=1}^p \delta_{k,j} \; \text{cov}^2(x_j, u_k)
+\quad\text{sous contrainte}\quad \|u_k\| = 1
+\end{equation}
+
+o\`u $\delta_{k,j}=1$ si la variable $j$ est dans la classe $k$, et
+$u_k$ est la premi\`ere composante principale de la classe $k$.
+
+Algorithme~:
+\begin{enumerate}
+  \item Initialiser les classes.
+  \item \'Etape d'affectation~: calculer $\delta_{k,j}$ (affecter
+    chaque variable \`a la classe dont le centro\"ide est le plus
+    proche).
+  \item \'Etape de mise \`a jour~: recalculer $u_k$ (1\`ere CP de
+    chaque classe).
+  \item R\'ep\'eter jusqu'\`a convergence.
+\end{enumerate}
+
+\subsection{ClustOfVar (Chavent et al., 2012)}
+
+G\'en\'eralisation de CLV aux variables qualitatives ou mixtes~:
+\begin{itemize}
+  \item Utilise les composantes principales de l'ACM (qualitatives)
+    ou de l'AFDM (mixtes) comme centro\"ide $u_k$.
+  \item Similarit\'e mesur\'ee par le carr\'e du rapport de
+    corr\'elation (qualitative) ou le carr\'e de la corr\'elation
+    (quantitative).
+\end{itemize}
+
+\begin{important}
+  Les algorithmes de partitionnement direct de variables restent
+  sensibles \`a leur initialisation. Il convient de tester plusieurs
+  initialisations et de retenir celle optimisant le crit\`ere.
+\end{important}
+
+% ===================================================================
+\section{Application aux donn\'ees German Credit}
+% ===================================================================
+
+On utilise le jeu German Credit ($n=1000$, $p=21$, 7 quantitatives,
+14 qualitatives) pour illustrer la classification de variables
+mixtes.
+
+\subsection{Chargement et importation}
+
+\begin{lstlisting}[language=R]
+library(CluMix); library(ClustOfVar)
+library(cluster); library(FactoMineR)
+library(DescTools)
+
+don <- read.table(
+  "https://archive.ics.uci.edu/ml/machine-learning-
+   databases/statlog/german/german.data",
+  sep = " ", stringsAsFactors = TRUE)
+\end{lstlisting}
+
+\subsection{CAH avec ClustOfVar}
+
+\begin{lstlisting}[language=R]
+var.factor <- which(sapply(don, class) == "factor")
+var.numeric <- which(sapply(don, class) == "numeric" |
+                     sapply(don, class) == "integer")
+set.seed(1234)
+res.cah.hclustvar <- hclustvar(X.quanti = don[,var.numeric],
+                               X.quali = don[,var.factor])
+k_hclustvar <- 4
+res.cutree <- cutreevar(res.cah.hclustvar, k = k_hclustvar)
+\end{lstlisting}
+
+\subsection{CAH avec CluMix}
+
+\begin{lstlisting}[language=R]
+# CluMix-ama
+res.dendro_ama <- dendro.variables(don)
+res.dendro_ama <- as.hclust(res.dendro_ama)
+k_ama <- 3; part.cah.CluMix_ama <- cutree(res.dendro_ama, k = k_ama)
+
+# CluMix-dcor
+res.dendro_dcor <- dendro.variables(don, method = "distcor")
+res.dendro_dcor <- as.hclust(res.dendro_dcor)
+k_dcor <- 4; part.cah.CluMix_dcor <- cutree(res.dendro_dcor, k = k_dcor)
+\end{lstlisting}
+
+\subsection{Partitionnement avec ClustOfVar}
+
+\begin{lstlisting}[language=R]
+res.kmeansvar <- kmeansvar(X.quanti = don[,var.numeric],
+                           X.quali = don[,var.factor],
+                           init = k_hclustvar, nstart = 100)
+
+# Meilleure initialisation via CAH ou tirage aleatoire
+myrandominit <- function(matdist, nb.centres){
+  random_centre <- sample(seq.int(ncol(don)), size = nb.centres)
+  random_part <- apply(matdist[,random_centre], 1, which.min)
+  return(random_part)
+}
+matsim <- PairApply(don, mixedVarSim, symmetric = TRUE)
+matdist <- as.matrix(sqrt(round(1 - matsim, 5)))
+random_init <- replicate(100, myrandominit(matdist, k_hclustvar),
+                         simplify = FALSE)
+
+list.init <- list(cah.CluMix_dcor = part.cah.CluMix_dcor,
+                  cah.hclustvar = part.cah.hclustvar)
+list.init <- c(list.init, random_init)
+
+res.kmeansvar.new <- sapply(list.init, FUN = kmeansvar,
+  X.quanti = don[,var.numeric], X.quali = don[,var.factor],
+  simplify = FALSE)
+winner <- which.max(colSums(sapply(res.kmeansvar.new, "[[", "wss")))
+res.kmeansvar <- res.kmeansvar.new[[winner]]
+\end{lstlisting}
+
+\subsection{Partitionnement avec PAM}
+
+\begin{lstlisting}[language=R]
+diss.CluMix_ama <- dist.variables(don)
+res.pam_ama <- pam(diss.CluMix_ama, diss = TRUE, k = k_ama)
+
+diss.CluMix_dcor <- dist.variables(don, method = "distcor")
+res.pam_dcor <- pam(diss.CluMix_dcor, diss = TRUE, k = k_dcor)
+\end{lstlisting}
+
+\subsection{Comparaison des partitions}
+
+Une ACM sur le tableau des partitions met en \'evidence quatre
+groupes de variables~:
+
+\begin{enumerate}
+  \item \textbf{Profil personnel}~: Length.of.current.employment,
+    Sex.Marital.Status, Duration.in.Current.address, Age.years,
+    Housing, No.of.dependents.
+  \item \textbf{Type de cr\'edit et profil financier}~: Duration,
+    Purpose, Credit.Amount, Instalment.per.cent, Guarantors, Job,
+    Telephone, Foreign.Worker.
+  \item \textbf{Actifs du demandeur}~: Status, Savings account/bonds,
+    Other.installment.plans, Creditability.
+  \item \textbf{Historique}~: History, No.of.Credits.at.this.Bank.
+\end{enumerate}
+
+\begin{remark}
+  La variable Creditability (r\'eponse) est li\'ee au groupe des
+  actifs, ce qui sugg\`ere une relation privil\'egi\'ee avec ces
+  variables.
+\end{remark}
+
+% ===================================================================
+\section{Conclusion}
+% ===================================================================
+
+La classification de variables vise \`a regrouper les variables en
+classes homog\`enes~: les variables d'un m\^eme groupe sont
+fortement li\'ees, celles de groupes diff\'erents sont faiblement
+li\'ees.
+
+Applications importantes~:
+\begin{itemize}
+  \item \textbf{Fuzzy forests}~: variante des for\^ets al\'eatoires
+    qui classifie d'abord les variables corr\'el\'ees, puis effectue
+    une s\'election backward au sein de chaque groupe (package R
+    \texttt{fuzzyforest}).
+  \item \textbf{Biclustering} (co-clustering)~: classification
+    simultan\'ee des individus et des variables pour identifier des
+    groupes d'individus caract\'eris\'es par des sous-ensembles de
+    variables.
+\end{itemize}
+
+% ===================================================================
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quel est l'objectif principal de la classification de
+    variables~?
+    \begin{enumerate}
+      \item Classifier les individus en groupes homog\`enes
+      \item Regrouper les variables en classes homog\`enes
+      \item R\'eduire le nombre d'individus
+      \item Augmenter la dimension des donn\'ees
+    \end{enumerate}
+    \textbf{R\'eponse~: b (regrouper les variables).}
+
+  \item Quelle est la complexit\'e de la CAH de variables~?
+    \begin{enumerate}
+      \item $O(n^2)$
+      \item $O(p^3)$
+      \item $O(n)$
+      \item $O(p)$
+    \end{enumerate}
+    \textbf{R\'eponse~: b ($O(p^3)$ o\`u $p$ est le nombre de
+    variables).}
+
+  \item Quel indice de similarit\'e est naturel pour des variables
+    quantitatives~?
+    \begin{enumerate}
+      \item Le $\chi^2$
+      \item Le V de Cramer
+      \item La corr\'elation au carr\'e $r^2$
+      \item Le Jaccard
+    \end{enumerate}
+    \textbf{R\'eponse~: c (coefficient de corr\'elation lin\'eaire
+    au carr\'e).}
+
+  \item Dans la m\'ethode VARCLUS, quel crit\`ere d\'eclenche une
+    division~?
+    \begin{enumerate}
+      \item La premi\`ere valeur propre $> 1$
+      \item La seconde valeur propre $> 1$
+      \item Le nombre de variables $> 10$
+      \item Le crit\`ere de Ward
+    \end{enumerate}
+    \textbf{R\'eponse~: b (seconde valeur propre de l'ACP $> 1$).}
+
+  \item Quel crit\`ere est maximis\'e par la m\'ethode CLV~?
+    \begin{enumerate}
+      \item La variance inter-classe
+      \item La colin\'earit\'e intra-classe $\sum \text{cov}^2(x_j, u_k)$
+      \item Le $\chi^2$ de contingence
+      \item La distance entre centro\"ides
+    \end{enumerate}
+    \textbf{R\'eponse~: b (somme des carr\'es des covariances entre
+    les variables et le centro\"ide $u_k$).}
+
+  \item Que repr\'esente $u_k$ dans la m\'ethode CLV~?
+    \begin{enumerate}
+      \item La moyenne des variables de la classe $k$
+      \item La premi\`ere composante principale de la classe $k$
+      \item Le m\'edo\"ide de la classe $k$
+      \item La variance de la classe $k$
+    \end{enumerate}
+    \textbf{R\'eponse~: b (premi\`ere composante principale).}
+
+  \item Comment ClustOfVar \'etend CLV aux donn\'ees mixtes~?
+    \begin{enumerate}
+      \item En utilisant la distance de Gower
+      \item En utilisant l'AFDM pour d\'efinir les centro\"ides
+      \item En supprimant les variables qualitatives
+      \item En transformant les variables en binaires
+    \end{enumerate}
+    \textbf{R\'eponse~: b (AFDM pour les centro\"ides).}
+
+  \item Quel package R impl\'emente ClustOfVar~?
+    \begin{enumerate}
+      \item cluster
+      \item ClustOfVar
+      \item CluMix
+      \item FactoMineR
+    \end{enumerate}
+    \textbf{R\'eponse~: b (\texttt{ClustOfVar}).}
+
+  \item Que sont les fuzzy forests~?
+    \begin{enumerate}
+      \item Des for\^ets al\'eatoires avec classification pr\'ealable
+        des variables
+      \item Des for\^ets al\'eatoires sans \'elagage
+      \item Des for\^ets al\'eatoires sur donn\'ees floues
+      \item Une m\'ethode de classification de variables
+    \end{enumerate}
+    \textbf{R\'eponse~: a (random forest avec classification
+    pr\'ealable des variables corr\'el\'ees).}
+
+  \item Qu'est-ce que le biclustering~?
+    \begin{enumerate}
+      \item Une classification d'individus seulement
+      \item Une classification de variables seulement
+      \item Une classification simultan\'ee d'individus et de
+        variables
+      \item Une m\'ethode de r\'egression
+    \end{enumerate}
+    \textbf{R\'eponse~: c (classification simultan\'ee individus
+    $\times$ variables).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{AudigierNiang2026}
+  V.~Audigier, N.~Niang.
+  \newblock \emph{STA211~: Classification de variables}.
+  \newblock Cours CNAM, 23 f\'evrier 2026.
+
+\bibitem{Chavent2012}
+  M.~Chavent, V.~Kuentz-Simonet, B.~Liquet, J.~Saracco.
+  \newblock \emph{ClustOfVar: An R Package for the Clustering of
+    Variables}.
+  \newblock J. Stat. Soft., 50(13):1--16, 2012.
+
+\bibitem{VigneauQannari2003}
+  V.~Vigneau, E.~M.~Qannari.
+  \newblock \emph{Clustering of variables around latent components}.
+  \newblock Comm. Stat. Simul. Comput., 32(4):1131--1150, 2003.
+
+\bibitem{Hummel2017}
+  M.~Hummel, D.~Edelmann, A.~Kopp-Schneider.
+  \newblock \emph{Clustering of variables in the presence of mixed
+    data}.
+  \newblock Technical Report, 2017.
+
+\bibitem{Saporta2006}
+  G.~Saporta.
+  \newblock \emph{Probabilit\'es, analyse des donn\'ees et
+    statistique}.
+  \newblock Technip, 2006.
+
+\bibitem{FichetLeCalve1984}
+  B.~Fichet, G.~le Calve.
+  \newblock \emph{Structure g\'eom\'etrique des principaux indices
+    de dissimilarit\'e sur signes de pr\'esence-absence}.
+  \newblock Stat. Anal. Donn\'ees, 9(3):11--44, 1984.
+
+\end{thebibliography}
+
+\end{document}

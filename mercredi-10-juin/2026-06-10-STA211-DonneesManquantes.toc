@@ -1,0 +1,24 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}Mécanismes de manquance}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}MCAR (Missing Completely At Random)}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}MAR (Missing At Random)}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}MNAR (Missing Not At Random)}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Identification des mécanismes}{3}{section.3}%
+\contentsline {section}{\numberline {4}Traitement par imputation simple}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Typologie des méthodes}{3}{subsection.4.1}%
+\contentsline {paragraph}{Imputation marginale (univariée)}{3}{subsection.4.1}%
+\contentsline {paragraph}{Imputation par régression}{3}{subsection.4.1}%
+\contentsline {paragraph}{Imputation par $k$ plus proches voisins ($k$-NN)}{3}{Item.8}%
+\contentsline {paragraph}{Choix du modèle}{3}{Item.10}%
+\contentsline {subsection}{\numberline {4.2}Imputation séquentielle (plusieurs variables)}{4}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Validation du modèle d'imputation}{4}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Modèles joints}{4}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Imputation multiple -- MICE}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Règles de Rubin}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Overimputation}{5}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Autres méthodes de traitement}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Algorithmes EM et DA}{5}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Méthodes par pondération}{5}{subsection.6.2}%
+\contentsline {section}{\numberline {7}Code R -- Exemples}{5}{section.7}%
+\contentsline {section}{Questions clés (QCM)}{7}{lstnumber.5.32}%

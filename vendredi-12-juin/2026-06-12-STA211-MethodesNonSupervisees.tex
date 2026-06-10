@@ -1,0 +1,591 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- M\'ethodes non-supervis\'ees}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large M\'ethodes non-supervis\'ees (introduction)}
+\author{Vincent Audigier, Nd\`eye Niang}
+\date{12 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente une introduction aux m\'ethodes non-supervis\'ees en
+fouille de donn\'ees. Elle couvre les m\'ethodes de classification
+(partitionnement et hi\'erarchique), la classification de variables, les
+r\`egles d'association, et les m\'ethodes d'analyse factorielle (ACP, ACM,
+AFDM, m\'ethodes multi-blocs). Les cartes de Kohonen font l'objet d'une
+fiche d\'edi\'ee.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Contexte et panorama}
+% ===================================================================
+
+Les m\'ethodes non-supervis\'ees se distinguent des m\'ethodes
+supervis\'ees par l'absence de variable cible. L'objectif est de
+d\'ecouvrir des structures, des groupes, ou des associations au sein
+des donn\'ees, sans connaissance a priori.
+
+On distingue trois grandes familles~:
+
+\begin{enumerate}
+  \item \textbf{Classification} (ou clustering)~: identifier des groupes
+    homog\`enes d'individus ou de variables.
+  \item \textbf{Recherche de r\`egles d'association}~: identifier des
+    associations fr\'equentes entre items (ex.~paniers d'achat).
+  \item \textbf{Analyse factorielle}~: r\'esumer les donn\'ees par des
+    graphiques de faible dimension (2D/3D) pour visualiser ressemblances
+    entre individus et relations entre variables.
+\end{enumerate}
+
+Les m\'ethodes de classification peuvent \^etre bas\'ees sur des
+distances (approches g\'eom\'etriques) ou sur des mod\`eles.
+Les m\'ethodes d'analyse factorielle sont compl\'ementaires~: elles
+peuvent servir de pr\'e-traitement (transformation de variables
+qualitatives en quantitatives, r\'eduction de dimension, am\'elioration
+de la partition via le \emph{tandem clustering}).
+
+\begin{remark}
+  Les cartes de Kohonen (SOM), les m\'ethodes de classification
+  d'individus classiques (k-means, CAH) et les analyses factorielles
+  de base (ACP, ACM, AFDM) sont suppos\'ees connues. Cette fiche
+  pr\'esente une synth\`ese et les prolongements (classification de
+  variables, m\'ethodes multi-blocs).
+\end{remark}
+
+% ===================================================================
+\section{Classification des individus}
+% ===================================================================
+
+\subsection{M\'ethodes de partitionnement}
+
+Les m\'ethodes de partitionnement consistent \`a d\'efinir une partition
+de l'ensemble des individus en $K$ groupes (d\'efini \`a l'avance)
+telle que la dispersion intra-groupe soit minimale et la dispersion
+inter-groupe maximale.
+
+\subsubsection{K-means}
+
+L'algorithme des $K$-means (MacQueen, 1967; Forgy, 1965) minimise
+l'inertie intra-classe~:
+
+\begin{equation}
+W(C) = \sum_{k=1}^{K} \sum_{i \in C_k} \| x_i - \mu_k \|^2
+\end{equation}
+
+o\`u $\mu_k$ est le centro\"ide du groupe $C_k$.
+
+Algorithme~:
+\begin{enumerate}
+  \item Choisir $K$ centres initiaux (al\'eatoirement ou via
+    $K$-means++).
+  \item Affecter chaque individu au centre le plus proche (distance
+    euclidienne).
+  \item Recalculer les centres comme moyenne des individus du groupe.
+  \item R\'ep\'eter 2--3 jusqu'\`a convergence (stabilit\'e des
+    affectations).
+\end{enumerate}
+
+\begin{important}
+  $K$-means est sensible aux centres initiaux et aux valeurs
+  atypiques. On utilise $K$-means++ pour une initialisation robuste.
+\end{important}
+
+\subsubsection{Partitionnement autour des m\'edo\"ides (PAM)}
+
+Alternative robuste \`a $K$-means utilisant des m\'edo\"ides
+(individus r\'eels plut\^ot que des moyennes) comme centres.
+Accepte toute matrice de dissimilarit\'e.
+
+\subsection{M\'ethodes hi\'erarchiques}
+
+Les m\'ethodes hi\'erarchiques construisent une hi\'erarchie de
+partitions, repr\'esent\'ee par un dendrogramme. L'utilisateur
+choisit la partition finale en coupant l'arbre \`a un niveau
+donn\'e.
+
+\subsubsection{CAH (Classification Ascendante Hi\'erarchique)}
+
+Algorithme agglom\'eratif~:
+\begin{enumerate}
+  \item Initialiser chaque individu comme un groupe.
+  \item Fusionner les deux groupes les plus proches (selon un crit\`ere
+    de saut minimal).
+  \item R\'ep\'eter jusqu'\`a obtenir un seul groupe.
+\end{enumerate}
+
+Principaux crit\`eres de saut (liens)~:
+
+\begin{tabular}{ll}
+\toprule
+Crit\`ere & Distance entre groupes $A$ et $B$ \\
+\midrule
+Saut minimum & $\displaystyle \min_{i \in A, j \in B} d(i,j)$ \\
+Saut maximum & $\displaystyle \max_{i \in A, j \in B} d(i,j)$ \\
+Lien moyen & $\displaystyle \frac{1}{|A||B|} \sum_{i \in A} \sum_{j \in B} d(i,j)$ \\
+Ward & $\displaystyle \frac{|A||B|}{|A|+|B|} \| \mu_A - \mu_B \|^2$ \\
+\bottomrule
+\end{tabular}
+
+\begin{remark}
+  Le crit\`ere de Ward est le plus utilis\'e~: il minimise la
+  perte d'inertie intra-classe \`a chaque fusion.
+\end{remark}
+
+\subsubsection{M\'ethode divisive}
+
+Approche inverse de la CAH~: on part d'un seul groupe que l'on
+divise r\'ecursivement. Moins utilis\'ee car plus co\^uteuse
+($O(2^n)$ sans heuristiques).
+
+\subsection{Choix du nombre de groupes}
+
+Plusieurs crit\`eres pour d\'eterminer $K$~:
+\begin{itemize}
+  \item \textbf{M\'ethode du coude} (elbow)~: inertie intra-classe
+    en fonction de $K$; on cherche le point d'inflexion.
+  \item \textbf{Indice de silhouette}~: mesure la coh\'esion interne
+    et la s\'eparation des groupes $\in [-1, 1]$.
+  \item \textbf{Indice de Davies--Bouldin}~: rapport de la dispersion
+    intra-groupe \`a la distance inter-groupes (minimiser).
+  \item \textbf{Saut de variance} (\emph{gap statistic})~: compare
+    l'inertie observ\'ee \`a celle attendue sous une distribution
+    de r\'ef\'erence.
+\end{itemize}
+
+% ===================================================================
+\section{Classification de variables}
+% ===================================================================
+
+La classification de variables est similaire dans son principe \`a
+celle des individus, mais pr\'esente des particularit\'es li\'ees \`a
+la nature des variables (quantitatives, qualitatives, mixtes).
+
+\subsection{Mesures de similarit\'e entre variables}
+
+\begin{itemize}
+  \item \textbf{Variables quantitatives}~: corr\'elation de Pearson,
+    corr\'elation de Spearman, information mutuelle.
+  \item \textbf{Variables qualitatives}~: V de Cramer, $\phi$ de
+    contingence, information mutuelle normalis\'ee.
+  \item \textbf{Variables mixtes}~: coefficient de corr\'elation
+    de Pearson entre les rapports de corr\'elation (via l'AFDM).
+\end{itemize}
+
+\subsection{Application}
+
+On peut appliquer une CAH ou $K$-means sur la matrice de similarit\'e
+entre variables apr\`es transformation en dissimilarit\'e
+($d = 1 - s$). L'objectif est de former des groupes de variables
+redondantes pour les r\'esumer.
+
+\begin{important}
+  La classification de variables est utile pour la s\'election de
+  variables (garder une variable repr\'esentative par groupe) et
+  pour l'interpr\'etation des r\'esultats d'analyses factorielles.
+\end{important}
+
+% ===================================================================
+\section{Recherche de r\`egles d'association}
+% ===================================================================
+
+Les r\`egles d'association sont tr\`es utilis\'ees en marketing
+(analyse de paniers d'achat). Elles consistent \`a identifier des
+associations fr\'equentes entre items.
+
+\subsection{D\'efinitions}
+
+Soit un ensemble d'items $\mathcal{I} = \{i_1, \dots, i_m\}$ et un
+ensemble de transactions $\mathcal{T} = \{t_1, \dots, t_n\}$ o\`u
+chaque transaction $t \subseteq \mathcal{I}$.
+
+Une r\`egle d'association est une implication $X \Rightarrow Y$ o\`u
+$X, Y \subseteq \mathcal{I}$ et $X \cap Y = \emptyset$.
+
+\begin{itemize}
+  \item \textbf{Support}~: fr\'equence de l'itemset $X$~:
+    $\displaystyle \text{supp}(X) = \frac{|\{t \in \mathcal{T} : X \subseteq t\}|}{n}$
+  \item \textbf{Confiance}~: probabilit\'e conditionnelle de $Y$
+    sachant $X$~:
+    $\displaystyle \text{conf}(X \Rightarrow Y) = \frac{\text{supp}(X \cup Y)}{\text{supp}(X)}$
+  \item \textbf{Lift}~: rapport entre la confiance et le support de $Y$~:
+    $\displaystyle \text{lift}(X \Rightarrow Y) = \frac{\text{supp}(X \cup Y)}{\text{supp}(X)\,\text{supp}(Y)}$
+\end{itemize}
+
+\begin{remark}
+  Un lift $> 1$ indique une association positive (les items
+  apparaissent plus souvent ensemble que sous l'ind\'ependance).
+  Un lift $< 1$ indique une association n\'egative.
+\end{remark}
+
+\subsection{Algorithme Apriori}
+
+L'algorithme Apriori (Agrawal \& Srikant, 1994) proc\`ede en deux
+\'etapes~:
+
+\begin{enumerate}
+  \item \textbf{G\'en\'eration des itemsets fr\'equents}~: on
+    parcourt les itemsets par taille croissante en \'elaguant ceux
+    dont le support est inf\'erieur \`a un seuil $\text{supp}_{\min}$
+    (propri\'et\'e d'anti-monotonie~: tout sur-ensemble d'un itemset
+    non fr\'equent est non fr\'equent).
+  \item \textbf{G\'en\'eration des r\`egles}~: \`a partir des
+    itemsets fr\'equents, on g\'en\`ere les r\`egles $X \Rightarrow Y$
+    v\'erifiant $\text{conf} \geq \text{conf}_{\min}$.
+\end{enumerate}
+
+\subsection{Qualit\'e des r\`egles}
+
+Plusieurs mesures pour \'evaluer une r\`egle~:
+\begin{itemize}
+  \item Confiance (d\'efaut)
+  \item Lift
+  \item Conviction~: $\displaystyle \frac{1 - \text{supp}(Y)}{1 - \text{conf}(X \Rightarrow Y)}$
+  \item Levier~: $\text{supp}(X \cup Y) - \text{supp}(X)\,\text{supp}(Y)$
+\end{itemize}
+
+% ===================================================================
+\section{Analyse factorielle}
+% ===================================================================
+
+Les m\'ethodes d'analyse factorielle sont des approches g\'eom\'etriques
+qui r\'esument les donn\'ees sous forme de graphiques de dimension
+r\'eduite (g\'en\'eralement 2 ou 3).
+
+\subsection{M\'ethodes classiques}
+
+\begin{itemize}
+  \item \textbf{ACP (Analyse en Composantes Principales)}~: pour
+    des variables quantitatives. R\'eduit la dimension en projetant
+    les donn\'ees sur des axes maximisant la variance (inertie).
+  \item \textbf{ACM (Analyse des Correspondances Multiples)}~: pour
+    des variables qualitatives. \'Etend l'analyse des correspondances
+    \`a plus de deux variables.
+  \item \textbf{AFDM (Analyse Factorielle de Donn\'ees Mixtes)}~:
+    pour des donn\'ees mixtes (quantitatives + qualitatives).
+    Combine ACP et ACM en une analyse unique.
+\end{itemize}
+
+\subsection{Utilit\'e en pr\'e-traitement}
+
+L'analyse factorielle est compl\'ementaire aux m\'ethodes de
+classification~:
+
+\begin{itemize}
+  \item \textbf{Transformation de variables}~: remplacer des
+    variables qualitatives par les coordonn\'ees factorielles pour
+    appliquer des m\'ethodes qui n\'ecessitent des variables
+    quantitatives ($K$-means, r\'egression).
+  \item \textbf{R\'eduction de dimension}~: travailler dans un
+    espace de dimension r\'eduite pour att\'enuer le fl\'eau de la
+    dimension (\emph{curse of dimensionality}).
+  \item \textbf{Tandem clustering}~: appliquer une classification
+    ($K$-m eans, CAH) sur les coordonn\'ees factorielles plut\^ot
+    que sur les variables originales, ce qui am\'eliore g\'en\'eralement
+    la qualit\'e de la partition.
+  \item \textbf{Visualisation}~: les plans factoriels permettent de
+    visualiser la partition obtenue et d'interpr\'eter les groupes.
+\end{itemize}
+
+\subsection{M\'ethodes multi-blocs}
+
+Les m\'ethodes multi-blocs constituent un prolongement des analyses
+factorielles classiques. Elles permettent d'analyser simultan\'ement
+plusieurs tableaux de donn\'ees (blocs) mesur\'es sur les m\^emes
+individus.
+
+Les principales m\'ethodes sont~:
+\begin{itemize}
+  \item \textbf{DACP (Diagonalisation d'un Tableau de Covariance
+    Par blocs)}~: g\'en\'eralisation de l'ACP \`a plusieurs blocs.
+  \item \textbf{STATIS (Structuration des Tableaux \`a Trois Indices
+    de la Statistique)}~: m\'ethode en quatre phases (interstructure,
+    compromis, intrastructure, analyse du compromis).
+  \item \textbf{AFM (Analyse Factorielle Multiple)}~: \'equivalent
+    de l'AFDM pour les blocs de variables, avec une pond\'eration
+    \'equilibrante des blocs.
+\end{itemize}
+
+\begin{important}
+  Les m\'ethodes multi-blocs sont traitées en d\'etail dans une
+  fiche d\'edi\'ee.
+\end{important}
+
+% ===================================================================
+\section{Cartes de Kohonen (SOM)}
+% ===================================================================
+
+Les cartes autoorganisatrices de Kohonen (Self-Organizing Maps, SOM)
+sont des r\'eseaux de neurones non supervis\'es qui r\'ealisent
+simultan\'ement une r\'eduction de dimension et une classification.
+
+\subsection{Principe}
+
+Une carte de Kohonen projette les donn\'ees de haute dimension sur
+une grille (g\'en\'eralement 2D) tout en pr\'eservant la topologie
+des donn\'ees~: deux individus proches dans l'espace original
+restent proches sur la grille.
+
+\begin{itemize}
+  \item \textbf{Grille}~: ensemble de neurones organis\'es selon
+    une topologie (rectangulaire, hexagonale).
+  \item \textbf{Vecteurs de r\'ef\'erence}~: chaque neurone $i$
+    poss\`ede un vecteur $w_i$ de m\^eme dimension que les donn\'ees.
+  \item \textbf{Apprentissage}~: on pr\'esente chaque observation
+    $x$ et on d\'etermine le neurone vainqueur (celui dont le
+    vecteur $w_i$ est le plus proche de $x$ au sens de la distance
+    euclidienne). On met \`a jour $w_i$ et les neurones voisins
+    dans la grille.
+\end{itemize}
+
+\subsection{Fonction de voisinage}
+
+La mise \`a jour du vecteur du neurone vainqueur $c$ et de ses
+voisins suit~:
+
+\begin{equation}
+w_i(t+1) = w_i(t) + \alpha(t) \, h_{ci}(t) \, (x(t) - w_i(t))
+\end{equation}
+
+o\`u~:
+\begin{itemize}
+  \item $\alpha(t)$ est le taux d'apprentissage (d\'ecroissant).
+  \item $h_{ci}(t)$ est la fonction de voisinage (gaussienne
+    ou ``chapeau mexicain''), qui d\'ecro\^it avec la distance
+    entre les neurones $c$ et $i$ sur la grille.
+\end{itemize}
+
+\begin{remark}
+  Les cartes de Kohonen sont trait\'ees en d\'etail dans une fiche
+  d\'edi\'ee.
+\end{remark}
+
+% ===================================================================
+\section{Conclusion}
+% ===================================================================
+
+Les m\'ethodes non-supervis\'ees forment un pilier essentiel de la
+fouille de donn\'ees~:
+
+\begin{itemize}
+  \item La \textbf{classification} (partitionnement, hi\'erarchique,
+    cartes de Kohonen) permet de d\'ecouvrir des groupes homog\`enes.
+  \item Les \textbf{r\`egles d'association} identifient des liens
+    fr\'equents entre items dans de grands volumes de donn\'ees.
+  \item L'\textbf{analyse factorielle} (ACP, ACM, AFDM, multi-blocs)
+    offre des visualisations synth\'etiques et sert de
+    pr\'e-traitement pour la classification.
+  \item La \textbf{classification de variables} compl\`ete la bo\^\i te
+    \`a outils en permettant de regrouper des variables redondantes.
+\end{itemize}
+
+Ces m\'ethodes sont compl\'ementaires et peuvent \^etre combin\'ees
+(s\'equence analyse factorielle $\rightarrow$ classification,
+\emph{tandem clustering}) pour une exploration efficace des donn\'ees.
+
+% ===================================================================
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quelle est la principale diff\'erence entre m\'ethodes
+    supervis\'ees et non supervis\'ees~?
+    \begin{enumerate}
+      \item Les m\'ethodes non supervis\'ees n\'ecessitent une
+        variable cible
+      \item Les m\'ethodes supervis\'ees n\'ecessitent une
+        variable cible
+      \item Il n'y a pas de diff\'erence
+      \item Les m\'ethodes non supervis\'ees sont plus rapides
+    \end{enumerate}
+    \textbf{R\'eponse~: b (les m\'ethodes supervis\'ees
+    n\'ecessitent une variable cible).}
+
+  \item Dans $K$-means, que minimise-t-on~?
+    \begin{enumerate}
+      \item L'inertie inter-classe
+      \item L'inertie intra-classe
+      \item La variance totale
+      \item Le nombre de groupes
+    \end{enumerate}
+    \textbf{R\'eponse~: b (l'inertie intra-classe).}
+
+  \item Quel crit\`ere de saut est le plus utilis\'e en CAH~?
+    \begin{enumerate}
+      \item Saut minimum
+      \item Saut maximum
+      \item Lien moyen
+      \item Ward
+    \end{enumerate}
+    \textbf{R\'eponse~: d (Ward, qui minimise la perte d'inertie
+    intra-classe).}
+
+  \item Que mesure le support d'un itemset $X$~?
+    \begin{enumerate}
+      \item La probabilit\'e de $X$ sachant $Y$
+      \item La fr\'equence de $X$ dans les transactions
+      \item La force de l'association $X \Rightarrow Y$
+      \item Le nombre d'items dans $X$
+    \end{enumerate}
+    \textbf{R\'eponse~: b (fr\'equence de $X$ dans les
+    transactions).}
+
+  \item Un lift $> 1$ indique~:
+    \begin{enumerate}
+      \item Une association n\'egative
+      \item Une association positive
+      \item Aucune association
+      \item Une erreur de calcul
+    \end{enumerate}
+    \textbf{R\'eponse~: b (association positive~: les items
+    apparaissent plus souvent ensemble que sous l'ind\'ependance).}
+
+  \item Quelle analyse factorielle est adapt\'ee aux donn\'ees
+    quantitatives~?
+    \begin{enumerate}
+      \item ACM
+      \item ACP
+      \item AFDM
+      \item AFC
+    \end{enumerate}
+    \textbf{R\'eponse~: b (ACP -- Analyse en Composantes
+    Principales).}
+
+  \item Quelle analyse factorielle est adapt\'ee aux donn\'ees
+    qualitatives~?
+    \begin{enumerate}
+      \item ACP
+      \item ACM
+      \item AFDM
+      \item Toutes les r\'eponses
+    \end{enumerate}
+    \textbf{R\'eponse~: b (ACM -- Analyse des Correspondances
+    Multiples).}
+
+  \item Qu'est-ce que le \emph{tandem clustering}~?
+    \begin{enumerate}
+      \item Appliquer deux classifications successives
+      \item Appliquer une analyse factorielle puis une
+        classification
+      \item Appliquer une classification puis une analyse
+        factorielle
+      \item M\'elanger deux algorithmes de classification
+    \end{enumerate}
+    \textbf{R\'eponse~: b (analyse factorielle puis
+    classification).}
+
+  \item Quelle propri\'et\'e permet l'\'elagage dans l'algorithme
+    Apriori~?
+    \begin{enumerate}
+      \item La monotonie du support
+      \item L'anti-monotonie du support
+      \item La sym\'etrie de la confiance
+      \item La transitivit\'e du lift
+    \end{enumerate}
+    \textbf{R\'eponse~: b (anti-monotonie~: tout sur-ensemble
+    d'un itemset non fr\'equent est non fr\'equent).}
+
+  \item Dans les cartes de Kohonen, que pr\'eserve la projection~?
+    \begin{enumerate}
+      \item Les distances exactes entre individus
+      \item La topologie des donn\'ees
+      \item La variance des variables
+      \item L'ordre des individus
+    \end{enumerate}
+    \textbf{R\'eponse~: b (la topologie~: deux individus proches
+    dans l'espace original restent proches sur la grille).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{AudigierNiang2026}
+  V.~Audigier, N.~Niang.
+  \newblock \emph{STA211~: M\'ethodes non-supervis\'ees
+    (introduction)}.
+  \newblock Cours CNAM, 20 f\'evrier 2026.
+
+\bibitem{MacQueen1967}
+  J.~MacQueen.
+  \newblock \emph{Some methods for classification and analysis of
+    multivariate observations}.
+  \newblock Proc. 5th Berkeley Symp. Math. Statist. Probab., 1967.
+
+\bibitem{AgrawalSrikant1994}
+  R.~Agrawal, R.~Srikant.
+  \newblock \emph{Fast algorithms for mining association rules}.
+  \newblock VLDB, 1994.
+
+\bibitem{Kohonen1982}
+  T.~Kohonen.
+  \newblock \emph{Self-organized formation of topologically correct
+    feature maps}.
+  \newblock Biological Cybernetics, 43(1):59--69, 1982.
+
+\bibitem{Rakotomalala}
+  R.~Rakotomalala.
+  \newblock \emph{Classification ascendante hi\'erarchique}.
+  \newblock \url{https://eric.univ-lyon2.fr/ricco/cours/cours/CAH.pdf}
+
+\end{thebibliography}
+
+\end{document}

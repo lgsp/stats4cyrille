@@ -1,0 +1,19 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Objectifs et contexte}{2}{section.1}%
+\contentsline {section}{\numberline {2}M\'ethodes hi\'erarchiques}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}M\'ethode ascendante (CAH)}{2}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}Indices de similarit\'e/dissimilarit\'e}{2}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}Crit\`eres d'agr\'egation}{3}{subsubsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.2}M\'ethode descendante}{3}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Partitionnement direct}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}M\'ethode CLV (Vigneau \& Qannari, 2003)}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}ClustOfVar (Chavent et al., 2012)}{4}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Application aux donn\'ees German Credit}{4}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Chargement et importation}{4}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}CAH avec ClustOfVar}{4}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}CAH avec CluMix}{4}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Partitionnement avec ClustOfVar}{5}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Partitionnement avec PAM}{5}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Comparaison des partitions}{5}{subsection.4.6}%
+\contentsline {section}{\numberline {5}Conclusion}{5}{section.5}%
+\contentsline {section}{Questions cl\'es (QCM)}{6}{section.5}%

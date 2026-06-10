@@ -1,0 +1,492 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\usepackage{multirow}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- R\'eseaux de neurones (cours 3)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large R\'eseaux de neurones -- Cours 3 \\[2pt]
+\small Histoire du Deep Learning, architectures modernes CNN
+  et perspectives}
+\author{Nicolas Thome (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Ce cours retrace l'histoire du Deep Learning des ann\'ees 80 \`a nos
+jours, puis pr\'esente les modules modernes des CNN (ReLU, dropout,
+data augmentation, padding), le transfert d'apprentissage (deep
+features, fine-tuning), l'adaptation de t\^ache (localisation,
+segmentation) et les d\'efis ouverts (apprentissage non supervis\'e,
+GANs, VQA).
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Histoire du Deep Learning}
+% ===================================================================
+
+\subsection{Ann\'ees 80 : LeNet-5 (d\'ej\`a vu au cours 2)}
+
+LeNet-5 (LeCun et al., 1989) pose les bases des CNN~:
+convolution + pooling + FC. $\sim$60\,000 param\`etres, erreur
+test 0,95\,\% sur MNIST (0,8\,\% avec distortions).
+D\'eploiement pour la lecture de codes postaux.
+
+\subsection{Ann\'ees 90 : hiver du Deep Learning}
+
+\begin{itemize}
+  \item R\'eseaux profonds per\c{c}us comme de la \og black
+    magic\fg~: bo\^ite noire, manque d'interpr\'etabilit\'e,
+    optimisation non convexe difficile.
+  \item \^Age d'or des m\'ethodes \`a noyaux~: SVM, kernel trick,
+    th\'eorie de la g\'en\'eralisation, optimisation convexe.
+\end{itemize}
+
+\subsection{Ann\'ees 2000 : Sac de mots (BoW)}
+
+\begin{itemize}
+  \item \textbf{BoW textuel}~: document $=$ histogramme
+    d'occurrences de mots, puis classifieur SVM.
+  \item \textbf{BoW visuel (BoVW)}~: dictionnaire visuel construit
+    par clustering de descripteurs locaux (SIFT) extraits de
+    r\'egions d'images.
+  \item \'Etat de l'art jusqu'en 2012~: BoW + SVM.
+\end{itemize}
+
+\subsection{2006 : renouveau du Deep Learning}
+
+Hinton et al. proposent un apprentissage non supervis\'e pour les
+Deep Belief Nets (DBN), utilis\'e comme initialisation avant
+r\'etropropagation supervis\'ee. R\'esultats th\'eoriques montrent
+l'am\'elioration de la qualit\'e du mod\`ele avec la profondeur.
+
+\subsection{2010 : perc\'ee en reconnaissance vocale}
+
+Premier grand succ\`es du DL sur grands jeux de donn\'ees~:
+\emph{Context-Dependent Pre-trained Deep Neural Networks for Large
+Vocabulary Speech Recognition} (Dahl et al., 2010).
+
+\subsection{2012 : la r\'evolution AlexNet}
+
+\paragraph{Contexte~:} ImageNet ILSVRC~: 1,2\,M images,
+1\,000 classes. \'Evaluation~: top-5 error.
+
+\paragraph{AlexNet (Krizhevsky et al., 2012)}~:
+60\,M param\`etres, 650\,K neurones, 630\,M connexions.
+\begin{itemize}
+  \item 5 couches convolutionnelles + 3 couches FC.
+  \item Convolution + ReLU + Pooling.
+  \item Apprentissage sur 2 GPU pendant 1 semaine.
+  \item Am\'eliorations architecturales~: ReLU (vs sigmo\"ide),
+    dropout, data augmentation, overlapping pooling (LRN).
+\end{itemize}
+
+\begin{important}
+  AlexNet a la m\^eme architecture g\'en\'erale que LeNet, mais
+  bien plus grande (60\,M param\`etres vs 60\,K)~: plus de donn\'ees
+  et GPU rendent possible l'entra\^inement de grands mod\`eles.
+\end{important}
+
+% ===================================================================
+\section{Modules modernes des CNN}
+% ===================================================================
+
+\subsection{Non-lin\'earit\'es}
+
+\begin{itemize}
+  \item \textbf{ReLU (Rectified Linear Unit)}~: $y = \max(0, x)$.
+    R\'esout le probl\`eme du gradient vanishing, acc\'el\`ere
+    l'apprentissage et la convergence.
+  \item \textbf{Leaky ReLU (LReLU)}~: $y = \max(\lambda x, x)$
+    avec $\lambda$ pr\'ed\'efini empiriquement.
+  \item \textbf{PReLU (Parametric ReLU)}~: $\lambda_k$ appris
+    pendant l'entra\^inement.
+  \item \textbf{RReLU (Randomized ReLU)}~: $\lambda$ \'echantillonn\'e
+    al\'eatoirement pendant l'entra\^inement, fix\'e au test.
+  \item \textbf{ELU (Exponential Linear Unit)}~: $y = x$ si $x>0$,
+    $y = \lambda(e^x - 1)$ sinon.
+\end{itemize}
+
+\subsection{Data augmentation}
+
+Perturbation des images d'entra\^inement~: mirroring, rotation,
+stretching, shearing, distortion, perturbation de couleur, etc.
+Augmente la taille de l'ensemble d'entra\^inement et la robustesse
+aux variations non pertinentes. Appliqu\'ee en train ET en test.
+
+\subsection{Dropout (Hinton et al., 2012)}
+
+\begin{itemize}
+  \item Omission al\'eatoire de chaque unit\'e cach\'ee avec
+    probabilit\'e $0{,}5$ pendant l'entra\^inement.
+  \item Technique de r\'egularisation limitant le sur-apprentissage
+    (meilleure g\'en\'eralisation).
+  \item Emp\^eche la co-adaptation~: un neurone ne devient utile
+    qu'en pr\'esence d'autres neurones sp\'ecifiques.
+  \item Interpr\'etation~: moyenne sur de nombreux r\'eseaux.
+  \item Au test~: toutes les unit\'es sont utilis\'ees mais les
+    poids sont multipli\'es par $0{,}5$ (approximation de la
+    moyenne g\'eom\'etrique).
+\end{itemize}
+
+\subsection{Padding}
+
+Le \textbf{zero-padding} ajoute des z\'eros autour de l'entr\'ee
+pour \'eviter le r\'etr\'ecissement rapide de la dimension
+spatiale. Exemple~: padding $p$ sur une image $n\times n$ avec
+filtre $f\times f$ \`a stride $1$ donne une sortie
+$(n + 2p - f + 1) \times (n + 2p - f + 1)$.
+
+\subsection{Overlapping pooling}
+
+Pooling avec une taille de fen\^etre $z$ sup\'erieure au stride $s$
+($z > s$). Utilis\'e dans AlexNet (LRN).
+
+% ===================================================================
+\section{Outils et biblioth\`eques}
+% ===================================================================
+
+Frameworks disponibles~:
+\begin{itemize}
+  \item \textbf{Caffe / Decaf}~: script, non modulaire.
+  \item \textbf{MatConvNet} (Matlab)~: facile d'utilisation.
+  \item \textbf{Torch} (Lua)~: efficacit\'e, modularit\'e.
+  \item \textbf{TensorFlow / Theano / PyTorch} (Python)~:
+    auto-diff\'erentiation.
+  \item \textbf{Keras}~: wrapper haut-niveau sur TensorFlow/Theano.
+\end{itemize}
+
+\subsection{Exemple Keras : r\'egression logistique sur MNIST}
+
+\begin{lstlisting}[language=Python]
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from keras.optimizers import SGD
+from keras.datasets import mnist
+
+model = Sequential()
+model.add(Dense(10, input_dim=784, name='fc1'))
+model.add(Activation('softmax'))
+
+sgd = SGD(lr=0.5)
+model.compile(loss='categorical_crossentropy',
+              optimizer=sgd, metrics=['accuracy'])
+
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+# pre-processing ...
+model.fit(X_train, y_train, batch_size=128,
+          epochs=20, verbose=1)
+\end{lstlisting}
+
+\subsection{Exemple Keras : CNN}
+
+\begin{lstlisting}[language=Python]
+model = Sequential()
+model.add(Conv2D(32, kernel_size=5,
+          activation='sigmoid', input_shape=(28,28,1),
+          padding='same'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Conv2D(64, (5, 5), activation='sigmoid', padding='same'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Flatten())
+model.add(Dense(100, activation='sigmoid'))
+model.add(Dense(nb_classes, activation='softmax'))
+\end{lstlisting}
+
+% ===================================================================
+\section{Transfert d'apprentissage}
+% ===================================================================
+
+\subsection{Probl\'ematique}
+
+Les CNN profonds n\'ecessitent de grands jeux de donn\'ees
+annot\'es. Le nombre \'elev\'e de param\`etres rend l'entra\^inement
+\emph{from scratch} difficile sur les petits jeux de donn\'ees.
+
+\subsection{Deep Features (transfert pur)}
+
+On extrait les activations d'une couche comme vecteur de
+caract\'eristiques~: \textbf{Deep Features} (DF). Ces DF sont
+utilis\'ees comme descripteurs \og off-the-shelf\fg{} pour n'importe quelle t\^ache visuelle.
+
+\subsection{Fine-tuning}
+
+On reprend un mod\`ele pr\'e-entra\^in\'e sur ImageNet et on
+continue l'entra\^inement (\emph{fine-tuning}) sur le nouveau jeu
+de donn\'ees. Meilleure adaptation au domaine cible.
+
+\subsection{R\'esultats exp\'erimentaux}
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Dataset & Taille & Mod\`ele & Perf. \\
+\midrule
+\multirow{4}{*}{VOC'07 (20 classes)} & \multirow{4}{*}{$\sim$5\,K ex} & From scratch & 39{,}8 mAP \\
+ & & BoW & 61{,}6 mAP \\
+ & & Transfert (DF) & 83{,}2 mAP \\
+ & & Fine-tuning & 85{,}7 mAP \\
+\midrule
+\multirow{3}{*}{M2CAI'16 (8 classes)} & \multirow{3}{*}{$6\cdot10^5$ ex} & Transfert & 59{,}3\,\% \\
+ & & From scratch & 69{,}1\,\% \\
+ & & Fine-tuning & 79{,}1\,\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+  \item Petits jeux~: transfert (DF) $>$ Bag of Words.
+  \item Jeux moyens~: from scratch possible et comp\'etitif.
+  \item Fine-tuning toujours meilleur (petits et grands jeux).
+\end{itemize}
+
+\subsection{Adaptation de t\^ache}
+
+\begin{itemize}
+  \item \textbf{Localisation (R-CNN)}~: r\'egions propos\'ees,
+    extraction de DF, classification. Sur VOC'07~: 58{,}5 mAP
+    (vs 34{,}3 pour DPM HoG).
+  \item \textbf{Segmentation s\'emantique (FCN)}~: architecture
+    encodeur-d\'ecodeur avec convolution 1$\times$1 et
+    d\'econvolution (Chen et al., ICLR'15).
+\end{itemize}
+
+% ===================================================================
+\section{Enjeux actuels et perspectives}
+% ===================================================================
+
+\subsection{Apprentissage non supervis\'e}
+
+Le succ\`es du DL est essentiellement supervis\'e. Solution~:
+transformer le probl\`eme non supervis\'e en un probl\`eme
+supervis\'e~: \textbf{auto-supervision}.
+
+\begin{important}
+  \textbf{Generative Adversarial Networks (GAN)} (Goodfellow et al.,
+  2014)~: jeu \`a 2 joueurs (g\'en\'erateur vs discriminateur).
+  Le g\'en\'erateur apprend la distribution des donn\'ees.
+\end{important}
+
+\subsection{Nouvelles t\^aches en IA}
+
+\textbf{VQA (Visual Question Answering)}~: r\'epondre \`a des
+questions en langage naturel sur une image. Combinaison vision
++ langage.
+
+\subsection{Limites actuelles}
+
+\begin{itemize}
+  \item Compr\'ehension formelle encore limit\'ee.
+  \item Optimisation non convexe.
+  \item Capacit\'e \`a d\'em\'eler les vari\'et\'es (manifold
+    untangling).
+  \item Robustesse au sur-apprentissage et g\'en\'eralisation.
+\end{itemize}
+
+\subsection{Conclusion}
+
+Le DL a un impact \'enorme sur les r\'esultats exp\'erimentaux,
+mais la compr\'ehension th\'eorique et les capacit\'es
+d'apprentissage non supervis\'e restent des d\'efis ouverts.
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+% ===================================================================
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quelle ann\'ee marque la perc\'ee des CNN sur ImageNet~?
+    \begin{enumerate}
+      \item 2006
+      \item 2010
+      \item 2012
+      \item 2014
+    \end{enumerate}
+    \textbf{R\'eponse~: c (2012, AlexNet).}
+
+  \item Quel \'etait l'\'etat de l'art en classification image
+    avant 2012~?
+    \begin{enumerate}
+      \item R\'eseaux fully connected
+      \item BoW + SVM
+      \item R\'eseaux bay\'esiens
+      \item For\^ets al\'eatoires
+    \end{enumerate}
+    \textbf{R\'eponse~: b (BoW + SVM).}
+
+  \item Pourquoi les r\'eseaux profonds ont-ils souffert dans les
+    ann\'ees 90~?
+    \begin{enumerate}
+      \item Manque de donn\'ees
+      \item Optimisation non convexe difficile et manque
+        d'interpr\'etabilit\'e
+      \item Mat\'eriel trop lent
+      \item Tous les choix pr\'ec\'edents
+    \end{enumerate}
+    \textbf{R\'eponse~: d (manque de donn\'ees, optimisation non
+    convexe, lenteur, manque d'interpr\'etabilit\'e).}
+
+  \item Quelle fonction d'activation a aid\'e \`a r\'esoudre le
+    probl\`eme du gradient vanishing~?
+    \begin{enumerate}
+      \item Sigmo\"ide
+      \item Tanh
+      \item ReLU
+      \item Softmax
+    \end{enumerate}
+    \textbf{R\'eponse~: c (ReLU).}
+
+  \item Quel est le r\^ole du dropout~?
+    \begin{enumerate}
+      \item Acc\'el\'erer l'entra\^inement
+      \item R\'egulariser pour \'eviter le sur-apprentissage
+      \item Ajouter du bruit aux donn\'ees
+      \item Initialiser les poids
+    \end{enumerate}
+    \textbf{R\'eponse~: b (r\'egularisation par omission al\'eatoire
+    de neurones).}
+
+  \item Que sont les Deep Features (DF)~?
+    \begin{enumerate}
+      \item Les poids de la derni\`ere couche
+      \item Les activations d'une couche utilis\'ees comme
+        descripteurs
+      \item Les gradients de la fonction de perte
+      \item Les hyper-param\`etres du r\'eseau
+    \end{enumerate}
+    \textbf{R\'eponse~: b (activations extraites d'une couche).}
+
+  \item Quelle m\'ethode donne les meilleures performances sur un
+    jeu de donn\'ees de taille moyenne ($10^5$ ex)~?
+    \begin{enumerate}
+      \item Transfert (DF)
+      \item From scratch
+      \item Fine-tuning
+      \item BoW
+    \end{enumerate}
+    \textbf{R\'eponse~: c (fine-tuning).}
+
+  \item Quel est le principe des GANs~?
+    \begin{enumerate}
+      \item Un seul r\'eseau qui g\'en\`ere des donn\'ees
+      \item Un jeu \`a 2 joueurs~: g\'en\'erateur vs discriminateur
+      \item Un r\'eseau qui segmente des images
+      \item Un r\'eseau qui traduit des langues
+    \end{enumerate}
+    \textbf{R\'eponse~: b (jeu \`a 2 joueurs, GAN).}
+
+  \item Quel score R-CNN a-t-il obtenu sur VOC'07 pour la
+    localisation~?
+    \begin{enumerate}
+      \item 34{,}3 mAP
+      \item 58{,}5 mAP
+      \item 83{,}2 mAP
+      \item 95{,}7 mAP
+    \end{enumerate}
+    \textbf{R\'eponse~: b (58{,}5 mAP).}
+
+  \item Parmi ces \'el\'ements, lequel n'est PAS un module moderne
+    des CNN~?
+    \begin{enumerate}
+      \item ReLU
+      \item Dropout
+      \item Backpropagation
+      \item Data augmentation
+    \end{enumerate}
+    \textbf{R\'eponse~: c (backpropagation existe depuis les
+    ann\'ees 80).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{KSH12}
+  A.~Krizhevsky, I.~Sutskever, G.~E.~Hinton.
+  \newblock \emph{ImageNet Classification with Deep Convolutional
+    Neural Networks}.
+  \newblock NIPS, 2012.
+
+\bibitem{HOT06}
+  G.~E.~Hinton, S.~Osindero, Y.-W.~Teh.
+  \newblock \emph{A fast learning algorithm for deep belief nets}.
+  \newblock Neural Computation, 18(7):1527--1554, 2006.
+
+\bibitem{HSK+12}
+  G.~E.~Hinton, N.~Srivastava, A.~Krizhevsky, I.~Sutskever,
+  R.~Salakhutdinov.
+  \newblock \emph{Improving neural networks by preventing
+    co-adaptation of feature detectors}.
+  \newblock arXiv:1207.0580, 2012.
+
+\bibitem{GPAM+14}
+  I.~Goodfellow, J.~Pouget-Abadie, M.~Mirza, B.~Xu, D.~Warde-Farley,
+  S.~Ozair, A.~Courville, Y.~Bengio.
+  \newblock \emph{Generative Adversarial Nets}.
+  \newblock NIPS, 2014.
+
+\bibitem{ARS+16}
+  H.~Azizpour, A.~S.~Razavian, J.~Sullivan, A.~Maki, S.~Carlsson.
+  \newblock \emph{Factors of transferability for a generic convnet
+    representation}.
+  \newblock IEEE TPAMI, 38(9):1790--1802, 2016.
+
+\end{thebibliography}
+
+\end{document}

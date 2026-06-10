@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 &mdash; R&eacute;seaux de neurones &mdash; Cours 3 &mdash; Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; R&eacute;seaux de neurones &mdash; Cours 3</h1>
+<p class="subtitle">Histoire du Deep Learning, CNN modernes, transfert d&rsquo;apprentissage et perspectives &mdash; 14 juin 2026 &mdash; N. Thome</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#histoire">Histoire du Deep Learning</a></li>
+    <li><a href="#modules">Modules modernes des CNN</a></li>
+    <li><a href="#outils">Outils et biblioth&egrave;ques</a></li>
+    <li><a href="#transfert">Transfert d&rsquo;apprentissage</a></li>
+    <li><a href="#enjeux">Enjeux actuels et perspectives</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="histoire">1. Histoire du Deep Learning</h2>
+<!-- ============================================ -->
+
+<h3>1.1 Ann&eacute;es 80 : LeNet-5</h3>
+
+<p>LeNet-5 (LeCun et al., 1989) pose les bases des CNN : convolution + pooling + FC. ~60&thinsp;000 param&egrave;tres, erreur test 0,95&thinsp;% sur MNIST (0,8&thinsp;% avec distortions). D&eacute;ploiement pour la lecture de codes postaux.</p>
+
+<h3>1.2 Ann&eacute;es 90 : hiver du Deep Learning</h3>
+
+<ul>
+    <li>R&eacute;seaux profonds per&ccedil;us comme &laquo; black magic &raquo; : bo&icirc;te noire, manque d&rsquo;interpr&eacute;tabilit&eacute;, optimisation non convexe difficile.</li>
+    <li>&Acirc;ge d&rsquo;or des m&eacute;thodes &agrave; noyaux : SVM, kernel trick, th&eacute;orie de la g&eacute;n&eacute;ralisation, optimisation convexe.</li>
+</ul>
+
+<h3>1.3 Ann&eacute;es 2000 : Sac de mots (BoW)</h3>
+
+<ul>
+    <li><strong>BoW textuel</strong> : document = histogramme d&rsquo;occurrences de mots, puis classifieur SVM.</li>
+    <li><strong>BoW visuel (BoVW)</strong> : dictionnaire visuel construit par clustering de descripteurs locaux (SIFT) extraits de r&eacute;gions d&rsquo;images.</li>
+    <li>&Eacute;tat de l&rsquo;art jusqu&rsquo;en 2012 : BoW + SVM.</li>
+</ul>
+
+<h3>1.4 2006 : renouveau du Deep Learning</h3>
+
+<p>Hinton et al. proposent un apprentissage non supervis&eacute; pour les Deep Belief Nets (DBN), utilis&eacute; comme initialisation avant r&eacute;tropropagation supervis&eacute;e. R&eacute;sultats th&eacute;oriques montrent l&rsquo;am&eacute;lioration de la qualit&eacute; du mod&egrave;le avec la profondeur.</p>
+
+<h3>1.5 2010 : perc&eacute;e en reconnaissance vocale</h3>
+
+<p>Premier grand succ&egrave;s du DL sur grands jeux de donn&eacute;es : <em>Context-Dependent Pre-trained Deep Neural Networks for Large Vocabulary Speech Recognition</em> (Dahl et al., 2010).</p>
+
+<h3>1.6 2012 : la r&eacute;volution AlexNet</h3>
+
+<p><strong>Contexte :</strong> ImageNet ILSVRC : 1,2&thinsp;M images, 1&thinsp;000 classes. &Eacute;valuation : top-5 error.</p>
+
+<p><strong>AlexNet</strong> (Krizhevsky et al., 2012) : 60&thinsp;M param&egrave;tres, 650&thinsp;K neurones, 630&thinsp;M connexions.</p>
+
+<ul>
+    <li>5 couches convolutionnelles + 3 couches FC.</li>
+    <li>Convolution + ReLU + Pooling.</li>
+    <li>Apprentissage sur 2 GPU pendant 1 semaine.</li>
+    <li>Am&eacute;liorations architecturales : ReLU (vs sigmo&iuml;de), dropout, data augmentation, overlapping pooling (LRN).</li>
+</ul>
+
+<div class="info-box">
+<strong>&Agrave; retenir :</strong> AlexNet a la m&ecirc;me architecture g&eacute;n&eacute;rale que LeNet, mais bien plus grande (60&thinsp;M param&egrave;tres vs 60&thinsp;K) : plus de donn&eacute;es et GPU rendent possible l&rsquo;entra&icirc;nement de grands mod&egrave;les.
+</div>
+
+<!-- ============================================ -->
+<h2 id="modules">2. Modules modernes des CNN</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Non-lin&eacute;arit&eacute;s</h3>
+
+<table>
+<tr><th>Activation</th><th>Formule</th><th>Propri&eacute;t&eacute;</th></tr>
+<tr><td>ReLU</td><td>$y = \max(0, x)$</td><td>R&eacute;sout le gradient vanishing, convergence rapide</td></tr>
+<tr><td>Leaky ReLU</td><td>$y = \max(\lambda x, x)$</td><td>$\lambda$ pr&eacute;d&eacute;fini empiriquement</td></tr>
+<tr><td>PReLU</td><td>$y = \max(\lambda_k x, x)$</td><td>$\lambda_k$ appris pendant l&rsquo;entra&icirc;nement</td></tr>
+<tr><td>RReLU</td><td>$y = \max(\lambda_{nk} x, x)$</td><td>$\lambda$ al&eacute;atoire en train, fix&eacute; en test</td></tr>
+<tr><td>ELU</td><td>$y = x\;(x&gt;0),\; \lambda(e^x-1)\;(x\le0)$</td><td>$\lambda$ fixe</td></tr>
+</table>
+
+<h3>2.2 Data augmentation</h3>
+
+<p>Perturbation des images d&rsquo;entra&icirc;nement : mirroring, rotation, stretching, shearing, distortion, perturbation de couleur, etc. Augmente la taille de l&rsquo;ensemble d&rsquo;entra&icirc;nement et la robustesse aux variations non pertinentes. Appliqu&eacute;e en train ET en test.</p>
+
+<h3>2.3 Dropout</h3>
+
+<ul>
+    <li>Omission al&eacute;atoire de chaque unit&eacute; cach&eacute;e avec probabilit&eacute; $0{,}5$ pendant l&rsquo;entra&icirc;nement.</li>
+    <li>Technique de r&eacute;gularisation limitant le sur-apprentissage.</li>
+    <li>Emp&ecirc;che la co-adaptation : un neurone ne devient utile qu&rsquo;en pr&eacute;sence d&rsquo;autres neurones sp&eacute;cifiques.</li>
+    <li>Interpr&eacute;tation : moyenne sur de nombreux r&eacute;seaux.</li>
+    <li>Au test : toutes les unit&eacute;s utilis&eacute;es mais les poids multipli&eacute;s par $0{,}5$.</li>
+</ul>
+
+<h3>2.4 Padding</h3>
+
+<p>Le <strong>zero-padding</strong> ajoute des z&eacute;ros autour de l&rsquo;entr&eacute;e pour &eacute;viter le r&eacute;tr&eacute;cissement rapide de la dimension spatiale.</p>
+
+<div class="formula">
+$\text{sortie} = (n + 2p - f + 1) \times (n + 2p - f + 1)$
+</div>
+
+<h3>2.5 Overlapping pooling</h3>
+
+<p>Pooling avec taille de fen&ecirc;tre $z$ sup&eacute;rieure au stride $s$ ($z &gt; s$). Utilis&eacute; dans AlexNet (LRN).</p>
+
+<!-- ============================================ -->
+<h2 id="outils">3. Outils et biblioth&egrave;ques</h2>
+<!-- ============================================ -->
+
+<ul>
+    <li><strong>Caffe / Decaf</strong> : script, non modulaire.</li>
+    <li><strong>MatConvNet</strong> (Matlab) : facile d&rsquo;utilisation.</li>
+    <li><strong>Torch</strong> (Lua) : efficacit&eacute;, modularit&eacute;.</li>
+    <li><strong>TensorFlow / Theano / PyTorch</strong> (Python) : auto-diff&eacute;rentiation.</li>
+    <li><strong>Keras</strong> : wrapper haut-niveau sur TensorFlow/Theano.</li>
+</ul>
+
+<h3>3.1 Exemple Keras : r&eacute;gression logistique sur MNIST</h3>
+
+<div class="code-block"><span class="kw">from</span> keras.models <span class="kw">import</span> Sequential
+<span class="kw">from</span> keras.layers <span class="kw">import</span> Dense, Activation
+<span class="kw">from</span> keras.optimizers <span class="kw">import</span> SGD
+<span class="kw">from</span> keras.datasets <span class="kw">import</span> mnist
+
+model = Sequential()
+model.add(Dense(<span class="num">10</span>, input_dim=<span class="num">784</span>, name=<span class="str">'fc1'</span>))
+model.add(Activation(<span class="str">'softmax'</span>))
+
+sgd = SGD(lr=<span class="num">0.5</span>)
+model.compile(loss=<span class="str">'categorical_crossentropy'</span>,
+              optimizer=sgd, metrics=[<span class="str">'accuracy'</span>])
+
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+<span class="cm"># pre-processing ...</span>
+model.fit(X_train, y_train, batch_size=<span class="num">128</span>,
+          epochs=<span class="num">20</span>, verbose=<span class="num">1</span>)</div>
+
+<h3>3.2 Exemple Keras : CNN</h3>
+
+<div class="code-block">model = Sequential()
+model.add(Conv2D(<span class="num">32</span>, kernel_size=<span class="num">5</span>,
+          activation=<span class="str">'sigmoid'</span>, input_shape=(<span class="num">28</span>,<span class="num">28</span>,<span class="num">1</span>),
+          padding=<span class="str">'same'</span>))
+model.add(MaxPooling2D(pool_size=(<span class="num">2</span>, <span class="num">2</span>)))
+model.add(Conv2D(<span class="num">64</span>, (<span class="num">5</span>, <span class="num">5</span>), activation=<span class="str">'sigmoid'</span>, padding=<span class="str">'same'</span>))
+model.add(MaxPooling2D(pool_size=(<span class="num">2</span>, <span class="num">2</span>)))
+model.add(Flatten())
+model.add(Dense(<span class="num">100</span>, activation=<span class="str">'sigmoid'</span>))
+model.add(Dense(nb_classes, activation=<span class="str">'softmax'</span>))</div>
+
+<!-- ============================================ -->
+<h2 id="transfert">4. Transfert d&rsquo;apprentissage</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Probl&eacute;matique</h3>
+
+<p>Les CNN profonds n&eacute;cessitent de grands jeux de donn&eacute;es annot&eacute;s. Le nombre &eacute;lev&eacute; de param&egrave;tres rend l&rsquo;entra&icirc;nement <em>from scratch</em> difficile sur les petits jeux de donn&eacute;es.</p>
+
+<h3>4.2 Deep Features (transfert pur)</h3>
+
+<p>On extrait les activations d&rsquo;une couche comme vecteur de caract&eacute;ristiques : <strong>Deep Features</strong> (DF). Ces DF sont utilis&eacute;es comme descripteurs &laquo; off-the-shelf &raquo; pour n&rsquo;importe quelle t&acirc;che visuelle.</p>
+
+<h3>4.3 Fine-tuning</h3>
+
+<p>On reprend un mod&egrave;le pr&eacute;-entra&icirc;n&eacute; sur ImageNet et on continue l&rsquo;entra&icirc;nement (<em>fine-tuning</em>) sur le nouveau jeu de donn&eacute;es.</p>
+
+<h3>4.4 R&eacute;sultats exp&eacute;rimentaux</h3>
+
+<table>
+<tr><th>Dataset</th><th>Taille</th><th>Mod&egrave;le</th><th>Perf.</th></tr>
+<tr><td rowspan="4">VOC&rsquo;07 (20 classes)</td><td rowspan="4">~5&thinsp;K ex</td><td>From scratch</td><td>39,8 mAP</td></tr>
+<tr><td>BoW</td><td>61,6 mAP</td></tr>
+<tr><td>Transfert (DF)</td><td>83,2 mAP</td></tr>
+<tr><td>Fine-tuning</td><td>85,7 mAP</td></tr>
+<tr><td rowspan="3">M2CAI&rsquo;16 (8 classes)</td><td rowspan="3">$6\cdot10^5$ ex</td><td>Transfert</td><td>59,3 %</td></tr>
+<tr><td>From scratch</td><td>69,1 %</td></tr>
+<tr><td>Fine-tuning</td><td>79,1 %</td></tr>
+</table>
+
+<ul>
+    <li>Petits jeux : transfert (DF) &gt; Bag of Words.</li>
+    <li>Jeux moyens : from scratch possible et comp&eacute;titif.</li>
+    <li>Fine-tuning toujours meilleur (petits et grands jeux).</li>
+</ul>
+
+<h3>4.5 Adaptation de t&acirc;che</h3>
+
+<ul>
+    <li><strong>Localisation (R-CNN)</strong> : r&eacute;gions propos&eacute;es, extraction de DF, classification. Sur VOC&rsquo;07 : 58,5 mAP (vs 34,3 pour DPM HoG).</li>
+    <li><strong>Segmentation s&eacute;mantique (FCN)</strong> : architecture encodeur-d&eacute;codeur avec convolution 1$\times$1 et d&eacute;convolution (Chen et al., ICLR&rsquo;15).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="enjeux">5. Enjeux actuels et perspectives</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Apprentissage non supervis&eacute;</h3>
+
+<p>Le succ&egrave;s du DL est essentiellement supervis&eacute;. Solution : transformer le probl&egrave;me non supervis&eacute; en un probl&egrave;me supervis&eacute; : <strong>auto-supervision</strong>.</p>
+
+<div class="info-box">
+<strong>GAN</strong> (Goodfellow et al., 2014) : jeu &agrave; 2 joueurs (g&eacute;n&eacute;rateur vs discriminateur). Le g&eacute;n&eacute;rateur apprend la distribution des donn&eacute;es.
+</div>
+
+<h3>5.2 Nouvelles t&acirc;ches en IA</h3>
+
+<p><strong>VQA (Visual Question Answering)</strong> : r&eacute;pondre &agrave; des questions en langage naturel sur une image. Combinaison vision + langage.</p>
+
+<h3>5.3 Limites actuelles</h3>
+
+<ul>
+    <li>Compr&eacute;hension formelle encore limit&eacute;e.</li>
+    <li>Optimisation non convexe.</li>
+    <li>Capacit&eacute; &agrave; d&eacute;m&ecirc;ler les vari&eacute;t&eacute;s (manifold untangling).</li>
+    <li>Robustesse au sur-apprentissage et g&eacute;n&eacute;ralisation.</li>
+</ul>
+
+<p>Le DL a un impact &eacute;norme sur les r&eacute;sultats exp&eacute;rimentaux, mais la compr&eacute;hension th&eacute;orique et les capacit&eacute;s d&rsquo;apprentissage non supervis&eacute; restent des d&eacute;fis ouverts.</p>
+
+<!-- ============================================ -->
+<h2 id="qcm">6. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quelle ann\u00e9e marque la perc\u00e9e des CNN sur ImageNet\u00a0?",
+        options: ["2006", "2010", "2012", "2014"],
+        correct: 2,
+        expl: "2012 : AlexNet (Krizhevsky et al., 2012) remporte l\u2019ILSVRC."
+    },
+    {
+        q: "Quel \u00e9tait l\u2019\u00e9tat de l\u2019art en classification image avant 2012\u00a0?",
+        options: ["R\u00e9seaux fully connected", "BoW + SVM", "R\u00e9seaux bay\u00e9siens", "For\u00eats al\u00e9atoires"],
+        correct: 1,
+        expl: "BoW + SVM \u00e9tait l\u2019\u00e9tat de l\u2019art avant la r\u00e9volution AlexNet."
+    },
+    {
+        q: "Pourquoi les r\u00e9seaux profonds ont-ils souffert dans les ann\u00e9es 90\u00a0?",
+        options: ["Manque de donn\u00e9es", "Optimisation non convexe difficile", "Manque d\u2019interpr\u00e9tabilit\u00e9", "Tous les choix pr\u00e9c\u00e9dents"],
+        correct: 3,
+        expl: "Manque de donn\u00e9es, optimisation non convexe, mat\u00e9riel lent, manque d\u2019interpr\u00e9tabilit\u00e9."
+    },
+    {
+        q: "Quelle fonction d\u2019activation a aid\u00e9 \u00e0 r\u00e9soudre le probl\u00e8me du gradient vanishing\u00a0?",
+        options: ["Sigmo\u00efde", "Tanh", "ReLU", "Softmax"],
+        correct: 2,
+        expl: "ReLU (Rectified Linear Unit) r\u00e9sout le gradient vanishing gr\u00e2ce \u00e0 son gradient constant pour x>0."
+    },
+    {
+        q: "Quel est le r\u00f4le du dropout\u00a0?",
+        options: ["Acc\u00e9l\u00e9rer l\u2019entra\u00eenement", "R\u00e9gulariser pour \u00e9viter le sur-apprentissage", "Ajouter du bruit aux donn\u00e9es", "Initialiser les poids"],
+        correct: 1,
+        expl: "Le dropout est une technique de r\u00e9gularisation par omission al\u00e9atoire de neurones."
+    },
+    {
+        q: "Que sont les Deep Features (DF)\u00a0?",
+        options: ["Les poids de la derni\u00e8re couche", "Les activations d\u2019une couche utilis\u00e9es comme descripteurs", "Les gradients de la fonction de perte", "Les hyper-param\u00e8tres du r\u00e9seau"],
+        correct: 1,
+        expl: "Deep Features = activations extraites d\u2019une couche, utilis\u00e9es comme descripteurs."
+    },
+    {
+        q: "Quelle m\u00e9thode donne les meilleures performances sur un jeu de donn\u00e9es de taille moyenne ($10^5$ ex)\u00a0?",
+        options: ["Transfert (DF)", "From scratch", "Fine-tuning", "BoW"],
+        correct: 2,
+        expl: "Fine-tuning est toujours meilleur (petits et grands jeux)."
+    },
+    {
+        q: "Quel est le principe des GANs\u00a0?",
+        options: ["Un seul r\u00e9seau qui g\u00e9n\u00e8re des donn\u00e9es", "Un jeu \u00e0 2 joueurs : g\u00e9n\u00e9rateur vs discriminateur", "Un r\u00e9seau qui segmente des images", "Un r\u00e9seau qui traduit des langues"],
+        correct: 1,
+        expl: "GAN = Generative Adversarial Network, jeu \u00e0 2 joueurs (Goodfellow et al., 2014)."
+    },
+    {
+        q: "Quel score R-CNN a-t-il obtenu sur VOC\u201907 pour la localisation\u00a0?",
+        options: ["34,3 mAP", "58,5 mAP", "83,2 mAP", "95,7 mAP"],
+        correct: 1,
+        expl: "R-CNN : 58,5 mAP vs 34,3 pour DPM HoG."
+    },
+    {
+        q: "Parmi ces \u00e9l\u00e9ments, lequel n\u2019est PAS un module moderne des CNN\u00a0?",
+        options: ["ReLU", "Dropout", "Backpropagation", "Data augmentation"],
+        correct: 2,
+        expl: "La backpropagation existe depuis les ann\u00e9es 80, ce n\u2019est pas un module moderne."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

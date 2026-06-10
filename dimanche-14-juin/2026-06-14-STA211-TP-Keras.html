@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 &mdash; TP Deep Learning avec Keras &mdash; Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; TP Deep Learning avec Keras</h1>
+<p class="subtitle">Keras, MNIST, r&eacute;gression logistique, MLP, CNN, t-SNE et Manifold Untangling &mdash; 14 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#partie1">Partie 1 : Deep Learning avec Keras</a></li>
+    <li><a href="#partie2">Partie 2 : Manifold Untangling</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="partie1">1. Deep Learning avec Keras</h2>
+<!-- ============================================ -->
+
+<h3>1.1 Exercice 0 &mdash; Chargement des donn&eacute;es MNIST</h3>
+
+<p>MNIST : 60&thinsp;000 images train, 10&thinsp;000 test, $28\times28$, 10 classes (chiffres 0&ndash;9).</p>
+
+<div class="code-block"><span class="kw">from</span> keras.datasets <span class="kw">import</span> mnist
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+X_train = X_train.reshape(<span class="num">60000</span>, <span class="num">784</span>).astype(<span class="str">'float32'</span>) / <span class="num">255</span>
+X_test  = X_test.reshape(<span class="num">10000</span>, <span class="num">784</span>).astype(<span class="str">'float32'</span>) / <span class="num">255</span></div>
+
+<p>Afficher les 200 premi&egrave;res images avec Matplotlib.</p>
+<p><strong>Question :</strong> espace des images ? $\mathbb{R}^{784}$.</p>
+
+<h3>1.2 Exercice 1 &mdash; R&eacute;gression logistique</h3>
+
+<div class="formula">
+$p(\hat{y}_{c,i}|\mathbf{x}_i) = \frac{e^{\langle\mathbf{x}_i;\mathbf{w}_c\rangle + b_c}}{\sum_{c'} e^{\langle\mathbf{x}_i;\mathbf{w}_{c'}\rangle + b_{c'}}}$
+</div>
+
+<p><strong>Nombre de param&egrave;tres :</strong> $784\times 10 + 10 = 7\,850$.</p>
+
+<div class="code-block">model = Sequential()
+model.add(Dense(<span class="num">10</span>, input_dim=<span class="num">784</span>, name=<span class="str">'fc1'</span>))
+model.add(Activation(<span class="str">'softmax'</span>))</div>
+
+<p><strong>One-hot encoding :</strong></p>
+<div class="code-block"><span class="kw">from</span> keras.utils <span class="kw">import</span> np_utils
+Y_train = np_utils.to_categorical(y_train, <span class="num">10</span>)</div>
+
+<div class="formula">
+$\mathcal{L}_{\mathbf{W},\mathbf{b}}(\mathcal{D}) = -\frac{1}{N}\sum_{i=1}^N \log(\hat{y}_{c^*,i})$
+</div>
+
+<p><strong>Convexit&eacute; :</strong> oui, LR + cross-entropy = probl&egrave;me convexe &rArr; minimum global assur&eacute;.</p>
+
+<div class="code-block">sgd = SGD(learning_rate=<span class="num">0.5</span>)
+model.compile(loss=<span class="str">'categorical_crossentropy'</span>,
+              optimizer=sgd, metrics=[<span class="str">'accuracy'</span>])
+model.fit(X_train, Y_train, batch_size=<span class="num">100</span>,
+          epochs=<span class="num">10</span>, verbose=<span class="num">1</span>)
+scores = model.evaluate(X_test, Y_test, verbose=<span class="num">0</span>)</div>
+
+<p><strong>R&eacute;sultat attendu :</strong> $\sim$92&thinsp;% accuracy test.</p>
+
+<h3>1.3 Exercice 2 &mdash; Perceptron multi-couches (MLP)</h3>
+
+<p>Une couche cach&eacute;e $L=100$, sigmo&iuml;de, softmax en sortie.</p>
+<p><strong>Nombre de param&egrave;tres :</strong> $784\times 100 + 100 + 100\times 10 + 10 = 79\,510$.</p>
+
+<div class="code-block">model = Sequential()
+model.add(Dense(<span class="num">100</span>, input_dim=<span class="num">784</span>, name=<span class="str">'fc1'</span>))
+model.add(Activation(<span class="str">'sigmoid'</span>))
+model.add(Dense(<span class="num">10</span>, name=<span class="str">'fc2'</span>))
+model.add(Activation(<span class="str">'softmax'</span>))</div>
+
+<p><strong>Non-convexit&eacute; :</strong> MLP + sigmo&iuml;de = probl&egrave;me non convexe. Pas de garantie de minimum global.</p>
+<p><strong>R&eacute;sultat attendu :</strong> $\sim$98&thinsp;% accuracy test.</p>
+
+<h3>1.4 Exercice 3 &mdash; R&eacute;seau de neurones convolutif (CNN)</h3>
+
+<p>Reformatage : $28\times28\times1$.</p>
+<div class="code-block">X_train = X_train.reshape(-<span class="num">1</span>, <span class="num">28</span>, <span class="num">28</span>, <span class="num">1</span>)
+X_test  = X_test.reshape(-<span class="num">1</span>, <span class="num">28</span>, <span class="num">28</span>, <span class="num">1</span>)</div>
+
+<p><strong>Architecture LeNet-like :</strong></p>
+<ol>
+    <li>Conv2D(16, $5\times5$, ReLU) + MaxPooling($2\times2$)</li>
+    <li>Conv2D(32, $5\times5$, ReLU) + MaxPooling($2\times2$)</li>
+    <li>Flatten + Dense(100, sigmo&iuml;de) + Dense(10, softmax)</li>
+</ol>
+
+<div class="code-block">model = Sequential()
+model.add(Conv2D(<span class="num">16</span>, kernel_size=(<span class="num">5</span>,<span class="num">5</span>),
+          activation=<span class="str">'relu'</span>, input_shape=(<span class="num">28</span>,<span class="num">28</span>,<span class="num">1</span>)))
+model.add(MaxPooling2D(pool_size=(<span class="num">2</span>,<span class="num">2</span>)))
+model.add(Conv2D(<span class="num">32</span>, (<span class="num">5</span>,<span class="num">5</span>), activation=<span class="str">'relu'</span>))
+model.add(MaxPooling2D(pool_size=(<span class="num">2</span>,<span class="num">2</span>)))
+model.add(Flatten())
+model.add(Dense(<span class="num">100</span>, activation=<span class="str">'sigmoid'</span>))
+model.add(Dense(<span class="num">10</span>, activation=<span class="str">'softmax'</span>))</div>
+
+<p><strong>R&eacute;sultat attendu :</strong> $\sim$99&thinsp;% accuracy test.</p>
+
+<h4>Sauvegarde du mod&egrave;le</h4>
+<div class="code-block"><span class="kw">def</span> saveModel(model, savename):
+    model_yaml = model.to_yaml()
+    <span class="kw">with</span> open(savename+<span class="str">".yaml"</span>, <span class="str">"w"</span>) <span class="kw">as</span> f:
+        f.write(model_yaml)
+    model.save_weights(savename+<span class="str">".h5"</span>)</div>
+
+<!-- ============================================ -->
+<h2 id="partie2">2. Deep Learning et Manifold Untangling</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Exercice 4 &mdash; Visualisation avec t-SNE</h3>
+
+<p><strong>t-SNE</strong> (<em>t-Distributed Stochastic Neighbor Embedding</em>) : r&eacute;duction non lin&eacute;aire en 2D qui pr&eacute;serve les proximit&eacute;s entre points.</p>
+
+<div class="code-block"><span class="kw">from</span> sklearn.manifold <span class="kw">import</span> TSNE
+tsne = TSNE(n_components=<span class="num">2</span>, init=<span class="str">'pca'</span>,
+            perplexity=<span class="num">30</span>, verbose=<span class="num">2</span>)
+X_r = tsne.fit_transform(X_test[:<span class="num">1000</span>])</div>
+
+<h4>Trois m&eacute;triques de s&eacute;paration</h4>
+
+<table>
+<tr><th>M&eacute;trique</th><th>Description</th></tr>
+<tr><td>Enveloppe convexe (ConvexHull)</td><td>P&eacute;rim&egrave;tre minimum contenant tous les points d&rsquo;une classe</td></tr>
+<tr><td>Ellipse de meilleure approximation</td><td>Ajustement d&rsquo;une gaussienne 2D par classe (GaussianMixture)</td></tr>
+<tr><td>Neighborhood Hit (NH)</td><td>Proportion des $k$ plus proches voisins de la m&ecirc;me classe, moyenn&eacute;e sur toute la base</td></tr>
+</table>
+
+<div class="code-block"><span class="kw">def</span> neighboring_hit(points, labels, k=<span class="num">6</span>):
+    nbrs = NearestNeighbors(n_neighbors=k+<span class="num">1</span>,
+                            algorithm=<span class="str">'ball_tree'</span>).fit(points)
+    distances, indices = nbrs.kneighbors(points)
+    txs = <span class="num">0.0</span>
+    <span class="kw">for</span> i <span class="kw">in</span> range(len(points)):
+        tx = sum(<span class="num">1</span> <span class="kw">for</span> j <span class="kw">in</span> range(<span class="num">1</span>, k+<span class="num">1</span>)
+                 <span class="kw">if</span> labels[indices[i,j]] == labels[i]) / k
+        txs += tx
+    <span class="kw">return</span> txs / len(points)</div>
+
+<h3>2.2 Exercice 5 &mdash; Repr&eacute;sentations internes des r&eacute;seaux</h3>
+
+<p><strong>Manifold Untangling :</strong> les r&eacute;seaux de neurones transforment un espace d&rsquo;entr&eacute;e peu s&eacute;parable en un espace latent lin&eacute;airement s&eacute;parable.</p>
+
+<h4>Chargement du mod&egrave;le</h4>
+<div class="code-block"><span class="kw">def</span> loadModel(savename):
+    <span class="kw">with</span> open(savename+<span class="str">".yaml"</span>, <span class="str">"r"</span>) <span class="kw">as</span> f:
+        model = model_from_yaml(f.read())
+    model.load_weights(savename+<span class="str">".h5"</span>)
+    <span class="kw">return</span> model</div>
+
+<h4>Extraction des repr&eacute;sentations latentes</h4>
+<div class="code-block">model.pop()  <span class="cm"># supprime la couche softmax</span>
+model.pop()  <span class="cm"># supprime la couche FC</span>
+representations = model.predict(X_test)</div>
+
+<div class="info-box">
+<strong>&Agrave; retenir :</strong> Les repr&eacute;sentations internes (MLP cach&eacute; 100D ou CNN) montrent une bien meilleure s&eacute;paration des classes que l&rsquo;espace d&rsquo;entr&eacute;e original, visible par t-SNE. C&rsquo;est l&rsquo;effet de <em>manifold untangling</em>.
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">3. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Combien de param\u00e8tres un mod\u00e8le de r\u00e9gression logistique a-t-il sur MNIST (28\u00d728, 10 classes)\u00a0?",
+        options: ["784", "7\u00a0850", "10\u00a0000", "79\u00a0510"],
+        correct: 1,
+        expl: "784\u00d710 + 10 = 7\u00a0850 param\u00e8tres."
+    },
+    {
+        q: "La fonction de co\u00fbt de la r\u00e9gression logistique (cross-entropy) est-elle convexe\u00a0?",
+        options: ["Oui, minimum global garanti", "Non, minimum local seulement", "Seulement avec SGD", "Cela d\u00e9pend de l\u2019initialisation"],
+        correct: 0,
+        expl: "LR + cross-entropy = probl\u00e8me convexe."
+    },
+    {
+        q: "Combien de param\u00e8tres un MLP avec 1 couche cach\u00e9e de 100 neurones a-t-il sur MNIST\u00a0?",
+        options: ["7\u00a0850", "79\u00a0510", "100\u00a0000", "797\u00a0000"],
+        correct: 1,
+        expl: "784\u00d7100 + 100 + 100\u00d710 + 10 = 79\u00a0510."
+    },
+    {
+        q: "Quelle accuracy peut-on attendre du MLP sur MNIST\u00a0?",
+        options: ["85 %", "92 %", "98 %", "99 %"],
+        correct: 2,
+        expl: "Le MLP atteint ~98 % sur MNIST."
+    },
+    {
+        q: "Quelle accuracy peut-on attendre du CNN (LeNet-like) sur MNIST\u00a0?",
+        options: ["85 %", "92 %", "98 %", "99 %"],
+        correct: 3,
+        expl: "Le CNN atteint ~99 % sur MNIST."
+    },
+    {
+        q: "Que signifie l\u2019acronyme t-SNE\u00a0?",
+        options: ["t-Statistics and Neural Embedding", "t-Distributed Stochastic Neighbor Embedding", "Topological Sample Neighborhood Estimation", "Tensor-Structured Nonlinear Embedding"],
+        correct: 1,
+        expl: "t-Distributed Stochastic Neighbor Embedding."
+    },
+    {
+        q: "Que mesure la m\u00e9trique Neighborhood Hit (NH)\u00a0?",
+        options: ["La distance moyenne entre classes", "Le taux de voisins de m\u00eame classe parmi les k plus proches voisins", "La variance intra-classe", "Le nombre de clusters"],
+        correct: 1,
+        expl: "NH mesure pour chaque point, la proportion de ses k plus proches voisins de la m\u00eame classe."
+    },
+    {
+        q: "Quel est le principe du manifold untangling\u00a0?",
+        options: ["R\u00e9duire la dimension des donn\u00e9es", "D\u00e9m\u00ealer les vari\u00e9t\u00e9s pour rendre les classes s\u00e9parables dans l\u2019espace latent", "Augmenter le nombre de param\u00e8tres", "Initialiser les poids al\u00e9atoirement"],
+        correct: 1,
+        expl: "Les r\u00e9seaux de neurones d\u00e9m\u00ealent les vari\u00e9t\u00e9s (manifold untangling) pour rendre les classes s\u00e9parables."
+    },
+    {
+        q: "Comment extraire la couche cach\u00e9e d\u2019un mod\u00e8le Keras\u00a0?",
+        options: ["model.predict(layer=hidden)", "model.pop() puis model.predict()", "model.get_layer('hidden').output", "model.forward(hidden=True)"],
+        correct: 1,
+        expl: "On supprime les couches du haut avec pop() puis on applique predict()."
+    },
+    {
+        q: "Quelle m\u00e9thode de visualisation non lin\u00e9aire est utilis\u00e9e dans le TP\u00a0?",
+        options: ["ACP", "t-SNE", "LDA", "k-means"],
+        correct: 1,
+        expl: "t-SNE (t-Distributed Stochastic Neighbor Embedding)."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

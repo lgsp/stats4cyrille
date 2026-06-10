@@ -1,0 +1,590 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+% ---- Style des titres ----
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+% ---- Style listings ----
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+% ---- En-têtes / pieds ----
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Étude de cas}
+\fancyhead[R]{\small Fiche récapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---- Theorem-like environment ----
+\theoremstyle{definition}
+\newtheorem*{definition}{Définition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{À retenir}
+
+\title{\textbf{Fiche récapitulative -- STA211}\\[4pt]
+\large Étude de cas : pré-traitement des données German Credit}
+\author{}
+\date{10 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche présente un cas pratique complet de pré-traitement sur les
+données \emph{German Credit} (UCI). Elle illustre le pipeline
+exploratoire et les transformations à appliquer avant la modélisation :
+importation, analyse univariée et bivariée, transformations de
+variables, réduction des données.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Introduction}
+% ===================================================================
+
+L'étude de cas applique les méthodes de pré-traitement vues en cours
+aux données \textbf{German Credit} (1\,000 crédits, 21 variables, 20
+explicatives + réponse binaire good/bad). L'objectif est de préparer
+les données pour une classification supervisée (prédire le statut bon
+ou mauvais payeur).
+
+Données~: \url{https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit)}
+
+\subsection{Chargement et librairies}
+
+\begin{lstlisting}[language=R]
+library(stargazer)
+library(FactoMineR)
+library(DescTools)
+library(car)
+library(lattice)
+library(gridExtra)
+
+don <- read.table(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases
+   /statlog/german/german.data",
+  sep = " ", stringsAsFactors = TRUE)
+\end{lstlisting}
+
+\subsection{Nettoyage des noms}
+
+Les noms des variables et modalités sont codés (V1, V2, \dots, A11,
+A12, \dots). On les renomme d'après le descriptif UCI~:
+
+\begin{lstlisting}[language=R]
+colnames(don) <- c("Status", "Duration", "History", "Purpose",
+  "Credit.Amount", "Savings account/bonds",
+  "Length.of.current.employment", "Instalment.per.cent",
+  "Sex.Marital.Status", "Guarantors",
+  "Duration.in.Current.address", "Property", "Age.years",
+  "Other.installment.plans", "Housing",
+  "No.of.Credits.at.this.Bank", "Job", "No.of.dependents",
+  "Telephone", "Foreign.Worker", "Creditability")
+\end{lstlisting}
+
+On modifie également le type des variables~: \texttt{Duration},
+\texttt{Credit.Amount}, \texttt{Age.years} en \texttt{numeric},
+et \texttt{Creditability} en \texttt{factor} avec niveaux
+\texttt{good}/\texttt{bad}.
+
+% ===================================================================
+\section{Aperçu général}
+% ===================================================================
+
+\begin{lstlisting}[language=R]
+dim(don)               # 1000 x 21
+table(sapply(don, class))
+# factor:14, integer:4, numeric:3
+sum(is.na(don))        # 0 (aucune donnee manquante)
+\end{lstlisting}
+
+\begin{important}
+  Le jeu de données German Credit est complet (0~ valeur manquante).
+  Les étapes de pré-traitement se concentrent donc sur les
+  transformations et la réduction, pas sur l'imputation.
+\end{important}
+
+% ===================================================================
+\section{Analyse univariée}
+% ===================================================================
+
+\subsection{Variables quantitatives}
+
+\textbf{Indicateurs statistiques}~: on utilise \texttt{stargazer}
+pour un tableau récapitulatif (min, Q1, médiane, moyenne, Q3, max,
+écart-type).
+
+\begin{lstlisting}[language=R]
+stargazer(don, summary.stat = c("n", "min", "p25", "median",
+                                "mean", "p75", "max", "sd"),
+          type = "text")
+\end{lstlisting}
+
+\textbf{Constats}~:
+\begin{itemize}
+  \item \texttt{Duration} (4--72 mois, médiane 18)~: asymétrie droite.
+  \item \texttt{Credit.Amount} (250--18\,424, médiane 2\,319)~:
+    forte asymétrie droite.
+  \item \texttt{Age.years} (19--75, médiane 33)~: asymétrie droite
+    modérée.
+  \item \texttt{Instalment.per.cent}, \texttt{Duration.in.Current.address},
+    \texttt{No.of.Credits.at.this.Bank}, \texttt{No.of.dependents}~:
+    variables discrètes à peu de modalités.
+\end{itemize}
+
+\subsection{Graphiques}
+
+\begin{lstlisting}[language=R]
+# Diagrammes en barres (variables discretes)
+varbarplot <- c("Instalment.per.cent",
+  "Duration.in.Current.address",
+  "No.of.Credits.at.this.Bank", "No.of.dependents")
+mapply(don[,varbarplot], FUN = function(xx,name)
+  {barplot(table(xx), main = name)}, name = varbarplot)
+
+# Histogrammes (variables continues)
+varhist <- c("Duration", "Credit.Amount", "Age.years")
+mapply(don[,varhist], FUN = function(xx,name)
+  {hist(xx, main = name)}, name = varhist)
+\end{lstlisting}
+
+Les histogrammes confirment l'asymétrie droite de \texttt{Duration},
+\texttt{Credit.Amount} et \texttt{Age.years}. Une transformation
+logarithmique ou Box-Cox pourra être envisagée.
+
+\subsection{Boîtes à moustaches}
+
+\begin{lstlisting}[language=R]
+library(car)
+mapply(don[,varhist], FUN = function(xx,name)
+  {Boxplot(xx, main = name, id.n = 2)}, name = varhist)
+\end{lstlisting}
+
+Des valeurs apparaissent comme potentiellement aberrantes (notamment
+pour \texttt{Credit.Amount}), mais la décision de les traiter pourra
+être prise a posteriori si nécessaire.
+
+\subsection{Variables qualitatives}
+
+On détecte les modalités rares via des diagrammes en barres~:
+
+\begin{lstlisting}[language=R]
+var.factor <- which(sapply(don, class) == "factor")
+mapply(don[,var.factor], FUN = function(xx,name)
+  {barplot(table(xx), main = name, horiz = TRUE, las = 2,
+           xlim = c(0,1000))},
+  name = names(var.factor))
+\end{lstlisting}
+
+Exemples de modalités rares~: \texttt{noCredit.allPaid} et
+\texttt{thisBank.AllPaid} pour \texttt{History}, \texttt{Guarantor}
+pour \texttt{Guarantors}, etc. Ces modalités pourront être regroupées.
+
+% ===================================================================
+\section{Analyse bivariée}
+% ===================================================================
+
+\subsection{Liens avec la variable réponse}
+
+\textbf{Linéarité (variables quantitatives)}~: on représente la
+proportion de bons payeurs en fonction de chaque variable.
+
+\begin{lstlisting}[language=R]
+cont.table <- table(don$Duration, don$Creditability)
+prof.lignes <- prop.table(cont.table, 1)
+plot(as.numeric(rownames(prof.lignes)), prof.lignes[,1],
+     pch = 16, xlab = "Duree du credit",
+     ylab = "Proportion de bons payeurs")
+\end{lstlisting}
+
+La proportion de bons payeurs décroît linéairement avec la durée du
+crédit. Pour l'âge, la relation est non-monotone~: une discrétisation
+en 3 classes est recommandée.
+
+\textbf{Rapports de corrélation $\eta^2$}~:
+\begin{lstlisting}[language=R]
+library(BioStatR)
+res.eta2 <- sapply(don[,var.numeric], eta2, y = don$Creditability)
+barplot(sort(res.eta2), horiz = TRUE, las = 2, xlab = expression(eta^2))
+\end{lstlisting}
+
+Les variables les plus discriminantes~: \texttt{Duration} et
+\texttt{Credit.Amount}. Les moins discriminantes~:
+\texttt{No.of.dependents} et \texttt{Duration.in.Current.address}.
+
+\textbf{V de Cramer (variables qualitatives)}~:
+\begin{lstlisting}[language=R]
+library(DescTools)
+res.cramer <- sapply(don[,var.factor[-which(names(var.factor)
+  == "Creditability")]],
+  FUN = function(xx) CramerV(table(xx, don$Creditability)))
+barplot(sort(res.cramer), horiz = TRUE, las = 2, xlab = "V de Cramer")
+\end{lstlisting}
+
+Les plus liées~: \texttt{Status} et \texttt{History}.
+Les moins liées~: \texttt{Job} et \texttt{Telephone}.
+
+\begin{important}
+  Les variables les moins discriminantes sont candidates à la
+  suppression en cas de réduction de dimension.
+\end{important}
+
+\subsection{Liens entre variables explicatives}
+
+\textbf{Corrélations (quantitatives)}~:
+\begin{lstlisting}[language=R]
+matcor <- cor(don[, var.numeric])
+PlotCorr(matcor) # visualisation
+matcor.spearman <- cor(don[, var.numeric], method = "spearman")
+\end{lstlisting}
+
+On compare Pearson et Spearman~: si $|r| \approx |\rho|$, la relation
+est linéaire~; si $|\rho| > |r|$, elle est monotone non linéaire.
+
+\textbf{Variables qualitatives}~: on utilise le V de Cramer ou le
+$\chi^2$ pour détecter les liaisons fortes entre variables explicatives,
+qui pourraient causer de l'instabilité dans les modèles.
+
+% ===================================================================
+\section{Analyse multivariée}
+% ===================================================================
+
+\subsection{Analyse factorielle}
+
+\textbf{ACM} (pour variables qualitatives) ou \textbf{AFDM} (mixtes)
+permettent de visualiser les proximités entre individus et modalités.
+
+\begin{lstlisting}[language=R]
+library(FactoMineR)
+res.famd <- FAMD(don[, -ncol(don)], graph = FALSE)
+plot(res.famd, choix = "var")
+plot(res.famd, choix = "ind")
+\end{lstlisting}
+
+L'AFDM permet également de détecter des individus atypiques
+(contribution élevée à une dimension) et des liaisons entre
+variables qualitatives et quantitatives.
+
+\subsection{Classification}
+
+\begin{lstlisting}[language=R]
+# CAH sur les composantes de l'AFDM
+res.hcpc <- HCPC(res.famd, nb.clust = -1, graph = FALSE)
+plot(res.hcpc)
+\end{lstlisting}
+
+La classification permet d'identifier des profils types de clients
+(segments homogènes) et de visualiser les caractéristiques de
+chaque cluster via la fonction \texttt{catdes}.
+
+\subsection{Description des partitions}
+
+\begin{lstlisting}[language=R]
+catdes(don, num.var = ncol(don))
+\end{lstlisting}
+
+La fonction \texttt{catdes} décrit chaque modalité de la variable
+réponse (\texttt{good}/\texttt{bad}) à partir~:
+\begin{itemize}
+  \item Des variables quantitatives (test de Student, moyenne dans
+    chaque groupe).
+  \item Des modalités des variables qualitatives (test du $\chi^2$,
+    proportion dans chaque groupe).
+\end{itemize}
+
+% ===================================================================
+\section{Transformations}
+% ===================================================================
+
+\subsection{Variables quantitatives}
+
+\textbf{Discrétisation}~: on coupe l'âge en 3 classes pour gérer
+la non-linéarité observée~:
+
+\begin{lstlisting}[language=R]
+Age.cut <- cut(don$Age.years,
+  breaks = quantile(don$Age.years, probs = c(0, 1/3, 2/3, 1)),
+  include.lowest = TRUE)
+table(Age.cut)
+\end{lstlisting}
+
+\textbf{Box-Cox}~: pour linéariser et symétriser les distributions.
+
+\begin{lstlisting}[language=R]
+library(MASS)
+boxcox(lm(Credit.Amount ~ 1, data = don))
+\end{lstlisting}
+
+La transformation logarithmique ($\lambda \approx 0$) est souvent
+appropriée pour \texttt{Credit.Amount} et \texttt{Duration}.
+
+\subsection{Variables qualitatives}
+
+\textbf{Regroupement de modalités}~: on fusionne les modalités rares
+qui ont un comportement similaire vis-à-vis de la réponse.
+
+Exemple~: \texttt{noCredit.allPaid} et \texttt{thisBank.AllPaid} de
+\texttt{History} ont des proportions de bons payeurs proches~:
+
+\begin{lstlisting}[language=R]
+tmp <- table(don$History, don$Creditability)
+prop.table(tmp, 1)  # comparer les profils
+levels(don$History)[1:2] <- "AllPaid"
+\end{lstlisting}
+
+\subsection{Standardisation}
+
+Pour les méthodes sensibles aux échelles (ACP, régression, $k$-NN),
+on centre-réduit les variables quantitatives~:
+
+\begin{lstlisting}[language=R]
+don.scaled <- as.data.frame(scale(don[, var.numeric]))
+\end{lstlisting}
+
+% ===================================================================
+\section{Réduction des données}
+% ===================================================================
+
+\subsection{Réduction en lignes}
+
+On peut supprimer les individus atypiques identifiés par~:
+\begin{itemize}
+  \item Distance de Mahalanobis robuste (MCD).
+  \item Isolation Forest (peu sensible à la dimension).
+\end{itemize}
+
+\begin{lstlisting}[language=R]
+library(robustbase)
+mcd <- covMcd(don[, var.numeric])
+dist <- mahalanobis(don[, var.numeric],
+                    center = mcd$center, cov = mcd$cov)
+seuil <- qchisq(0.999, df = length(var.numeric))
+outliers <- which(dist > seuil)
+\end{lstlisting}
+
+\subsection{Réduction en colonnes}
+
+\textbf{Sélection de variables}~:
+\begin{itemize}
+  \item Éliminer les variables non discriminantes (faible $\eta^2$,
+    faible V de Cramer).
+  \item Éliminer les variables redondantes (forte corrélation entre
+    elles).
+  \item Utiliser le Lasso pour une sélection automatique~:
+\end{itemize}
+
+\begin{lstlisting}[language=R]
+library(glmnet)
+X <- model.matrix(Creditability ~ ., data = don)[, -1]
+y <- don$Creditability
+cv.lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial")
+coef(cv.lasso, s = "lambda.1se")
+\end{lstlisting}
+
+\textbf{Extraction de caractéristiques}~:
+\begin{itemize}
+  \item ACP (variables numériques), ACM (qualitatives), AFDM (mixtes).
+  \item On conserve les premières composantes qui résument
+    l'essentiel de l'information.
+\end{itemize}
+
+\begin{lstlisting}[language=R]
+res.pca <- PCA(don[, var.numeric], scale.unit = TRUE, graph = FALSE)
+barplot(res.pca$eig[, 2], main = "Variance expliquee")
+# Souvent 2-3 composantes suffisent
+\end{lstlisting}
+
+% ===================================================================
+\section{Résumé du pipeline}
+% ===================================================================
+
+\begin{enumerate}
+  \item \textbf{Import}~: charger, renommer, typer.
+  \item \textbf{Aperçu}~: dimensions, types, valeurs manquantes.
+  \item \textbf{Analyse univariée}~: distributions, atypiques,
+    modalités rares.
+  \item \textbf{Analyse bivariée}~: lien avec $Y$ (linéarité,
+    $\eta^2$, V de Cramer), lien entre $X$.
+  \item \textbf{Analyse multivariée}~: AFDM, CAH, catdes.
+  \item \textbf{Transformations}~: Box-Cox, discrétisation,
+    regroupement, standardisation.
+  \item \textbf{Réduction}~: suppression d'atypiques, sélection de
+    variables (Lasso), extraction (ACP/AFDM).
+  \item \textbf{Modélisation}~: appliquer la méthode choisie sur
+    les données prétraitées.
+\end{enumerate}
+
+% ===================================================================
+\section*{Questions clés (QCM)}
+% ===================================================================
+
+\addcontentsline{toc}{section}{Questions clés (QCM)}
+
+\begin{enumerate}
+
+  \item Dans l'étude de cas German Credit, combien de variables
+    le jeu de données contient-il~?
+    \begin{enumerate}
+      \item 1000
+      \item 21
+      \item 20
+      \item 14
+    \end{enumerate}
+    \textbf{Réponse~: b (21 variables dont 20 explicatives + réponse).}
+
+  \item Le jeu de données German Credit contient-il des valeurs
+    manquantes~?
+    \begin{enumerate}
+      \item Oui, beaucoup
+      \item Non, il est complet
+      \item Oui, 5\%
+      \item On ne peut pas savoir
+    \end{enumerate}
+    \textbf{Réponse~: b (sum(is.na(don)) = 0).}
+
+  \item Quelle variable quantitative est la plus discriminante
+    (liée à la réponse) selon le $\eta^2$~?
+    \begin{enumerate}
+      \item Age.years
+      \item Duration
+      \item Instalment.per.cent
+      \item No.of.dependents
+    \end{enumerate}
+    \textbf{Réponse~: b (Duration).}
+
+  \item Quelle variable qualitative est la plus discriminante selon
+    le V de Cramer~?
+    \begin{enumerate}
+      \item Telephone
+      \item Job
+      \item Status
+      \item Housing
+    \end{enumerate}
+    \textbf{Réponse~: c (Status).}
+
+  \item La relation entre Age et la proportion de bons payeurs est~:
+    \begin{enumerate}
+      \item Linéaire croissante
+      \item Linéaire décroissante
+      \item Non monotone
+      \item Il n'y a pas de relation
+    \end{enumerate}
+    \textbf{Réponse~: c (non monotone, d'où la discrétisation en 3 classes).}
+
+  \item Quel package R permet de calculer le $\eta^2$~?
+    \begin{enumerate}
+      \item stargazer
+      \item DescTools
+      \item BioStatR
+      \item FactoMineR
+    \end{enumerate}
+    \textbf{Réponse~: c (BioStatR, fonction eta2).}
+
+  \item La fonction \texttt{catdes} du package FactoMineR permet de~:
+    \begin{enumerate}
+      \item Visualiser les corrélations
+      \item Décrire une partition par les variables
+      \item Effectuer une ACP
+      \item Imputer les valeurs manquantes
+    \end{enumerate}
+    \textbf{Réponse~: b (description d'une partition).}
+
+  \item Pour gérer la non-linéarité de l'âge, on recommande~:
+    \begin{enumerate}
+      \item Une transformation logarithmique
+      \item Une discrétisation en 3 classes
+      \item Une standardisation
+      \item La suppression de la variable
+    \end{enumerate}
+    \textbf{Réponse~: b (discrétisation en 3 classes par quantiles).}
+
+  \item Le Lasso (régression pénalisée L1) permet~:
+    \begin{enumerate}
+      \item D'imputer les données manquantes
+      \item De sélectionner automatiquement les variables
+      \item De visualiser les clusters
+      \item De transformer les variables
+    \end{enumerate}
+    \textbf{Réponse~: b (sélection de variables via pénalité L1).}
+
+  \item Quel est l'ordre recommandé du pipeline de pré-traitement~?
+    \begin{enumerate}
+      \item Modélisation $\rightarrow$ transformation $\rightarrow$ analyse
+      \item Analyse $\rightarrow$ transformation $\rightarrow$ réduction
+        $\rightarrow$ modélisation
+      \item Réduction $\rightarrow$ modélisation $\rightarrow$ analyse
+      \item Transformation $\rightarrow$ modélisation $\rightarrow$ analyse
+    \end{enumerate}
+    \textbf{Réponse~: b (analyse exploratoire $\rightarrow$ transformations
+    $\rightarrow$ réduction $\rightarrow$ modélisation).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{german}
+  UCI Machine Learning Repository.
+  \newblock \emph{German Credit Data}.
+  \newblock \url{https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit)}
+
+\bibitem{audigier2026}
+  V.~Audigier, N.~Niang.
+  \newblock STA211~: pré-traitement, étude de cas.
+  \newblock Cours CNAM, 2026.
+
+\bibitem{tuffery2007}
+  S.~Tufféry.
+  \newblock \emph{Data Mining et statistique décisionnelle}.
+  \newblock Technip, 2007.
+
+\bibitem{lejeune2010}
+  M.~Lejeune.
+  \newblock \emph{Statistique~: la théorie et ses applications}.
+  \newblock Springer, 2010.
+
+\bibitem{lebart2006}
+  L.~Lebart, A.~Morineau, M.~Piron.
+  \newblock \emph{Statistique exploratoire multidimensionnelle}.
+  \newblock Dunod, 2006.
+
+\end{thebibliography}
+
+\end{document}

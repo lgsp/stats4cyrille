@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Application MICE — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; Application MICE</h1>
+<p class="subtitle">Imputation multiple sur les donn&eacute;es Diab&egrave;te &mdash; 10 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#exploratoire">Analyse exploratoire</a></li>
+    <li><a href="#mice">Imputation multiple avec MICE</a></li>
+    <li><a href="#methodes">Choix des m&eacute;thodes d&rsquo;imputation</a></li>
+    <li><a href="#analyse">Analyse apr&egrave;s imputation</a></li>
+    <li><a href="#sensibilite">Analyse de sensibilit&eacute;</a></li>
+    <li><a href="#pipeline">Pipeline r&eacute;sum&eacute;</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Introduction</h2>
+<!-- ============================================ -->
+
+<p>Cette &eacute;tude de cas applique l&rsquo;<strong>imputation multiple par &eacute;quations cha&icirc;n&eacute;es (MICE)</strong> aux donn&eacute;es <strong>Diab&egrave;te</strong> (Pima Indians Diabetes Database, 768 observations, 9 variables). L&rsquo;objectif est de traiter les valeurs manquantes avant une classification supervis&eacute;e.</p>
+
+<p><strong>Donn&eacute;es :</strong> <a href="https://github.com/niharikagulati/diabetesprediction">https://github.com/niharikagulati/diabetesprediction</a></p>
+
+<h3>1.1 Chargement</h3>
+<div class="code-block"><span class="kw">library</span>(mice)
+<span class="kw">library</span>(micemd)
+<span class="kw">library</span>(FactoMineR)
+<span class="kw">library</span>(parallel)
+<span class="kw">library</span>(DescTools)
+<span class="kw">library</span>(VIM)
+<span class="kw">library</span>(mvtnorm)
+<span class="kw">library</span>(funModeling)
+
+<span class="kw">load</span>(<span class="str">"diabetes.Rdata"</span>)
+<span class="kw">dim</span>(diabetes)  <span class="cm"># 768 x 9</span></div>
+
+<p>8 pr&eacute;dicteurs + 1 r&eacute;ponse binaire (Outcome).</p>
+
+<!-- ============================================ -->
+<h2 id="exploratoire">2. Analyse exploratoire</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Liens entre variables</h3>
+<div class="code-block"><span class="kw">summary</span>(diabetes)
+<span class="kw">pairs</span>(diabetes[, 1:8], cex = .2)
+<span class="kw">boxplot</span>(diabetes[,<span class="str">"Age"</span>] ~ diabetes$Outcome)</div>
+
+<h3>2.2 Dispositif de manquance</h3>
+
+<p><strong>Univari&eacute; (aggr) :</strong></p>
+<div class="code-block">res.aggr <span class="op">&lt;-</span> <span class="kw">aggr</span>(diabetes)
+res.aggr$missings
+<span class="kw">cbind</span>(res.aggr$tabcomb, res.aggr$percent)</div>
+
+<p><strong>Bivari&eacute; (V de Cramer) :</strong></p>
+<div class="code-block">var.na <span class="op">&lt;-</span> <span class="kw">which</span>(res.aggr$missing$Count <span class="op">&gt;</span> <span class="num">0</span>)
+pattern <span class="op">&lt;-</span> <span class="kw">is.na</span>(diabetes[, var.na])
+matcram <span class="op">&lt;-</span> <span class="kw">PairApply</span>(pattern, CramerV)
+<span class="kw">PlotCorr</span>(matcram)</div>
+
+<p><strong>Multivari&eacute; (ACM) :</strong></p>
+<div class="code-block"><span class="kw">MCA</span>(pattern)</div>
+
+<h3>2.3 Nature du m&eacute;canisme</h3>
+<div class="code-block"><span class="cm"># Une variable complete (Age) et une incomplete (Skin.Thick)</span>
+<span class="kw">marginmatrix</span>(diabetes[, c(<span class="str">"Age"</span>, <span class="str">"Skin.Thick"</span>)])
+<span class="cm"># Rouge = valeurs manquantes sur Skin.Thick</span>
+<span class="cm"># Les individus incomplets semblent plus ages &rarr; MAR possible</span>
+
+<span class="cm"># Tous les couples</span>
+<span class="kw">marginmatrix</span>(diabetes[, -<span class="kw">ncol</span>(diabetes)], cex = .2, gap = <span class="num">0</span>)
+
+<span class="cm"># Matrixplot</span>
+<span class="kw">matrixplot</span>(diabetes, sortby = <span class="num">8</span>)</div>
+
+<div class="warn-box">
+<strong>&Agrave; retenir :</strong> Si les individus avec valeur manquante sur une variable ont des distributions diff&eacute;rentes sur une autre variable compl&egrave;te, le m&eacute;canisme est probablement MAR.
+</div>
+
+<!-- ============================================ -->
+<h2 id="mice">3. Imputation multiple avec MICE</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Param&egrave;tres par d&eacute;faut</h3>
+<table>
+<tr><th>Param&egrave;tre</th><th>D&eacute;faut</th><th>Description</th></tr>
+<tr><td>$m$</td><td>5</td><td>Nombre de tableaux imput&eacute;s</td></tr>
+<tr><td>maxit</td><td>5</td><td>Nombre d&rsquo;it&eacute;rations</td></tr>
+<tr><td>m&eacute;thode</td><td>pmm</td><td>Predictive Mean Matching (num&eacute;riques)</td></tr>
+</table>
+
+<div class="code-block">res.mice <span class="op">&lt;-</span> <span class="kw">mice</span>(diabetes, maxit = <span class="num">50</span>, printFlag = <span class="kw">FALSE</span>)
+tableau1 <span class="op">&lt;-</span> <span class="kw">complete</span>(res.mice, <span class="num">1</span>)</div>
+
+<h3>3.2 V&eacute;rification de la convergence</h3>
+<div class="code-block"><span class="kw">plot</span>(res.mice)</div>
+<p>Les courbes doivent se stabiliser (pas de tendance monotone).</p>
+
+<h3>3.3 Comparaison des distributions</h3>
+<div class="code-block"><span class="kw">densityplot</span>(res.mice)</div>
+<p>Les distributions imput&eacute;es (rouge) doivent ressembler aux observ&eacute;es (bleu).</p>
+
+<h3>3.4 Analyse par marginmatrix</h3>
+<div class="code-block">diabetes.vim <span class="op">&lt;-</span> <span class="kw">cbind.data.frame</span>(
+  <span class="kw">complete</span>(res.mice), <span class="kw">is.na</span>(diabetes))
+<span class="kw">colnames</span>(diabetes.vim) <span class="op">&lt;-</span> c(<span class="kw">colnames</span>(diabetes),
+  <span class="kw">paste0</span>(<span class="kw">colnames</span>(diabetes), <span class="str">"_imp"</span>))
+
+<span class="cm"># Couple Age - Skin.Thick</span>
+<span class="kw">marginmatrix</span>(diabetes.vim[, c(<span class="str">"Age"</span>, <span class="str">"Skin.Thick"</span>,
+  <span class="str">"Age_imp"</span>, <span class="str">"Skin.Thick_imp"</span>)], delimiter = <span class="str">"_imp"</span>)
+
+<span class="cm"># Tous les couples</span>
+<span class="kw">marginmatrix</span>(diabetes.vim, delimiter = <span class="str">"_imp"</span>)</div>
+
+<p>Les points imput&eacute;s (marron/jaune) doivent se situer dans le nuage des points observ&eacute;s.</p>
+
+<h3>3.5 Overimputation</h3>
+<p>L&rsquo;overimputation traite chaque valeur observ&eacute;e comme manquante, l&rsquo;impute, et compare &agrave; la valeur r&eacute;elle.</p>
+<div class="code-block">nnodes <span class="op">&lt;-</span> <span class="kw">detectCores</span>() <span class="op">-</span> <span class="num">1</span>
+
+res.mice.over <span class="op">&lt;-</span> <span class="kw">mice.par</span>(diabetes, m = <span class="num">100</span>,
+  nnodes = nnodes, maxit = <span class="num">20</span>)
+
+plotinds <span class="op">&lt;-</span> <span class="kw">sample</span>(<span class="kw">seq</span>(<span class="kw">nrow</span>(diabetes)), size = <span class="num">30</span>)
+res.over <span class="op">&lt;-</span> <span class="kw">overimpute</span>(res.mice.over,
+  plotinds = plotinds, plotvar = <span class="num">6</span>, nnodes = nnodes)</div>
+
+<div class="info-box">
+<strong>Diagnostic :</strong> Si les valeurs imput&eacute;es sont syst&eacute;matiquement &eacute;loign&eacute;es des valeurs observ&eacute;es, le mod&egrave;le d&rsquo;imputation est inadapt&eacute;.
+</div>
+
+<!-- ============================================ -->
+<h2 id="methodes">4. Choix des m&eacute;thodes d&rsquo;imputation</h2>
+<!-- ============================================ -->
+
+<h3>4.1 M&eacute;thodes disponibles</h3>
+<div class="code-block">res.mice$method  <span class="cm"># methodes par defaut</span>
+
+<span class="cm"># Test de trois methodes pour BMI</span>
+<span class="kw">for</span> (method.imp <span class="kw">in</span> c(<span class="str">"rf"</span>, <span class="str">"norm"</span>, <span class="str">"norm.boot"</span>)){
+  method <span class="op">&lt;-</span> res.mice$method
+  method[<span class="str">"BMI"</span>] <span class="op">&lt;-</span> method.imp
+  res.mice.tmp <span class="op">&lt;-</span> <span class="kw">mice</span>(diabetes, method = method,
+    maxit = <span class="num">20</span>, printFlag = <span class="kw">FALSE</span>)
+  <span class="kw">print</span>(<span class="kw">densityplot</span>(res.mice.tmp, ~ BMI, main = method.imp))
+}</div>
+
+<table>
+<tr><th>M&eacute;thode</th><th>Code</th><th>Description</th></tr>
+<tr><td>Predictive Mean Matching</td><td>pmm</td><td>Correspondance par moyenne pr&eacute;dictive (d&eacute;faut)</td></tr>
+<tr><td>R&eacute;gression bay&eacute;sienne</td><td>norm</td><td>R&eacute;gression lin&eacute;aire bay&eacute;sienne</td></tr>
+<tr><td>R&eacute;gression bootstrap</td><td>norm.boot</td><td>R&eacute;gression lin&eacute;aire avec bootstrap</td></tr>
+<tr><td>For&ecirc;t al&eacute;atoire</td><td>rf</td><td>Random Forest (non param&eacute;trique)</td></tr>
+</table>
+
+<h3>4.2 Comparaison par overimputation</h3>
+<div class="code-block"><span class="cm"># norm</span>
+method <span class="op">&lt;-</span> res.mice$method; method[<span class="str">"BMI"</span>] <span class="op">&lt;-</span> <span class="str">"norm"</span>
+res.mice.over.norm <span class="op">&lt;-</span> <span class="kw">mice.par</span>(diabetes, m = <span class="num">100</span>,
+  nnodes = nnodes, maxit = <span class="num">20</span>, method = method)
+res.over.norm <span class="op">&lt;-</span> <span class="kw">overimpute</span>(res.mice.over.norm,
+  plotinds = plotinds, plotvars = <span class="num">6</span>, nnodes = nnodes)
+
+<span class="cm"># rf</span>
+method[<span class="str">"BMI"</span>] <span class="op">&lt;-</span> <span class="str">"rf"</span>
+res.mice.over.rf <span class="op">&lt;-</span> <span class="kw">mice.par</span>(diabetes, m = <span class="num">100</span>,
+  nnodes = nnodes, maxit = <span class="num">20</span>, method = method)
+res.over.rf <span class="op">&lt;-</span> <span class="kw">overimpute</span>(res.mice.over.rf,
+  plotinds = plotinds, plotvars = <span class="num">6</span>, nnodes = nnodes)</div>
+
+<!-- ============================================ -->
+<h2 id="analyse">5. Analyse apr&egrave;s imputation</h2>
+<!-- ============================================ -->
+
+<h3>5.1 R&eacute;gression logistique</h3>
+<div class="code-block">fit <span class="op">&lt;-</span> <span class="kw">with</span>(res.mice,
+  <span class="kw">glm</span>(Outcome ~ Preg + Glucose + BP + Skin.Thick
+    + Insulin + BMI + DPF + Age, family = binomial))
+<span class="kw">length</span>(fit$analyses)  <span class="cm"># 5 modeles</span></div>
+
+<h3>5.2 Pooling (r&egrave;gles de Rubin)</h3>
+<div class="code-block">res.pool <span class="op">&lt;-</span> <span class="kw">pool</span>(fit)
+<span class="kw">summary</span>(res.pool)</div>
+
+<div class="formula">
+$\bar{\theta} = \frac{1}{m}\sum_{k=1}^m \hat{\theta}_k$<br>
+$T = W + (1 + \frac{1}{m})B$
+</div>
+
+<h3>5.3 Comparaison avec les cas-complets</h3>
+<div class="code-block">res.glm.cc <span class="op">&lt;-</span> <span class="kw">glm</span>(Outcome ~ ., family = binomial, data = diabetes)
+<span class="kw">summary</span>(res.glm.cc)</div>
+
+<p>Des diff&eacute;rences importantes entre les estimations MICE et cas-complets peuvent indiquer un biais de s&eacute;lection d&ucirc; aux donn&eacute;es manquantes.</p>
+
+<!-- ============================================ -->
+<h2 id="sensibilite">6. Analyse de sensibilit&eacute;</h2>
+<!-- ============================================ -->
+
+<p>L&rsquo;analyse de sensibilit&eacute; par la m&eacute;thode du <strong>delta adjustment</strong> teste la robustesse des r&eacute;sultats sous diff&eacute;rents sc&eacute;narios MNAR. On ajoute un d&eacute;calage $\delta$ aux valeurs imput&eacute;es de Skin.Thick :</p>
+
+<div class="code-block"><span class="kw">boxplot</span>(diabetes$Skin.Thick)
+delta <span class="op">&lt;-</span> c(<span class="num">0</span>, <span class="num">10</span>, <span class="num">20</span>, <span class="num">50</span>)
+imp.all <span class="op">&lt;-</span> <span class="kw">vector</span>(<span class="str">"list"</span>, <span class="kw">length</span>(delta))
+<span class="kw">names</span>(imp.all) <span class="op">&lt;-</span> delta
+post <span class="op">&lt;-</span> res.mice.over$post
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>:<span class="kw">length</span>(delta)){
+  d <span class="op">&lt;-</span> delta[i]
+  cmd <span class="op">&lt;-</span> <span class="kw">paste</span>(<span class="str">"imp[[j]][,i] &lt;- imp[[j]][,i] +"</span>, d)
+  post[<span class="str">"Skin.Thick"</span>] <span class="op">&lt;-</span> cmd
+  imp <span class="op">&lt;-</span> <span class="kw">mice</span>(diabetes, post = post, maxit = <span class="num">5</span>,
+    seed = i, print = <span class="kw">FALSE</span>)
+  imp.all[[i]] <span class="op">&lt;-</span> imp
+}
+
+<span class="cm"># Comparaison delta=0 vs delta=50</span>
+<span class="kw">bwplot</span>(imp.all[[<span class="str">"0"</span>]])
+<span class="kw">bwplot</span>(imp.all[[<span class="str">"50"</span>]])</div>
+
+<div class="info-box">
+<strong>Interpr&eacute;tation :</strong> Si les conclusions changent peu malgr&eacute; un d&eacute;calage important ($\delta = 50$), les r&eacute;sultats sont robustes &agrave; l&rsquo;hypoth&egrave;se MNAR.
+</div>
+
+<!-- ============================================ -->
+<h2 id="pipeline">7. Pipeline r&eacute;sum&eacute;</h2>
+<!-- ============================================ -->
+
+<ol>
+    <li><strong>Import</strong> &rarr; charger les donn&eacute;es et les packages (mice, VIM, micemd)</li>
+    <li><strong>Analyse exploratoire</strong> &rarr; liens entre variables (corr&eacute;lations, boxplots)</li>
+    <li><strong>Pattern de manquance</strong> &rarr; univari&eacute; (aggr), bivari&eacute; (CramerV), multivari&eacute; (ACM)</li>
+    <li><strong>M&eacute;canisme</strong> &rarr; marginmatrix, matrixplot (d&eacute;tection MAR)</li>
+    <li><strong>Imputation multiple</strong> &rarr; mice() avec $m$, maxit, m&eacute;thodes</li>
+    <li><strong>Diagnostics</strong> &rarr; convergence (plot), distribution (densityplot), marginmatrix, overimputation</li>
+    <li><strong>Analyse</strong> &rarr; with.mids + pool (r&egrave;gles de Rubin)</li>
+    <li><strong>Comparaison cas-complets</strong> &rarr; v&eacute;rification de biais</li>
+    <li><strong>Sensibilit&eacute;</strong> &rarr; delta adjustment pour tester MNAR</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="qcm">8. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quel package R impl\u00e9mente l'imputation multiple par \u00e9quations cha\u00een\u00e9es ?",
+        options: ["VIM", "mice", "missMDA", "Amelia"],
+        correct: 1,
+        expl: "Le package mice (Multivariate Imputation by Chained Equations)."
+    },
+    {
+        q: "Quelle est la m\u00e9thode d'imputation par d\u00e9faut de mice() pour les variables num\u00e9riques ?",
+        options: ["R\u00e9gression lin\u00e9aire bay\u00e9sienne", "Predictive Mean Matching (pmm)", "For\u00eat al\u00e9atoire", "Moyenne conditionnelle"],
+        correct: 1,
+        expl: "pmm est la m\u00e9thode par d\u00e9faut pour les variables num\u00e9riques."
+    },
+    {
+        q: "Combien de tableaux imput\u00e9s sont cr\u00e9\u00e9s par d\u00e9faut par mice() ?",
+        options: ["3", "5", "10", "20"],
+        correct: 1,
+        expl: "m = 5 par d\u00e9faut."
+    },
+    {
+        q: "La fonction plot(res.mice) permet de :",
+        options: ["Visualiser la distribution des donn\u00e9es", "V\u00e9rifier la convergence de l'algorithme MICE", "Afficher les valeurs manquantes", "Comparer les imputations"],
+        correct: 1,
+        expl: "Le trace des moyennes et \u00e9carts-types par it\u00e9ration permet de v\u00e9rifier la convergence."
+    },
+    {
+        q: "Quelle fonction permet de comparer les distributions imput\u00e9es et observ\u00e9es ?",
+        options: ["aggr", "densityplot", "marginmatrix", "Les deux b et c"],
+        correct: 3,
+        expl: "densityplot et marginmatrix permettent toutes deux cette comparaison."
+    },
+    {
+        q: "Comment s'appelle la technique qui traite chaque valeur observ\u00e9e comme manquante pour \u00e9valuer le mod\u00e8le ?",
+        options: ["Validation crois\u00e9e", "Bootstrap", "Overimputation", "Delta adjustment"],
+        correct: 2,
+        expl: "L'overimputation impute les valeurs observ\u00e9es et les compare aux vraies valeurs."
+    },
+    {
+        q: "Quelle fonction agr\u00e8ge les r\u00e9sultats des m mod\u00e8les ajust\u00e9s sur les tableaux imput\u00e9s ?",
+        options: ["with.mids", "pool", "complete", "summary"],
+        correct: 1,
+        expl: "pool() applique les r\u00e8gles de Rubin pour combiner les estimations."
+    },
+    {
+        q: "Dans le delta adjustment, que repr\u00e9sente \u03b4 ?",
+        options: ["Le nombre d'it\u00e9rations", "Le d\u00e9calage ajout\u00e9 aux valeurs imput\u00e9es", "Le seuil de d\u00e9tection", "Le taux de valeurs manquantes"],
+        correct: 1,
+        expl: "\u03b4 est ajout\u00e9 aux valeurs imput\u00e9es pour simuler un m\u00e9canisme MNAR."
+    },
+    {
+        q: "Le delta adjustment teste l'hypoth\u00e8se de manquance :",
+        options: ["MCAR", "MAR", "MNAR", "Aucune"],
+        correct: 2,
+        expl: "Le delta adjustment permet de tester la sensibilit\u00e9 \u00e0 l'hypoth\u00e8se MNAR."
+    },
+    {
+        q: "Quel est l'avantage principal de l'imputation multiple vs l'imputation simple ?",
+        options: ["Elle est plus rapide", "Elle prend en compte l'incertitude due aux valeurs manquantes", "Elle ne n\u00e9cessite pas de mod\u00e8le", "Elle ne produit qu'un seul tableau"],
+        correct: 1,
+        expl: "La variance inter-imputation (B) permet de refl\u00e9ter l'incertitude d'imputation."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

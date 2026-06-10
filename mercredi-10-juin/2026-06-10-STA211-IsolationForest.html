@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+<title>STA211 — Isolation Forest — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+.tag { color: #569cd6; }
+.attr { color: #9cdcfe; }
+.val { color: #ce9178; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 — Isolation Forest</h1>
+<p class="subtitle">D&eacute;tection des points atypiques &mdash; 10 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#contexte">Contexte</a></li>
+    <li><a href="#principe">Principe</a></li>
+    <li><a href="#arbres">Construction des arbres</a></li>
+    <li><a href="#score">Calcul du score</a></li>
+    <li><a href="#parametrage">Param&eacute;trage</a></li>
+    <li><a href="#application">Application German Credit</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="contexte">1. Contexte</h2>
+<!-- ============================================ -->
+
+<p>La d&eacute;tection des <strong>points atypiques</strong> (<em>outliers</em>) est une phase importante de la fouille de donn&eacute;es. Ce sont des points qui s'&eacute;cartent significativement des autres, peu nombreux et situ&eacute;s dans des zones peu denses.</p>
+
+<p><em>Isolation Forest</em> (Liu, Ting &amp; Zhou, 2008) est une m&eacute;thode de r&eacute;f&eacute;rence pour la d&eacute;tection non supervis&eacute;e des anomalies, qui s'appuie sur les for&ecirc;ts al&eacute;atoires.</p>
+
+<!-- ============================================ -->
+<h2 id="principe">2. Principe</h2>
+<!-- ============================================ -->
+
+<p>L'approche est <strong>non supervis&eacute;e</strong>. Contrairement aux for&ecirc;ts classiques (supervis&eacute;es), la construction des arbres se fait enti&egrave;rement au hasard.</p>
+
+<p><strong>Id&eacute;e centrale :</strong> les valeurs atypiques sont isol&eacute;es rapidement (faible profondeur), car elles se trouvent dans des zones peu denses. Les observations normales n&eacute;cessitent plus de coupures pour &ecirc;tre isol&eacute;es (grande profondeur).</p>
+
+<ol>
+    <li>Construire $B$ arbres al&eacute;atoires d&eacute;coupant l'espace.</li>
+    <li>Pour chaque observation $x$, mesurer la profondeur moyenne $\overline{h}(x)$ dans la for&ecirc;t.</li>
+    <li>Calculer un score d'anomalie $s(x,n)$ compris entre 0 et 1.</li>
+    <li>Seuiller les scores pour identifier les atypiques.</li>
+</ol>
+
+<div class="info-box">
+<strong>&Agrave; retenir :</strong> Plus un score est proche de 1, plus l'observation est susceptible d'&ecirc;tre atypique.
+</div>
+
+<!-- ============================================ -->
+<h2 id="arbres">3. Construction des arbres au hasard</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Algorithme</h3>
+<ol>
+    <li>S&eacute;lectionner une variable au hasard parmi $p$.</li>
+    <li>Choisir un point de coupure au hasard dans l'&eacute;tendue de cette variable.</li>
+    <li>Segmenter l'&eacute;chantillon en deux sous-groupes.</li>
+    <li>R&eacute;p&eacute;ter jusqu'&agrave; ce qu'un n&oelig;ud ne contienne qu'un seul individu ou atteigne une profondeur limite.</li>
+</ol>
+
+<h3>3.2 Sous-&eacute;chantillonnage et effet de masque</h3>
+
+<p>Pour construire la for&ecirc;t, on commence par un <strong>sous-&eacute;chantillonnage</strong> (tirage al&eacute;atoire sans remise). Cela limite <strong>l'effet de masque</strong> : les valeurs atypiques peuvent elles-m&ecirc;mes perturber la d&eacute;tection et en <em>masquer</em> d'autres. En tirant un sous-&eacute;chantillon, les points atypiques sont plus rapidement isol&eacute;s.</p>
+
+<div class="warn-box">
+<strong>Effet de masque :</strong> Un groupe d'anomalies peut se cr&eacute;er une zone dense locale, rendant leur isolement plus difficile. Le sous-&eacute;chantillonnage r&eacute;duit ce ph&eacute;nom&egrave;ne.
+</div>
+
+<p>On r&eacute;p&egrave;te $B$ fois la proc&eacute;dure (sous-&eacute;chantillon + arbre) pour obtenir une for&ecirc;t.</p>
+
+<!-- ============================================ -->
+<h2 id="score">4. Calcul du score</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Profondeur d'isolement</h3>
+
+<p>$h(x)$ = profondeur de $x$ dans un arbre (nombre d'ar&ecirc;tes entre la racine et le n&oelig;ud terminal).</p>
+
+<p>Sur $B$ arbres, profondeur moyenne : $\displaystyle \overline{h}(x) = \frac{1}{B}\sum_{b=1}^{B} h_b(x)$.</p>
+
+<h3>4.2 Facteur de normalisation $c(n)$</h3>
+
+<p>La profondeur d&eacute;pend de $n$ : plus il y a d'observations, plus l'arbre sera profond. On normalise par la profondeur moyenne attendue pour un arbre al&eacute;atoire :</p>
+
+<div class="formula">
+$c(n) = 2 \times H(n-1) - \dfrac{2(n-1)}{n}$
+</div>
+
+<p>o&ugrave; $H(k) = \displaystyle\sum_{i=1}^{k} \frac{1}{i}$ est le $k$-i&egrave;me nombre harmonique.</p>
+
+<h3>4.3 Score d'anomalie</h3>
+
+<div class="formula">
+$s(x, n) = 2^{-\overline{h}(x) / c(n)}$
+</div>
+
+<table>
+<tr><th>Valeur du score</th><th>Interpr&eacute;tation</th></tr>
+<tr><td>$s \approx 0.5$</td><td>Observation normale ($\overline{h}(x) \approx c(n)$)</td></tr>
+<tr><td>$s \to 1$</td><td>Tr&egrave;s probablement atypique (isolement rapide)</td></tr>
+<tr><td>$s \to 0$</td><td>Plut&ocirc;t normale (isolement profond)</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="parametrage">5. Param&eacute;trage</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Nombre d'arbres ($B$)</h3>
+<p>Influe sur la variance de $\overline{h}(x)$. $B = 100$ est souvent suffisant, $B = 300$ donne une tr&egrave;s bonne stabilit&eacute;.</p>
+
+<h3>5.2 Taille du sous-&eacute;chantillon</h3>
+<p>Liu, Ting &amp; Zhou (2008) recommandent <strong>256 observations</strong>. Pas de gain substantiel au-del&agrave;. R&eacute;duit le co&ucirc;t computationnel.</p>
+
+<h3>5.3 Seuillage des scores</h3>
+<p>Pas de seuil universel. M&eacute;thode pratique : observer la distribution des scores et chercher un <em>coude</em> (d&eacute;crochage). Les points au-del&agrave; sont atypiques.</p>
+
+<!-- ============================================ -->
+<h2 id="application">6. Application aux donn&eacute;es German Credit</h2>
+<!-- ============================================ -->
+
+<p>Utilisation du package <strong>isotree</strong> sur German Credit ($n=1000$, $p=21$, 0 valeurs manquantes).</p>
+
+<h3>6.1 Chargement et importation</h3>
+<div class="code-block"><span class="kw">library</span>(isotree)
+<span class="kw">library</span>(FactoMineR)
+
+don <span class="op">&lt;-</span> <span class="kw">read.table</span>(
+  <span class="str">"https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"</span>,
+  sep = <span class="str">" "</span>, stringsAsFactors = <span class="kw">TRUE</span>)</div>
+
+<h3>6.2 Construction du mod&egrave;le</h3>
+<div class="code-block"><span class="kw">set.seed</span>(1234)
+ntree <span class="op">&lt;-</span> <span class="num">300</span>
+sample_size <span class="op">&lt;-</span> <span class="num">256</span>
+
+model <span class="op">&lt;-</span> <span class="kw">isolation.forest</span>(don,
+  sample_size = sample_size,
+  ntrees = ntree)</div>
+
+<h3>6.3 Stabilisation des scores</h3>
+<div class="code-block">subscores <span class="op">&lt;-</span> <span class="kw">sapply</span>(<span class="kw">seq.int</span>(ntree),
+  FUN = function(nbtree, model, don){
+    submodel <span class="op">&lt;-</span> <span class="kw">isotree.subset.trees</span>(model,
+      trees_take = <span class="kw">seq.int</span>(nbtree))
+    <span class="kw">predict.isolation_forest</span>(submodel, newdata = don)
+  }, model = model, don = don)
+
+<span class="kw">matplot</span>(<span class="kw">t</span>(subscores), type = <span class="str">"b"</span>, pch = <span class="num">14</span>, cex = <span class="num">.1</span>,
+  ylab = <span class="str">"score"</span>, xlab = <span class="str">"nombre d'arbres"</span>)</div>
+
+<p>Les scores se stabilisent &agrave; partir de 100 arbres.</p>
+
+<h3>6.4 Seuillage et identification</h3>
+<div class="code-block">scores <span class="op">&lt;-</span> <span class="kw">predict.isolation_forest</span>(model, newdata = don)
+scores <span class="op">&lt;-</span> <span class="kw">sort</span>(scores, decreasing = <span class="kw">TRUE</span>)
+
+<span class="kw">plot</span>(scores, type = <span class="str">"b"</span>, pch = <span class="num">16</span>, cex = <span class="num">0.2</span>,
+     xlab = <span class="str">"rang"</span>)
+threshold <span class="op">&lt;-</span> <span class="num">0.576</span>
+<span class="kw">abline</span>(h = threshold, col = <span class="str">"red"</span>, lty = <span class="num">2</span>)
+
+<span class="kw">names</span>(<span class="kw">which</span>(scores <span class="op">&gt;</span> threshold))
+<span class="cm"># "375" "757" "916" "187" "851" "227" "928" "890" "614"</span></div>
+
+<p><strong>9 observations</strong> identifi&eacute;es comme atypiques avec le seuil de 0.576.</p>
+
+<h3>6.5 Post-analyse par AFDM</h3>
+<p>L'Isolation Forest ne fournit que le score, sans information sur les variables explicatives. On utilise une AFDM pour analyser les caract&eacute;ristiques des individus atypiques :</p>
+
+<div class="code-block">res.FAMD <span class="op">&lt;-</span> <span class="kw">FAMD</span>(don,
+  ind.sup = <span class="kw">as.numeric</span>(<span class="kw">names</span>(<span class="kw">which</span>(scores <span class="op">&gt;</span> threshold))),
+  sup.var = <span class="kw">which</span>(<span class="kw">colnames</span>(don) <span class="op">==</span> <span class="str">"Creditability"</span>),
+  graph = <span class="kw">FALSE</span>)
+<span class="kw">plot</span>(res.FAMD, choix = <span class="str">"ind"</span>, cex = <span class="num">.5</span>)</div>
+
+<!-- ============================================ -->
+<h2 id="conclusion">7. Conclusion</h2>
+<!-- ============================================ -->
+
+<ul>
+    <li><strong>Faible co&ucirc;t algorithmique</strong> (complexit&eacute; lin&eacute;aire) &rarr; passage &agrave; l'&eacute;chelle.</li>
+    <li><strong>Pas de standardisation</strong> n&eacute;cessaire (insensible aux &eacute;chelles).</li>
+    <li>Extension aux <strong>donn&eacute;es mixtes</strong> directe.</li>
+    <li>Une fois les atypiques identifi&eacute;s : m&eacute;thodes robustes ou imputation apr&egrave;s remplacement par NA.</li>
+</ul>
+
+<p>Le package <strong>isotree</strong> propose des extensions : segmentation par combinaisons de variables, etc.</p>
+
+<div class="info-box">
+<strong>R&eacute;f&eacute;rences :</strong> Liu, Ting &amp; Zhou (ICDM 2008) &mdash; Cortes (2026) package isotree &mdash; Rakotomalala (2026) diapos &mdash; Audigier (2026) cours CNAM.
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">8. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne r&eacute;ponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quel est le principe de base d'Isolation Forest ?",
+        options: [
+            "Les points atypiques sont isol\u00e9s rapidement par les arbres",
+            "Les points atypiques sont identifi\u00e9s par leur distance au centre",
+            "Les points atypiques sont d\u00e9tect\u00e9s par des m\u00e9thodes supervis\u00e9es",
+            "Les points atypiques sont toujours en profondeur maximale"
+        ],
+        correct: 0,
+        expl: "Isolement rapide : moins de coupures n\u00e9cessaires pour isoler une anomalie."
+    },
+    {
+        q: "Dans la construction d'un arbre, comment sont choisis la variable et le point de coupure ?",
+        options: [
+            "Par optimisation d'un crit\u00e8re (Gini, entropie)",
+            "Au hasard",
+            "Par validation crois\u00e9e",
+            "Par recherche exhaustive"
+        ],
+        correct: 1,
+        expl: "Variable et point de coupure sont choisis au hasard."
+    },
+    {
+        q: "Quelle est la formule du score d'anomalie s(x,n) ?",
+        options: [
+            "$s(x,n) = 2^{-\\bar{h}(x)/c(n)}$",
+            "$s(x,n) = \\bar{h}(x)/c(n)$",
+            "$s(x,n) = 2^{\\bar{h}(x)/c(n)}$",
+            "$s(x,n) = -\\bar{h}(x)/c(n)$"
+        ],
+        correct: 0,
+        expl: "$s(x,n) = 2^{-\\bar{h}(x)/c(n)}$."
+    },
+    {
+        q: "Que repr\u00e9sente c(n) dans le calcul du score ?",
+        options: [
+            "La profondeur maximale de l'arbre",
+            "La profondeur moyenne attendue pour un arbre al\u00e9atoire sur n observations",
+            "Le nombre d'arbres dans la for\u00eat",
+            "La variance des scores"
+        ],
+        correct: 1,
+        expl: "c(n) est la profondeur moyenne d'un arbre al\u00e9atoire sur n observations."
+    },
+    {
+        q: "Un score s(x,n) \u2248 0.5 indique :",
+        options: [
+            "Une observation tr\u00e8s atypique",
+            "Une observation normale",
+            "Une observation anormale",
+            "Une erreur de calcul"
+        ],
+        correct: 1,
+        expl: "s \u2248 0.5 signifie \u03c0 h(x) \u2248 c(n), observation normale."
+    },
+    {
+        q: "Quelle taille de sous-\u00e9chantillon est recommand\u00e9e par Liu, Ting & Zhou (2008) ?",
+        options: [
+            "128",
+            "256",
+            "512",
+            "1000"
+        ],
+        correct: 1,
+        expl: "256 observations est le nombre recommand\u00e9."
+    },
+    {
+        q: "Quel est l'int\u00e9r\u00eat du sous-\u00e9chantillonnage dans Isolation Forest ?",
+        options: [
+            "R\u00e9duire la variance du mod\u00e8le",
+            "Limiter l'effet de masque",
+            "Acc\u00e9l\u00e9rer l'entra\u00eenement seulement",
+            "\u00c9viter le sur-apprentissage"
+        ],
+        correct: 1,
+        expl: "Le sous-\u00e9chantillonnage limite l'effet de masque."
+    },
+    {
+        q: "Quel package R impl\u00e9mente Isolation Forest ?",
+        options: [
+            "randomForest",
+            "isotree",
+            "rpart",
+            "xgboost"
+        ],
+        correct: 1,
+        expl: "Le package isotree impl\u00e9mente Isolation Forest."
+    },
+    {
+        q: "Isolation Forest n\u00e9cessite-t-elle une standardisation pr\u00e9alable ?",
+        options: [
+            "Oui, toujours",
+            "Non, elle n'est pas sensible aux \u00e9chelles",
+            "Oui, si les variables sont de natures diff\u00e9rentes",
+            "Cela d\u00e9pend du jeu de donn\u00e9es"
+        ],
+        correct: 1,
+        expl: "Pas de standardisation n\u00e9cessaire (insensible aux \u00e9chelles)."
+    },
+    {
+        q: "Dans l'application German Credit, combien d'observations sont atypiques (seuil 0.576) ?",
+        options: [
+            "3",
+            "6",
+            "9",
+            "12"
+        ],
+        correct: 2,
+        expl: "9 observations identifi\u00e9es comme atypiques."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) {
+            return;
+        }
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null
+                    ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}`
+                    : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

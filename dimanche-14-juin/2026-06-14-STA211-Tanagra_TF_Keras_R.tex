@@ -1,0 +1,210 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,aboveskip=6pt,belowskip=6pt}
+
+\newtheorem*{important}{\`A retenir}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Compl\'ement Tanagra TF/Keras R}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Compl\'ement \texttt{fr\_Tanagra\_Tensorflow\_Keras\_R} \\[2pt]
+\small TensorFlow / Keras sous R -- Perceptron simple et multicouche}
+\author{Tanagra Data Mining -- R. Rakotomalala (avril 2018)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Ce tutoriel pr\'esente l'utilisation des librairies TensorFlow / Keras sous R,
+en suivant les m\^emes \'etapes que le document \'equivalent sous Python.
+La transposition R $\leftrightarrow$ Python est particuli\`erement simple.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Installation sous R}
+% ===================================================================
+
+\begin{lstlisting}
+install.packages("keras")
+library(keras)
+install_keras()  # installe Keras + TensorFlow (backend)
+\end{lstlisting}
+
+\noindent\texttt{install\_keras()} installe \`a la fois le c\oe ur de Keras et le moteur
+TensorFlow. Keras n'est qu'un \emph{front-end} : c'est TensorFlow qui effectue
+les calculs.
+
+% ===================================================================
+\section{Donn\'ees}
+% ===================================================================
+
+Probl\`eme de discrimination binaire dans le plan. 2000 observations,
+2 variables pr\'edicatives $X_1, X_2$. Fronti\`ere parabolique~:
+
+\[
+\text{Si } 0.1 \times X_2 > X_1^2 \implies \text{pos}, \text{ sinon neg}
+\]
+
+Pr\'eparation~:
+\begin{lstlisting}
+D <- read.table("artificial2d_data2.txt", sep="\t", header=T, dec=".")
+y <- ifelse(D$Y=="pos", 1, 0)
+set.seed(100)
+idTrain <- sample(1:nrow(D), 1500, replace=F)
+XTrain <- as.matrix(D[idTrain, 1:2])
+yTrain <- y[idTrain]
+XTest  <- as.matrix(D[-idTrain, 1:2])
+yTest  <- y[-idTrain]
+\end{lstlisting}
+
+\noindent 1500 observations en apprentissage, 500 en test.
+
+% ===================================================================
+\section{Perceptron simple}
+% ===================================================================
+
+Architecture~:
+\begin{lstlisting}
+modelSimple <- keras_model_sequential()
+modelSimple %>%
+  layer_dense(units=1, input_shape=c(2), activation="sigmoid")
+\end{lstlisting}
+
+\begin{itemize}
+  \item 1 neurone de sortie (codage 1/0), sigmo\"ide.
+  \item 3 param\`etres \`a estimer : $a_0$ (biais) $+ a_1 X_1 + a_2 X_2$.
+  \item Biais activ\'e par d\'efaut (\texttt{use\_bias = True}).
+\end{itemize}
+
+Compilation et apprentissage~:
+\begin{lstlisting}
+modelSimple %>% compile(
+  loss="binary_crossentropy",
+  optimizer="adam",
+  metrics="accuracy"
+)
+modelSimple %>% fit(x=XTrain, y=yTrain, epochs=150, batch_size=10)
+\end{lstlisting}
+
+Poids estim\'es~: $a_0 = -1.283$, $a_1 = 0.256$, $a_2 = 1.947$.
+
+\paragraph{Performances~:}
+\begin{itemize}
+  \item Apprentissage~: loss = 0.6429, accuracy~=~62.2\,\%
+  \item Test (predict\_class + confusionMatrix)~: accuracy~=~67.8\,\%
+  \item \'Evaluation Keras (\texttt{evaluate})~: loss~=~0.6206, acc~=~67.8\,\%
+\end{itemize}
+
+% ===================================================================
+\section{Perceptron multicouche}
+% ===================================================================
+
+Architecture~: 1 couche cach\'ee (3 neurones) + 1 couche de sortie (1 neurone),
+activation sigmo\"ide partout.
+
+\begin{lstlisting}
+modelMc <- keras_model_sequential()
+modelMc %>%
+  layer_dense(units=3, input_shape=c(2), activation="sigmoid") %>%
+  layer_dense(units=1, activation="sigmoid")
+\end{lstlisting}
+
+Nombre de param\`etres~:
+\begin{itemize}
+  \item Entr\'ee $\rightarrow$ cach\'ee~: $(2 \times 3) + (1 \times 3) = 9$
+  \item Cach\'ee $\rightarrow$ sortie~: $(3 \times 1) + (1 \times 1) = 4$
+  \item \textbf{Total~: 13 param\`etres}
+\end{itemize}
+
+Compilation et apprentissage~: m\^emes param\`etres (binary\_crossentropy,
+adam, 150 epochs, batch\_size=10).
+
+\paragraph{Performances~:}
+\begin{itemize}
+  \item \textbf{Accuracy test~: 97.4\,\%}
+  \item Nette am\'elioration par rapport au perceptron simple (67.8\,\%).
+  \item Le r\'eseau non lin\'eaire (couche cach\'ee) capture mieux la
+    fronti\`ere parabolique.
+  \item Taux de reconnaissance sur l'\'echantillon test.
+\end{itemize}
+
+% ===================================================================
+\section{Comparaison R vs Python}
+% ===================================================================
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Aspect & R & Python \\
+\midrule
+Syntaxe & \texttt{\%\textgreater{}\%} & API fonctionnelle \\
+Installation Keras & \texttt{install\_keras()} & \texttt{pip install keras} \\
+Fonctions & \texttt{layer\_dense()} & \texttt{layers.Dense()} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{important}
+  Les modes op\'eratoires sont tr\`es similaires sous R et Python.
+  Passer d'un langage \`a l'autre n'est pas un probl\`eme.
+\end{important}
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+  \item Quelle fonction installe Keras + TensorFlow sous R~?
+    \textbf{R. \texttt{install\_keras()}.}
+  \item Quel op\'erateur cha\^ine les instructions Keras sous R~?
+    \textbf{R. \texttt{\%\textgreater{}\%} (pipe).}
+  \item Combien de param\`etres pour le perceptron simple~?
+    \textbf{R. 3 (biais + 2 poids).}
+  \item Combien de param\`etres pour le MLP (3 neurones cach\'es)~?
+    \textbf{R. 13 (9 + 4).}
+  \item Quelle est l'accuracy du perceptron simple en test~?
+    \textbf{R. 67.8\,\%.}
+  \item Quelle est l'accuracy du MLP en test~?
+    \textbf{R. 97.4\,\%.}
+  \item Quelle fonction d'activation est utilis\'ee~?
+    \textbf{R. Sigmo\"ide (sigmoid).}
+  \item Quel optimiseur est utilis\'e~?
+    \textbf{R. Adam.}
+  \item Quelle fonction de perte (loss)~?
+    \textbf{R. \texttt{binary\_crossentropy}.}
+  \item Quel est le nom de l'instruction de cr\'eation du mod\`ele~?
+    \textbf{R. \texttt{keras\_model\_sequential()}.}
+\end{enumerate}
+
+\vfill
+
+\end{document}

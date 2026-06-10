@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Pré-traitement des données — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+.tag { color: #569cd6; }
+.attr { color: #9cdcfe; }
+.val { color: #ce9178; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 — Pré-traitement des données</h1>
+<p class="subtitle">Exploitation des méthodes exploratoires pour le pré-traitement des données &mdash; 10 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#presentation">Présentation</a></li>
+    <li><a href="#transfo-quant">Transformation des variables quantitatives</a></li>
+    <li><a href="#transfo-qual">Transformation des variables qualitatives</a></li>
+    <li><a href="#atypiques">Détection des points atypiques</a></li>
+    <li><a href="#manquantes">Gestion des données manquantes</a></li>
+    <li><a href="#reduction">Réduction de dimension</a></li>
+    <li><a href="#volumineuses">Pré-traitement des données volumineuses</a></li>
+    <li><a href="#python">Code Python</a></li>
+    <li><a href="#r">Code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="presentation">1. Présentation</h2>
+<!-- ============================================ -->
+
+<p>Le pré-traitement est une étape cruciale de tout processus d'analyse de données. Les données brutes contiennent souvent des imperfections : valeurs aberrantes, données manquantes, échelles hétérogènes, variables redondantes, etc.</p>
+
+<p>Les méthodes exploratoires jouent un double rôle :</p>
+<ol>
+    <li><strong>Diagnostic</strong> : mettre en évidence les caractéristiques des données (distributions, corrélations, atypiques, manquantes).</li>
+    <li><strong>Transformation</strong> : corriger ou adapter les données pour les rendre compatibles avec les méthodes d'analyse ultérieures.</li>
+</ol>
+
+<p><strong>Questions clés :</strong></p>
+<ul>
+    <li>Comment transformer les variables (quantitatives et qualitatives) ?</li>
+    <li>Comment détecter et traiter les points atypiques ?</li>
+    <li>Comment gérer les données manquantes ?</li>
+    <li>Comment réduire la dimension des données ?</li>
+    <li>Comment traiter les données volumineuses ?</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="transfo-quant">2. Transformation des variables quantitatives</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Discrétisation</h3>
+
+<p>La discrétisation transforme une variable continue en classes discrètes. Utile pour l'applicabilité de certains algorithmes, l'interprétabilité et la robustesse au bruit.</p>
+
+<h4>Règles métier</h4>
+<p>Découpage selon des seuils ayant un sens métier. Exemple : âge en classes : $[0,18[$, $[18,25[$, $[25,45[$, $[45,65[$, $65+$. Simple et pertinent mais subjectif.</p>
+
+<h4>Quantiles</h4>
+<p>Classes d'effectifs égaux (déciles, quartiles). Exemple : âge en 3 quantiles : $[18,32[$, $[32,51[$, $[51,95]$. Objectif mais peut créer des frontières artificielles.</p>
+
+<h4>CAH / $k$-means</h4>
+<p>On regroupe les valeurs par clustering univarié puis on utilise les clusters comme catégories. S'adapte à la structure naturelle des données.</p>
+
+<h4>MDLPC</h4>
+<p><em>Minimum Description Length Principle Cut</em> : discrétisation supervisée qui minimise la perte d'information vis-à-vis d'une cible $Y$. Choisit les coupures qui maximisent le gain d'information.</p>
+
+<div class="warn-box">
+<strong>Attention :</strong> la discrétisation fait perdre de l'information (perte de granularité). À utiliser avec parcimonie.
+</div>
+
+<h3>2.2 Linéarité</h3>
+
+<p>De nombreux modèles (régression linéaire, ACP) supposent des relations linéaires entre variables.</p>
+
+<p><strong>Détection :</strong></p>
+<ul>
+    <li>Coefficient de Pearson $r$ : mesure la corrélation linéaire.</li>
+    <li>Coefficient de Spearman $\rho$ : mesure la corrélation de rang (monotone, pas forcément linéaire).</li>
+    <li>Si $|r| \approx |\rho|$ : relation approximativement linéaire.</li>
+    <li>Si $|\rho| > |r|$ : relation monotone mais non linéaire → besoin de transformation.</li>
+</ul>
+
+<p><strong>Transformation de Box-Cox :</strong></p>
+<div class="formula">
+$$y^{(\lambda)} = \begin{cases} \dfrac{y^\lambda - 1}{\lambda} &amp; \text{si } \lambda \neq 0,\\[8pt] \log(y) &amp; \text{si } \lambda = 0. \end{cases}$$
+</div>
+<p>Le paramètre $\lambda$ est estimé par maximum de vraisemblance (<em>profile likelihood</em>). On cherche $\lambda$ tel que $y^{(\lambda)}$ soit le plus linéaire possible.</p>
+
+<h3>2.3 Normalité</h3>
+
+<p><strong>Indicateurs de non-normalité :</strong></p>
+<ul>
+    <li>Asymétrie (<em>skewness</em>) : $\gamma_1 = \mathbb{E}[((X-\mu)/\sigma)^3]$. $\gamma_1 = 0$ pour une normale. $\gamma_1 > 0$ : queue à droite. $\gamma_1 < 0$ : queue à gauche.</li>
+    <li>Aplatissement (<em>kurtosis</em>) : $\gamma_2 = \mathbb{E}[((X-\mu)/\sigma)^4] - 3$. $\gamma_2 = 0$ pour une normale.</li>
+    <li>Test de Shapiro-Wilk, test de Jarque-Bera.</li>
+    <li>QQ-plot : quantiles empiriques vs quantiles théoriques.</li>
+</ul>
+
+<p><strong>Transformations correctives :</strong></p>
+<ul>
+    <li>Logarithme : $\log(x)$ pour données positives avec asymétrie droite.</li>
+    <li>Racine carrée : $\sqrt{x}$ pour données de comptage.</li>
+    <li>Box-Cox : généralisation.</li>
+    <li>Yeo-Johnson : analogue à Box-Cox mais accepte les valeurs négatives.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="transfo-qual">3. Transformation des variables qualitatives</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Regroupement de modalités</h3>
+
+<p>Les variables qualitatives comportent parfois un grand nombre de modalités, dont certaines très rares. Le regroupement vise à éviter les indicateurs binaires de faible effectif (instables) et améliorer la parcimonie.</p>
+
+<p><strong>Méthodes :</strong></p>
+<ol>
+    <li><strong>Expertise métier</strong> : regroupement basé sur la connaissance du domaine.</li>
+    <li><strong>Clustering des modalités</strong> : on représente chaque modalité par son profil (e.g. via ACM), puis on regroupe les modalités proches.</li>
+    <li><strong>Fusion supervisée</strong> : pour une cible $Y$, on regroupe les modalités dont la moyenne de $Y$ est similaire (test de Student ou ANOVA).</li>
+</ol>
+
+<h3>3.2 Analyse factorielle</h3>
+
+<p>L'analyse factorielle (ACM, AFDM) permet de convertir des variables qualitatives en représentations numériques continues.</p>
+<ul>
+    <li><strong>ACM (MCA)</strong> : pour données qualitatives uniquement. Transforme le tableau disjonctif complet en composantes continues.</li>
+    <li><strong>AFDM (FAMD)</strong> : pour données mixtes (quantitatives + qualitatives). Combine ACP et ACM.</li>
+</ul>
+
+<div class="info-box">
+<strong>À retenir :</strong> L'analyse factorielle n'est pas seulement une méthode de visualisation : c'est aussi un outil de pré-traitement pour remplacer des variables brutes par des composantes synthétiques.
+</div>
+
+<!-- ============================================ -->
+<h2 id="atypiques">4. Détection des points atypiques</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Méthodes univariées</h3>
+
+<p><strong>Z-score :</strong></p>
+<div class="formula">$$z_i = \frac{x_i - \bar{x}}{s}$$</div>
+<p>On considère comme atypique une observation avec $|z_i| > 3$ (seuil de la normale à 99,7 %). Limite : la moyenne et l'écart-type sont sensibles aux valeurs extrêmes (effet de masquage).</p>
+
+<p><strong>Intervalle interquartile (IQR) :</strong></p>
+<div class="formula">$$\text{IQR} = Q_3 - Q_1$$</div>
+<p>Sont atypiques les valeurs $< Q_1 - 1{,}5 \times \text{IQR}$ ou $> Q_3 + 1{,}5 \times \text{IQR}$. Plus robuste que le Z-score.</p>
+
+<h3>4.2 Méthodes multivariées</h3>
+
+<p><strong>Distance de Mahalanobis :</strong></p>
+<div class="formula">$$D_i^2 = (\mathbf{x}_i - \boldsymbol{\mu})^\top \boldsymbol{\Sigma}^{-1} (\mathbf{x}_i - \boldsymbol{\mu})$$</div>
+<p>Sous hypothèse de normalité multivariée, $D_i^2 \sim \chi^2_p$ avec $p$ le nombre de variables. On utilise l'estimateur MCD (<em>Minimum Covariance Determinant</em>) pour une version robuste.</p>
+
+<p><strong>Isolation Forest :</strong></p>
+<ul>
+    <li>Algorithme non supervisé basé sur des arbres de décision aléatoires.</li>
+    <li>On isole chaque observation en partitionnant aléatoirement l'espace des variables.</li>
+    <li>Un point atypique est isolé en moins de coupes (chemin plus court dans l'arbre).</li>
+</ul>
+<div class="formula">$$s(x, n) = 2^{-\frac{\mathbb{E}[h(x)]}{c(n)}}, \qquad c(n) = 2H(n-1) - \frac{2(n-1)}{n}$$</div>
+<p>où $h(x)$ est la longueur du chemin, $c(n)$ un facteur de normalisation et $H(i)$ le $i$-ème nombre harmonique. $s \to 1$ : atypique, $s \to 0$ : normal.</p>
+
+<!-- ============================================ -->
+<h2 id="manquantes">5. Gestion des données manquantes</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Mécanismes de manquance</h3>
+
+<ul>
+    <li><strong>MCAR</strong> (<em>Missing Completely At Random</em>) : la probabilité de manquance ne dépend ni des données observées ni des données manquantes. Exemple : questionnaire perdu aléatoirement.</li>
+    <li><strong>MAR</strong> (<em>Missing At Random</em>) : la probabilité de manquance dépend des données observées mais pas des données manquantes. Exemple : les hommes répondent moins à une question sur le poids.</li>
+    <li><strong>MNAR</strong> (<em>Missing Not At Random</em>) : la probabilité de manquance dépend des données manquantes elles-mêmes. Exemple : les personnes à haut revenu ne déclarent pas leur revenu.</li>
+</ul>
+
+<div class="warn-box">
+<strong>Important :</strong> Le mécanisme de manquance est une hypothèse non testable (car on n'observe pas les données manquantes). Il faut justifier son choix par des arguments métier.
+</div>
+
+<h3>5.2 Approches par suppression</h3>
+<ul>
+    <li><strong>Listwise deletion</strong> : on supprime toute ligne comportant une valeur manquante. Simple mais biaisé sauf si MCAR.</li>
+    <li><strong>Pairwise deletion</strong> : on utilise toutes les observations disponibles pour chaque calcul. La matrice de covariance peut ne pas être définie positive.</li>
+</ul>
+
+<h3>5.3 Imputation simple</h3>
+<ul>
+    <li><strong>Moyenne / médiane</strong> : atténue la variance et les corrélations.</li>
+    <li><strong>Imputation par régression</strong> : tend à renforcer les relations existantes.</li>
+    <li><strong>Hot-deck ($k$-NN)</strong> : imputation par les plus proches voisins.</li>
+</ul>
+
+<h3>5.4 Imputation multiple — MICE</h3>
+
+<p><strong>MICE</strong> (<em>Multiple Imputation by Chained Equations</em>) : méthode itérative qui génère $m$ jeux de données imputés.</p>
+
+<p><strong>Algorithme :</strong></p>
+<ol>
+    <li>Imputation initiale provisoire (e.g. moyenne).</li>
+    <li>Pour chaque variable $X_j$ contenant des valeurs manquantes : régression de $X_j$ sur toutes les autres variables (sur les observations observées), puis imputation par tirage dans la distribution prédictive.</li>
+    <li>Répéter l'étape 2 pendant plusieurs cycles (5--10) pour stabiliser les imputations.</li>
+    <li>Répéter tout le processus $m$ fois (typiquement $m=5$ ou $m=20$) → $m$ jeux de données complets.</li>
+    <li>Analyser chaque jeu séparément et combiner les résultats avec les règles de Rubin.</li>
+</ol>
+
+<p><strong>Règles de Rubin :</strong></p>
+<div class="formula">
+$$\bar{Q} = \frac{1}{m}\sum_{j=1}^m \hat{Q}_j,\quad
+B = \frac{1}{m-1}\sum_{j=1}^m (\hat{Q}_j - \bar{Q})^2,\quad
+T = \bar{U} + \left(1 + \frac{1}{m}\right)B$$
+</div>
+<p>où $\bar{U}$ est la variance intra-imputation, $B$ la variance inter-imputation, $T$ la variance totale.</p>
+
+<!-- ============================================ -->
+<h2 id="reduction">6. Réduction de dimension</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Sélection <em>vs</em> extraction</h3>
+<ul>
+    <li><strong>Sélection de variables</strong> : choisir un sous-ensemble des variables originales. Avantage : interprétabilité préservée.</li>
+    <li><strong>Extraction de caractéristiques</strong> : créer de nouvelles variables synthétiques (composantes, facteurs). Avantage : capte l'information de toutes les variables.</li>
+</ul>
+
+<h3>6.2 Méthodes d'extraction</h3>
+<ul>
+    <li><strong>ACP (PCA)</strong> : directions de variance maximale. Composantes orthogonales. Pour variables numériques.</li>
+    <li><strong>ACM (MCA)</strong> : version de l'ACP pour variables qualitatives.</li>
+    <li><strong>AFDM (FAMD)</strong> : mélange ACP + ACM pour données mixtes.</li>
+    <li><strong>PLS (<em>Partial Least Squares</em>)</strong> : composantes qui maximisent la covariance entre $X$ et $Y$. Supervisée.</li>
+</ul>
+
+<h3>6.3 Méthodes de sélection</h3>
+<ul>
+    <li><strong>Best subset</strong> : testing all $2^p$ subsets. Impossible pour $p$ grand.</li>
+    <li><strong>Sélection pas-à-pas</strong> : forward, backward, stepwise.</li>
+    <li><strong>Régularisation (Lasso, Ridge, Elastic Net)</strong> :</li>
+</ul>
+<div class="formula">
+$$\hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}} \| \mathbf{y} - \mathbf{X}\boldsymbol{\beta} \|_2^2 + \lambda \|\boldsymbol{\beta}\|_q^q$$
+</div>
+<p>avec $q=1$ (Lasso, sélection), $q=2$ (Ridge, réduction), ou mélange (Elastic Net).</p>
+
+<h3>6.4 Clustering de variables</h3>
+<p>Identifier des groupes de variables corrélées pour détecter la redondance. Démarche : calculer la matrice de corrélation $\mathbf{R}$, définir une distance $d(X_j, X_k) = 1 - |r_{jk}|$, appliquer une CAH sur les variables.</p>
+
+<!-- ============================================ -->
+<h2 id="volumineuses">7. Pré-traitement des données volumineuses</h2>
+<!-- ============================================ -->
+
+<p><strong>Stratégies :</strong></p>
+<ul>
+    <li><strong>Échantillonnage</strong> : aléatoire simple, systématique (1 individu tous les $k$), stratifié.</li>
+    <li><strong>Sous-échantillonnage pour Isolation Forest</strong> : chaque arbre est construit sur un petit sous-échantillon (e.g. 256 individus).</li>
+    <li><strong>Parallélisation</strong> : diviser les données en blocs, traiter indépendamment, combiner.</li>
+    <li><strong>Algorithmes en ligne (<em>streaming</em>)</strong> : mise à jour incrémentale (SGD, ACP incrémentale).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="python">8. Code Python</h2>
+<!-- ============================================ -->
+
+<div class="code-block"><span class="cm"># Box-Cox et détection d'atypiques</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy.stats <span class="kw">import</span> boxcox
+<span class="kw">from</span> sklearn.covariance <span class="kw">import</span> MinCovDet
+
+<span class="cm"># Transformation Box-Cox</span>
+data = np.array([1, 2, 3, 5, 10, 20, 50])
+transformed, lambda_opt = boxcox(data)
+<span class="fn">print</span>(f<span class="str">"lambda optimal: {lambda_opt:.3f}"</span>)
+
+<span class="cm"># Distance de Mahalanobis robuste</span>
+X = np.random.randn(100, 5)
+mcd = MinCovDet().fit(X)
+dist = mcd.mahalanobis(X)
+seuil = np.sqrt(mcd.dof_)
+outliers = dist > seuil
+<span class="fn">print</span>(f<span class="str">"Atteinte Mahalanobis robuste: {outliers.sum()} atypiques"</span>)
+
+<span class="cm"># Isolation Forest</span>
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> IsolationForest
+rng = np.random.RandomState(42)
+X = 0.3 * rng.randn(100, 2)
+X_outliers = rng.uniform(low=-4, high=4, size=(20, 2))
+X = np.vstack([X, X_outliers])
+model = IsolationForest(contamination=0.1, random_state=rng)
+y_pred = model.fit_predict(X)
+<span class="fn">print</span>(f<span class="str">"Atteinte Isolation Forest: {(y_pred == -1).sum()} atypiques"</span>)
+</div>
+
+<div class="code-block"><span class="cm"># Imputation multiple avec IterativeImputer</span>
+<span class="kw">from</span> sklearn.experimental <span class="kw">import</span> enable_iterative_imputer
+<span class="kw">from</span> sklearn.impute <span class="kw">import</span> IterativeImputer
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+df = pd.DataFrame({
+    <span class="str">'X1'</span>: [1, 2, np.nan, 4, 5],
+    <span class="str">'X2'</span>: [5, np.nan, 3, 2, 1],
+    <span class="str">'X3'</span>: [1, 1, 0, 0, 1]
+})
+imp = IterativeImputer(max_iter=10, random_state=0)
+df_imputed = pd.DataFrame(imp.fit_transform(df),
+                          columns=df.columns)
+<span class="fn">print</span>(df_imputed)
+
+<span class="cm"># ACP et Lasso</span>
+<span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> PCA
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LassoCV
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+<span class="fn">print</span>(f<span class="str">"Variance expliquee: {pca.explained_variance_ratio_}"</span>)
+
+lasso = LassoCV(cv=5, random_state=0).fit(X_scaled, y)
+<span class="fn">print</span>(f<span class="str">"Variables selectionnees: {np.where(lasso.coef_ != 0)[0]}"</span>)
+</div>
+
+<!-- ============================================ -->
+<h2 id="r">9. Code R</h2>
+<!-- ============================================ -->
+
+<div class="code-block"><span class="cm"># Box-Cox et Mahalanobis</span>
+<span class="kw">library</span>(MASS)
+<span class="kw">library</span>(robustbase)
+<span class="kw">library</span>(isotree)
+<span class="kw">library</span>(mice)
+<span class="kw">library</span>(FactoMineR)
+<span class="kw">library</span>(glmnet)
+
+<span class="cm"># Box-Cox</span>
+boxcox(lm(mpg ~ ., data = mtcars))
+
+<span class="cm"># Distance de Mahalanobis robuste</span>
+X <span class="op">&lt;-</span> iris[, 1:4]
+mcd <span class="op">&lt;-</span> covMcd(X)
+dist <span class="op">&lt;-</span> <span class="kw">mahalanobis</span>(X, center = mcd<span class="op">$</span>center, cov = mcd<span class="op">$</span>cov)
+seuil <span class="op">&lt;-</span> <span class="kw">qchisq</span>(0.999, df = ncol(X))
+outliers <span class="op">&lt;-</span> dist > seuil
+<span class="kw">cat</span>(<span class="str">"Atteinte Mahalanobis robuste:"</span>, sum(outliers), <span class="str">"atypiques\n"</span>)
+</div>
+
+<div class="code-block"><span class="cm"># Isolation Forest</span>
+iso <span class="op">&lt;-</span> <span class="kw">isolation.forest</span>(X, ntrees = 100, sample_size = 256)
+scores <span class="op">&lt;-</span> <span class="kw">predict</span>(iso, X)
+<span class="kw">cat</span>(<span class="str">"Score d'anomalie (moy.):"</span>, mean(scores), <span class="str">"\n"</span>)
+
+<span class="cm"># Imputation multiple avec mice</span>
+data(nhanes)
+imp <span class="op">&lt;-</span> <span class="kw">mice</span>(nhanes, m = 5, method = <span class="str">'pmm'</span>, seed = 123)
+fit <span class="op">&lt;-</span> <span class="kw">with</span>(imp, lm(bmi ~ age + chl))
+pooled <span class="op">&lt;-</span> <span class="kw">pool</span>(fit)
+<span class="kw">summary</span>(pooled)
+
+<span class="cm"># ACP et FAMD</span>
+res.pca <span class="op">&lt;-</span> <span class="kw">PCA</span>(iris[, 1:4], scale.unit = TRUE, graph = FALSE)
+<span class="kw">print</span>(res.pca<span class="op">$</span>eig[1:2, ])
+
+<span class="cm"># Lasso</span>
+cv.lasso <span class="op">&lt;-</span> <span class="kw">cv.glmnet</span>(as.matrix(iris[, 1:4]),
+                      as.numeric(iris[, 5]),
+                      alpha = 1, nfolds = 5)
+<span class="kw">coef</span>(cv.lasso, s = <span class="str">"lambda.1se"</span>)
+</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">10. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne réponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions r&eacute;pondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif des erreurs</button>
+    <button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+// ============================================================
+// QCM Data
+// ============================================================
+const qcmData = [
+    {
+        q: "Quelle transformation est recommand\u00e9e pour lin\u00e9ariser une relation monotone non lin\u00e9aire ?",
+        options: [
+            "Transformation logarithmique",
+            "Transformation de Box-Cox",
+            "Centrage-r\u00e9duction",
+            "Discr\u00e9tisation par quantiles"
+        ],
+        correct: 1,
+        expl: "Box-Cox (dont le log est un cas particulier) est con\u00e7ue pour lin\u00e9ariser les relations."
+    },
+    {
+        q: "Le coefficient de Spearman mesure :",
+        options: [
+            "La corr\u00e9lation lin\u00e9aire entre deux variables",
+            "La corr\u00e9lation de rang (monotone)",
+            "La proportion de variance expliqu\u00e9e",
+            "La distance entre deux distributions"
+        ],
+        correct: 1,
+        expl: "Spearman \u03c1 mesure la corr\u00e9lation de rang, pas seulement lin\u00e9aire."
+    },
+    {
+        q: "Dans la distance de Mahalanobis, la matrice utilis\u00e9e est :",
+        options: [
+            "La matrice des corr\u00e9lations",
+            "L'inverse de la matrice de variance-covariance",
+            "La matrice des distances euclidiennes",
+            "La matrice identit\u00e9"
+        ],
+        correct: 1,
+        expl: "Mahalanobis utilise \u03a3^{-1} pour tenir compte des corr\u00e9lations entre variables."
+    },
+    {
+        q: "Un point atypique dans Isolation Forest a :",
+        options: [
+            "Un chemin long dans l'arbre",
+            "Un chemin court dans l'arbre",
+            "Un score proche de 0",
+            "Une forte contribution \u00e0 l'inertie"
+        ],
+        correct: 1,
+        expl: "Un atypique est isol\u00e9 en moins de coupes (chemin court), son score s -> 1."
+    },
+    {
+        q: "Le m\u00e9canisme MAR signifie que la probabilit\u00e9 de manquance :",
+        options: [
+            "Est ind\u00e9pendante de toutes les donn\u00e9es",
+            "D\u00e9pend des donn\u00e9es observ\u00e9es uniquement",
+            "D\u00e9pend des donn\u00e9es manquantes uniquement",
+            "D\u00e9pend des donn\u00e9es observ\u00e9es et manquantes"
+        ],
+        correct: 1,
+        expl: "MAR = Missing At Random : la manquance d\u00e9pend des donn\u00e9es observ\u00e9es."
+    },
+    {
+        q: "Dans MICE, le nombre m de jeux de donn\u00e9es imput\u00e9s est typiquement :",
+        options: [
+            "m = 1",
+            "m = 5 \u00e0 20",
+            "m = 100 \u00e0 500",
+            "m est choisi par validation crois\u00e9e"
+        ],
+        correct: 1,
+        expl: "MICE utilise typiquement m=5 \u00e0 m=20 jeux de donn\u00e9es imput\u00e9s."
+    },
+    {
+        q: "Le Lasso effectue de la s\u00e9lection de variables car :",
+        options: [
+            "Il utilise la norme l2",
+            "Il utilise la norme l1",
+            "Il estime les coefficients par MCCO",
+            "Il orthogonalise les pr\u00e9dicteurs"
+        ],
+        correct: 1,
+        expl: "La norme l1 (valeur absolue) force certains coefficients \u00e0 z\u00e9ro, effectuant la s\u00e9lection."
+    },
+    {
+        q: "L'AFDM (FAMD) est adapt\u00e9e aux donn\u00e9es :",
+        options: [
+            "Uniquement qualitatives",
+            "Uniquement quantitatives",
+            "Mixtes (qualitatives et quantitatives)",
+            "Textuelles"
+        ],
+        correct: 2,
+        expl: "FAMD = Factor Analysis of Mixed Data, con\u00e7ue pour les donn\u00e9es mixtes."
+    },
+    {
+        q: "Le clustering de variables permet de :",
+        options: [
+            "Regrouper des individus similaires",
+            "Identifier des groupes de variables corr\u00e9l\u00e9es",
+            "R\u00e9duire le nombre d'individus",
+            "D\u00e9tecter des points atypiques"
+        ],
+        correct: 1,
+        expl: "On clust\u00e9rise les variables (pas les individus) pour d\u00e9tecter la redondance."
+    },
+    {
+        q: "Pour des donn\u00e9es volumineuses, une strat\u00e9gie courante dans Isolation Forest est :",
+        options: [
+            "Utiliser tous les individus pour chaque arbre",
+            "Sous-\u00e9chantillonner les individus pour chaque arbre",
+            "Augmenter le nombre de variables",
+            "Utiliser une ACP en amont"
+        ],
+        correct: 1,
+        expl: "Chaque arbre est construit sur un petit sous-\u00e9chantillon (ex: 256), ce qui am\u00e9liore robustesse et co\u00fbt."
+    }
+];
+
+// ============================================================
+// QCM Rendering
+// ============================================================
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher le r\u00e9capitulatif quand m\u00eame ?`)) {
+            return;
+        }
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null
+                    ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}`
+                    : 'Pas de r\u00e9ponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre r\u00e9ponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>R\u00e9ponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

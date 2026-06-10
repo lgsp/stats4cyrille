@@ -1,0 +1,175 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\lstdefinestyle{pystyle}{
+  frame=single, numbers=left, breaklines=true,
+  basicstyle=\small\ttfamily, backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40}, language=Python
+}
+\lstset{style=pystyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Notebook \'enonc\'e (Keras)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Notebook Jupyter -- \'Enonc\'e \\[2pt]
+\small DL-STA211.ipynb -- Deep Learning avec Keras}
+\author{N. Thome (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Le notebook \'enonc\'e fournit aux \'etudiants le squelette du TP
+Keras/Manifold Untangling avec des cellules de code \`a compl\'eter
+et des questions \`a r\'epondre. Cette fiche r\'esume la structure,
+les cellules de code et les questions du notebook.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Structure du notebook}
+% ===================================================================
+
+Le notebook contient 67 cellules (markdown + code) couvrant 6
+exercices. Les cellules de code ont \texttt{execution\_count=None}
+(doivent \^etre ex\'ecut\'ees par l'\'etudiant).
+
+\subsection{Partie 1 -- Deep Learning avec Keras}
+
+\paragraph{Ex0 -- Chargement des donn\'ees (2 cellules code)~:}
+charger MNIST, normaliser, reshape en 784, afficher 200 images.
+
+\paragraph{Ex1 -- R\'egression logistique (5 cellules code)~:}
+\begin{enumerate}
+  \item Cr\'eer un \texttt{Sequential} vide
+  \item Ajouter \texttt{Dense(10, input\_dim=784)} + softmax
+  \item One-hot encoding avec \texttt{np\_utils.to\_categorical}
+  \item Compiler (SGD, cross-entropy) et fit
+  \item Evaluate sur le test set
+\end{enumerate}
+
+Questions pos\'ees~:
+\begin{itemize}
+  \item Espace des images et sa taille~? ($\mathbb{R}^{784}$)
+  \item Nombre de param\`etres du mod\`ele~? (7\,850)
+  \item Convexit\'e de la cross-entropy~? (Oui, global)
+\end{itemize}
+
+\paragraph{Ex2 -- MLP (2 cellules code)~:}
+\begin{enumerate}
+  \item \texttt{Dense(100)} + sigmo\"ide
+  \item \texttt{Dense(10)} + softmax
+  \item Fonction \texttt{saveModel}
+\end{enumerate}
+
+Questions~:
+\begin{itemize}
+  \item Nombre de param\`etres du MLP~? (79\,510)
+  \item Convexit\'e du MLP~? (Non, local)
+\end{itemize}
+
+\paragraph{Ex3 -- CNN (2 cellules code)~:}
+\begin{enumerate}
+  \item Reshape en $28\times28\times1$
+  \item Architecture LeNet-like (Conv+Pool+Conv+Pool+Flatten+FC)
+\end{enumerate}
+
+Questions~:
+\begin{itemize}
+  \item Temps d'une \'epoque~?
+  \item Comparaison CPU vs GPU
+\end{itemize}
+
+\subsection{Partie 2 -- Manifold Untangling}
+
+\paragraph{Ex4 -- t-SNE (8 cellules code)~:}
+\begin{enumerate}
+  \item Imports (matplotlib, sklearn, scipy)
+  \item Chargement MNIST
+  \item t-SNE sur les donn\'ees de test
+  \item D\'efinition \texttt{convexHulls}
+  \item D\'efinition \texttt{best\_ellipses}
+  \item D\'efinition \texttt{neighboring\_hit}
+  \item Calcul des enveloppes/ellipses/NH
+  \item D\'efinition \texttt{visualization} et affichage
+\end{enumerate}
+
+Question~: les trois m\'etriques sont-elles li\'ees \`a la
+s\'eparabilit\'e des classes~? Qu'est-ce qui les diff\`ere~?
+
+\paragraph{Ex5 -- Repr\'esentations internes (3 cellules code)~:}
+\begin{enumerate}
+  \item D\'efinition \texttt{loadModel}
+  \item Chargement du mod\`ele entra\^in\'e
+  \item Extraction des repr\'esentations latentes (pop + predict)
+    et projection t-SNE
+\end{enumerate}
+
+% ===================================================================
+\section{Instructions pour l'\'etudiant}
+% ===================================================================
+
+\begin{enumerate}
+  \item Ex\'ecuter les cellules de code dans l'ordre.
+  \item Compl\'eter les cellules marqu\'ees \texttt{\# TODO} ou
+    vides.
+  \item R\'epondre aux questions dans les cellules markdown.
+  \item Sauvegarder les mod\`eles avec \texttt{saveModel}.
+  \item Comparer les performances LR (92\,\%) vs MLP (98\,\%)
+    vs CNN (99\,\%).
+  \item Visualiser le manifold untangling avec t-SNE.
+\end{enumerate}
+
+\newpage
+\section*{Questions cl\'es (QCM)}
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+  \item Quelle librairie est utilis\'ee pour le Deep Learning~?
+    \textbf{R. Keras.}
+  \item Quel jeu de donn\'ees est utilis\'e~? \textbf{R. MNIST.}
+  \item Quelle est la fonction de co\^ut pour la classification~?
+    \textbf{R. Cross-entropy.}
+  \item Quelle optimisation est utilis\'ee~?
+    \textbf{R. SGD (Stochastic Gradient Descent).}
+  \item Quelle m\'ethode cr\'ee un r\'eseau s\'equentiel vide~?
+    \textbf{R. \texttt{Sequential()}.}
+  \item Quelle m\'ethode ajoute une couche~?
+    \textbf{R. \texttt{model.add()}.}
+  \item Quelle m\'ethode entra\^ine le mod\`ele~?
+    \textbf{R. \texttt{model.fit()}.}
+  \item Quelle m\'ethode \'evalue le mod\`ele~?
+    \textbf{R. \texttt{model.evaluate()}.}
+  \item Quelle fonction d'activation pour la classification
+    multiclasse~? \textbf{R. Softmax.}
+  \item Quelle m\'ethode de visualisation 2D est utilis\'ee~?
+    \textbf{R. t-SNE.}
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,31 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Contexte}{2}{section.1}%
+\contentsline {section}{\numberline {2}Le neurone formel}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}D\'efinition (McCulloch \& Pitts, 1943)}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Fonctions d'activation}{2}{subsection.2.2}%
+\contentsline {paragraph}{Fonction seuil (Heaviside)}{2}{subsection.2.2}%
+\contentsline {paragraph}{Fonction sigmo\"ide}{2}{equation.1}%
+\contentsline {paragraph}{Fonction tanh}{2}{equation.2}%
+\contentsline {subsection}{\numberline {2.3}Classification binaire}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Le perceptron}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Classification multiclasse}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Softmax}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Limite de la classification lin\'eaire}{3}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Perceptron multicouche (MLP)}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Architecture}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}R\'eseaux profonds (DNN)}{3}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Apprentissage}{3}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Apprentissage supervis\'e}{3}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Fonction de perte~: entropie crois\'ee}{4}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Descente de gradient}{4}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}R\'etropropagation (backpropagation)}{4}{subsection.5.4}%
+\contentsline {paragraph}{Pour la r\'egression logistique}{4}{equation.11}%
+\contentsline {paragraph}{Pour le perceptron (1 couche cach\'ee)}{4}{equation.14}%
+\contentsline {paragraph}{Cas g\'en\'eral (couche $l$)}{4}{equation.17}%
+\contentsline {subsection}{\numberline {5.5}Descente de gradient stochastique (SGD)}{4}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Plan de taux d'apprentissage (learning rate decay)}{5}{subsection.5.6}%
+\contentsline {section}{\numberline {6}R\'egularisation et g\'en\'eralisation}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Sur-apprentissage (overfitting)}{5}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}R\'egularisation}{5}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Hyper-param\`etres}{5}{subsection.6.3}%
+\contentsline {section}{Questions cl\'es (QCM)}{6}{subsection.6.3}%

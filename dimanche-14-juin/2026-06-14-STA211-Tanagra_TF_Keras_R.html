@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 &mdash; Compl&eacute;ment Tanagra TF/Keras R &mdash; Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container { max-width: 1100px; margin: 0 auto; background: #fff; padding: 2rem 2.5rem; border-radius: 8px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); }
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 { font-size: 1.3rem; margin: 2rem 0 0.8rem 0; padding-bottom: 0.3rem; border-bottom: 2px solid #1a73e8; }
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+table { border-collapse: collapse; margin: 0.75rem 0; width: 100%; }
+td, th { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: center; font-size: 0.9rem; }
+th { background: #e8f0fe; }
+pre { background: #f4f4f4; border: 1px solid #ddd; border-radius: 4px; padding: 0.6rem 0.8rem; overflow-x: auto; font-size: 0.85rem; margin: 0.5rem 0; }
+code { font-family: 'Fira Code', 'Consolas', monospace; }
+.info-box { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 0.8rem 1rem; margin: 0.75rem 0; border-radius: 4px; }
+.info-box strong { color: #1a73e8; }
+.res-highlight { background: #d4edda; border-left: 4px solid #28a745; padding: 0.8rem 1rem; margin: 0.75rem 0; border-radius: 4px; }
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button { padding: 0.4rem 1rem; border: 1px solid #1a73e8; border-radius: 4px; cursor: pointer; font-size: 0.85rem; margin: 0 0.3rem; }
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>STA211 &mdash; Compl&eacute;ment TensorFlow / Keras sous R</h1>
+<p class="subtitle">fr_Tanagra_Tensorflow_Keras_R.pdf &mdash; Perceptron simple et multicouche avec R</p>
+<div class="toc"><h3>Sommaire</h3><ol>
+<li><a href="#install">Installation sous R</a></li>
+<li><a href="#data">Donn&eacute;es</a></li>
+<li><a href="#simple">Perceptron simple</a></li>
+<li><a href="#mlp">Perceptron multicouche (MLP)</a></li>
+<li><a href="#comparison">Comparaison R vs Python</a></li>
+<li><a href="#qcm">QCM</a></li>
+</ol></div>
+
+<h2 id="install">1. Installation sous R</h2>
+<pre><code>install.packages("keras")
+library(keras)
+install_keras()  # installe Keras + TensorFlow (backend)</code></pre>
+<p><code>install_keras()</code> installe &agrave; la fois le c&oelig;ur de Keras et le moteur TensorFlow. Keras est un <em>front-end</em>&nbsp;; TensorFlow effectue les calculs.</p>
+
+<h2 id="data">2. Donn&eacute;es</h2>
+<p>Probl&egrave;me de discrimination binaire dans le plan. 2000 observations, 2 variables <em>X</em><sub>1</sub>, <em>X</em><sub>2</sub>. Fronti&egrave;re parabolique&nbsp;:</p>
+<p style="text-align:center;font-weight:600;">Si 0.1 &times; <em>X</em><sub>2</sub> &gt; <em>X</em><sub>1</sub><sup>2</sup> &rArr; pos, sinon neg</p>
+<pre><code>D &lt;- read.table("artificial2d_data2.txt", sep="\t", header=T, dec=".")
+y &lt;- ifelse(D$Y=="pos", 1, 0)
+set.seed(100)
+idTrain &lt;- sample(1:nrow(D), 1500, replace=F)
+XTrain &lt;- as.matrix(D[idTrain, 1:2])
+yTrain &lt;- y[idTrain]
+XTest  &lt;- as.matrix(D[-idTrain, 1:2])
+yTest  &lt;- y[-idTrain]</code></pre>
+<p>1500 observations en apprentissage, 500 en test.</p>
+
+<h2 id="simple">3. Perceptron simple</h2>
+<h3>Architecture</h3>
+<pre><code>modelSimple &lt;- keras_model_sequential()
+modelSimple %&gt;%
+  layer_dense(units=1, input_shape=c(2), activation="sigmoid")</code></pre>
+<ul>
+<li>1 neurone de sortie (sigmo&iuml;de), biais activ&eacute;.</li>
+<li>3 param&egrave;tres&nbsp;: <em>a</em><sub>0</sub> + <em>a</em><sub>1</sub><em>X</em><sub>1</sub> + <em>a</em><sub>2</sub><em>X</em><sub>2</sub>.</li>
+</ul>
+
+<h3>Compilation et apprentissage</h3>
+<pre><code>modelSimple %&gt;% compile(
+  loss="binary_crossentropy",
+  optimizer="adam",
+  metrics="accuracy"
+)
+modelSimple %&gt;% fit(x=XTrain, y=yTrain, epochs=150, batch_size=10)</code></pre>
+<p>Poids estim&eacute;s&nbsp;: <em>a</em><sub>0</sub> = &minus;1.283, <em>a</em><sub>1</sub> = 0.256, <em>a</em><sub>2</sub> = 1.947.</p>
+
+<h3>Performances</h3>
+<div class="res-highlight"><strong>Test accuracy&nbsp;: 67.8 %</strong></div>
+<table>
+<tr><th>Dataset</th><th>Loss</th><th>Accuracy</th></tr>
+<tr><td>Apprentissage (fit)</td><td>0.6429</td><td>62.2 %</td></tr>
+<tr><td>Test (confusionMatrix)</td><td>&mdash;</td><td>67.8 %</td></tr>
+<tr><td>Test (evaluate)</td><td>0.6206</td><td>67.8 %</td></tr>
+</table>
+
+<h2 id="mlp">4. Perceptron multicouche (MLP)</h2>
+<h3>Architecture</h3>
+<pre><code>modelMc &lt;- keras_model_sequential()
+modelMc %&gt;%
+  layer_dense(units=3, input_shape=c(2), activation="sigmoid") %&gt;%
+  layer_dense(units=1, activation="sigmoid")</code></pre>
+<ul>
+<li>1 couche cach&eacute;e (3 neurones, sigmo&iuml;de).</li>
+<li>1 couche sortie (1 neurone, sigmo&iuml;de).</li>
+<li><strong>13 param&egrave;tres</strong>&nbsp;: 9 (entr&eacute;e &rarr; cach&eacute;e) + 4 (cach&eacute;e &rarr; sortie).</li>
+</ul>
+
+<h3>Performances</h3>
+<div class="res-highlight"><strong>Test accuracy&nbsp;: 97.4 %</strong></div>
+<p>Net gain par rapport au perceptron simple (67.8 %). La couche cach&eacute;e capture la fronti&egrave;re parabolique non lin&eacute;aire.</p>
+
+<h2 id="comparison">5. Comparaison R vs Python</h2>
+<table>
+<tr><th>Aspect</th><th>R</th><th>Python</th></tr>
+<tr><td>Syntaxe</td><td><code>%&gt;%</code> (pipe)</td><td>API fonctionnelle</td></tr>
+<tr><td>Installation keras</td><td><code>install_keras()</code></td><td><code>pip install keras</code></td></tr>
+<tr><td>Fonction couche</td><td><code>layer_dense()</code></td><td><code>layers.Dense()</code></td></tr>
+<tr><td>Mod&egrave;le s&eacute;quentiel</td><td><code>keras_model_sequential()</code></td><td><code>Sequential()</code></td></tr>
+</table>
+<div class="info-box"><strong>&Agrave; retenir&nbsp;:</strong> Les modes op&eacute;ratoires sont tr&egrave;s similaires. Passer de R &agrave; Python (et vice-versa) est simple.</div>
+
+<h2 id="qcm">6. QCM</h2>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+<h4 style="color:#dc3545; margin-bottom:0.5rem;">R&eacute;capitulatif des erreurs</h4>
+<div id="qcmRecapContent"></div></div>
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem;">Questions r&eacute;pondues&nbsp;: <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span></div>
+<div id="qcmQuestions"></div>
+<div class="controls">
+<button id="qcmRecapBtn" class="primary">Afficher le r&eacute;capitulatif</button>
+<button id="qcmResetBtn">R&eacute;initialiser</button>
+</div>
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin &mdash;</p>
+</div>
+<script>
+const qcmData = [
+{q:"Quelle fonction installe Keras + TensorFlow sous R\u00a0?",options:["library(keras)","install.packages(\"keras\")","install_keras()","keras_install()"],correct:2,expl:"install_keras() installe Keras + TensorFlow."},
+{q:"Quel op\u00e9rateur cha\u00eene les instructions Keras sous R\u00a0?",options:["|>","%>%","%.%",">>"],correct:1,expl:"L'op\u00e9rateur pipe %>% est utilis\u00e9 par Keras pour R."},
+{q:"Combien de param\u00e8tres pour le perceptron simple\u00a0?",options:["1","2","3","4"],correct:2,expl:"3 param\u00e8tres : biais + 2 poids (a0, a1, a2)."},
+{q:"Combien de param\u00e8tres pour le MLP (3 neurones cach\u00e9s)\u00a0?",options:["9","13","16","21"],correct:1,expl:"9 (entr\u00e9e\u2192cach\u00e9e) + 4 (cach\u00e9e\u2192sortie) = 13."},
+{q:"Quelle est l'accuracy du perceptron simple en test\u00a0?",options:["62.2 %","67.8 %","92.0 %","97.4 %"],correct:1,expl:"Le perceptron simple atteint 67.8 % sur le test."},
+{q:"Quelle est l'accuracy du MLP en test\u00a0?",options:["67.8 %","85.0 %","92.0 %","97.4 %"],correct:3,expl:"Le MLP atteint 97.4 % sur le test."},
+{q:"Quelle fonction d'activation est utilis\u00e9e\u00a0?",options:["relu","tanh","sigmoid","softmax"],correct:2,expl:"Sigmo\u00efde (sigmoid) pour toutes les couches."},
+{q:"Quel optimiseur est utilis\u00e9\u00a0?",options:["SGD","Adam","RMSProp","Adagrad"],correct:1,expl:"Adam est l'optimiseur choisi dans les deux mod\u00e8les."},
+{q:"Quelle fonction de perte\u00a0?",options:["categorical_crossentropy","binary_crossentropy","mse","mae"],correct:1,expl:"binary_crossentropy pour la classification binaire."},
+{q:"Quelle instruction cr\u00e9e un mod\u00e8le s\u00e9quentiel sous R\u00a0?",options:["Sequential()","keras_model_sequential()","model_sequential()","create_model()"],correct:1,expl:"keras_model_sequential() cr\u00e9e le mod\u00e8le s\u00e9quentiel sous R."}
+];
+const qcmContainer=document.getElementById('qcmQuestions');let userAnswers=new Array(qcmData.length).fill(null);let qcmLocked=new Array(qcmData.length).fill(false);
+function renderQCM(){let html='';const letters=['a','b','c','d'];for(let i=0;i<qcmData.length;i++){const item=qcmData[i];const answered=qcmLocked[i];const borderColor=answered?(userAnswers[i]===item.correct?'#28a745':'#dc3545'):'#ddd';html+=`<div class="qcm-question" style="margin-bottom:1.2rem;padding:0.8rem;border:1px solid ${borderColor};border-radius:6px;"><p style="font-weight:600;margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;for(let j=0;j<item.options.length;j++){const disabled=answered?'disabled':'';const checked=userAnswers[i]===j?'checked':'';const cls=answered?(j===item.correct?'qcm-correct':(userAnswers[i]===j?'qcm-wrong':'')):'';html+=`<label class="qcm-option ${cls}" style="display:block;padding:0.25rem 0.5rem;border-radius:3px;cursor:${disabled?'default':'pointer'};"><input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> ${letters[j]}) ${item.options[j]}</label>`;}if(answered&&userAnswers[i]!==item.correct){html+=`<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;}html+=`</div>`;}qcmContainer.innerHTML=html;document.getElementById('qcmAnswered').textContent=qcmLocked.filter(Boolean).length;document.getElementById('qcmTotal').textContent=qcmData.length;}
+qcmContainer.addEventListener('change',(e)=>{if(!e.target.matches('input[type="radio"]'))return;const idx=parseInt(e.target.name.split('_')[1]);if(qcmLocked[idx])return;userAnswers[idx]=parseInt(e.target.value);qcmLocked[idx]=true;renderQCM();});
+document.getElementById('qcmRecapBtn').addEventListener('click',()=>{const answered=qcmLocked.filter(Boolean).length;if(answered<qcmData.length&&!confirm(`Vous n'avez r\u00e9pondu qu'\u00e0 ${answered}/${qcmData.length} questions. Afficher quand m\u00eame\u00a0?`))return;const letters=['a','b','c','d'];const errors=[];for(let i=0;i<qcmData.length;i++){if(userAnswers[i]!==qcmData[i].correct){errors.push({q:qcmData[i].q,userAns:userAnswers[i]!==null?`${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}`:'Pas de r\u00e9ponse',correctAns:`${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,expl:qcmData[i].expl});}}const recapDiv=document.getElementById('qcmRecap');const recapContent=document.getElementById('qcmRecapContent');recapDiv.style.display='block';if(errors.length===0){recapContent.innerHTML='<p style="color:#28a745;"><strong>F\u00e9licitations !</strong> Aucune erreur.</p>';}else{let html=`<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol>`;for(const e of errors){html+=`<li style="margin-bottom:0.5rem;"><strong>Q :</strong> ${e.q}<br><strong>Vous :</strong> ${e.userAns}<br><strong>Correct :</strong> ${e.correctAns}<br><strong>Exp :</strong> ${e.expl}</li>`;}html+='</ol>';recapContent.innerHTML=html;}});
+document.getElementById('qcmResetBtn').addEventListener('click',()=>{userAnswers=new Array(qcmData.length).fill(null);qcmLocked=new Array(qcmData.length).fill(false);document.getElementById('qcmRecap').style.display='none';renderQCM();});
+renderQCM();
+</script>
+</body>
+</html>

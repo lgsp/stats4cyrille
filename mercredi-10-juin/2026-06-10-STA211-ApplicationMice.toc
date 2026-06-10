@@ -1,0 +1,24 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Chargement des packages}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Importation}{2}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Analyse exploratoire}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Liens entre variables}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Analyse du dispositif de manquance}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Nature du m\'ecanisme de manquance}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Imputation multiple avec MICE}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Param\`etres par d\'efaut}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}V\'erification de la convergence}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Comparaison des distributions imput\'ees vs observ\'ees}{4}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Analyse par marginmatrix}{4}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Overimputation}{4}{subsection.3.5}%
+\contentsline {section}{\numberline {4}Choix des m\'ethodes d'imputation}{4}{section.4}%
+\contentsline {subsection}{\numberline {4.1}M\'ethodes disponibles pour MICE}{4}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Comparaison par overimputation}{5}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Analyse apr\`es imputation}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}R\'egression logistique sur chaque tableau imput\'e}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Pooling des r\'esultats (r\`egles de Rubin)}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Comparaison avec les cas-complets}{6}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Analyse de sensibilit\'e}{6}{section.6}%
+\contentsline {section}{\numberline {7}R\'esum\'e du pipeline}{6}{section.7}%
+\contentsline {section}{Questions cl\'es (QCM)}{7}{Item.9}%
