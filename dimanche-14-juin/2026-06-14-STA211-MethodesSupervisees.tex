@@ -1,0 +1,586 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{monstyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false
+}
+\lstset{style=monstyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- M\'ethodes supervis\'ees (fondamentaux)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large \'El\'ements fondamentaux pour m\'ethodes supervis\'ees \\[2pt]
+\small Apprentissage statistique, compromis biais-variance,
+choix de mod\`eles et validation}
+\author{Vincent Audigier, Nd\`eye Niang (CNAM)}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cette fiche pr\'esente les fondements des m\'ethodes supervis\'ees
+en data-mining. Apr\`es avoir pos\'e le cadre de l'apprentissage
+statistique (r\'egression, classification, fonctions de perte), elle
+d\'eveloppe le compromis biais-variance, puis les strat\'egies de
+choix de mod\`eles : crit\`eres p\'enalis\'es (AIC, BIC), m\'ethodes
+pas-\`a-pas, d\'ecoupage apprentissage/test, validation crois\'ee,
+et courbe ROC/AUC. Des exemples en R/Python illustrent chaque
+concept.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Introduction}
+% ===================================================================
+
+Le \textbf{data-mining} vise \`a identifier des structures au sein
+de donn\'ees. On distingue~:
+\begin{itemize}
+  \item Les \textbf{mod\`eles}~: expliquent et/ou pr\'edisent une
+    variable r\'eponse $Y$ \`a partir de variables explicatives $X$.
+  \item Les \textbf{patterns}~: r\'egularit\'es locales sans
+    variable cible.
+\end{itemize}
+
+\subsection{R\'egression \emph{vs} classification}
+
+\begin{itemize}
+  \item \textbf{R\'egression}~: $Y$ est continue.
+  \item \textbf{Classification supervis\'ee (discrimination)}~:
+    $Y$ est qualitative.
+\end{itemize}
+
+\subsection{M\'ethodes param\'etriques \emph{vs}
+  non-param\'etriques}
+
+\begin{itemize}
+  \item \textbf{Param\'etriques}~: forme a priori pour la fonction
+    de lien $f$, modul\'ee par des param\`etres
+    (ex.~r\'egression lin\'eaire, logistique).
+  \item \textbf{Non-param\'etriques}~: aucune forme sp\'ecifique
+    suppos\'ee (ex.~arbres, for\^ets al\'eatoires, SVM, r\'eseaux
+    de neurones).
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Typologie des m\'ethodes supervis\'ees}
+\begin{tabular}{lcc}
+\toprule
+& R\'egression & Classification \\
+\midrule
+Param\'etrique
+  & R\'eg.~lin\'eaire
+  & R\'eg.~logistique, ALD, mod\`eles additifs g\'en\'eralis\'es \\
+Non-param\'etrique
+  & Arbres, for\^ets al\'eatoires, r\'eseaux de neurones, splines
+  & Arbres, for\^ets al\'eatoires, SVM, r\'eseaux de neurones \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ===================================================================
+\section{Apprentissage statistique}
+% ===================================================================
+
+\subsection{Notations et contexte}
+
+Soit $Y$ la variable r\'eponse et
+$\mathbf{X} = (X_1,\dots,X_p)$ le vecteur des $p$ variables
+explicatives observ\'e sur $n$ individus~:
+\[
+\{(\mathbf{x}_1, y_1), \dots, (\mathbf{x}_n, y_n)\}
+\in \mathcal{X} \times \mathcal{Y}
+\]
+
+\noindent Deux objectifs~:
+\begin{itemize}
+  \item \textbf{Pr\'ediction}~: pour $\mathbf{x}_0$,
+    pr\'edire $\hat{y}_0$ le plus proche possible de $y_0$.
+  \item \textbf{Estimation}~: approcher la fonction $f$ qui relie
+    $Y$ \`a $X$.
+\end{itemize}
+
+\subsection{Fonctions de perte}
+
+\paragraph{R\'egression~:} On suppose $Y = f(X) + \varepsilon$
+avec $\mathbb{E}[\varepsilon]=0$ et $\mathbb{V}ar[\varepsilon]=\sigma^2$.
+
+Fonction de contraste des \textbf{moindres carr\'es}~:
+\[
+\gamma(\hat{f}, (x, y)) = (\hat{f}(x) - y)^2
+\]
+Perte (esp\'erance)~:
+\[
+P_\gamma(\hat{f}) = \mathbb{E}_{X,Y}\big[ (Y - \hat{f}(X))^2 \big]
+\]
+
+\paragraph{Classification~:} On estime la probabilit\'e
+$a~posteriori$ $\mathbb{P}(Y=m_q|X)$.
+
+Contraste \textbf{0-1}~:
+\[
+\gamma(\hat{f}, (x, y)) = \mathbbm{1}_{\hat{f}(x) \neq y}
+\]
+Perte (taux d'erreur)~:
+\[
+P_\gamma(\hat{f}) = \mathbb{P}(\hat{f}(X) \neq Y)
+\]
+
+\noindent En estimation, on minimise~:
+\[
+\mathbb{E}\Big[ \sum_{q=1}^k |\hat{p}(Y=m_q|X) - \mathbb{P}(Y=m_q|X)| \Big]
+\]
+
+\subsection{Sur-ajustement (overfitting)}
+
+Un mod\`ele trop complexe (ex.~$k=1$ en k-NN) donne une erreur
+d'apprentissage nulle mais ne g\'en\'eralise pas. Il faut un
+\'echantillon \textbf{ind\'ependant} pour estimer la perte.
+
+\subsection{Donn\'ees d\'es\'equilibr\'ees}
+
+Cas fr\'equent~: une modalit\'e minoritaire (ex.~30\% d'impay\'es).
+Le contraste 0-1 \'etant sym\'etrique, le mod\`ele ignore la
+classe rare.
+
+\paragraph{Solutions~:}
+\begin{itemize}
+  \item \textbf{Contraste asym\'etrique}~:
+    $\gamma = w_0 \mathbbm{1}_{\hat{f}(x)\neq0,\,y=0}
+      + w_1 \mathbbm{1}_{\hat{f}(x)\neq1,\,y=1}$
+  \item \textbf{Sur-\'echantillonnage}~: tirage avec remise dans la
+    classe minoritaire.
+  \item \textbf{Sous-\'echantillonnage}~: tirage dans la classe
+    majoritaire.
+  \item \textbf{SMOTE}~: g\'en\`ere des individus fictifs sur des
+    segments entre voisins minoritaires (Chawla et al., 2002).
+\end{itemize}
+
+\paragraph{Algorithme SMOTE (sur-echantillonnage)~:}
+Pour chaque individu $i$ de la classe minoritaire~:
+\begin{enumerate}
+  \item Identifier ses $k=5$ plus proches voisins (minoritaires).
+  \item Tirer un individu $i'$ au hasard parmi les $k$.
+  \item Pour $j = 1,\dots,p$~:
+    $x_{i''j} \leftarrow x_{ij} + u \times (x_{ij} - x_{i'j})$,
+    avec $u \sim \mathcal{U}[0,1]$.
+\end{enumerate}
+
+% ===================================================================
+\section{Compromis biais - variance}
+% ===================================================================
+
+La qualit\'e d'un mod\`ele est li\'ee \`a sa complexit\'e.
+Un mod\`ele trop simple (biais \'elev\'e) sous-ajuste, un mod\`ele
+trop complexe (variance \'elev\'ee) sur-ajuste.
+
+\subsection{D\'ecomposition de l'erreur}
+
+En r\'egression (MSE), l'erreur esp\'er\'ee se d\'ecompose~:
+\[
+\mathbb{E}\big[ (Y - \hat{f}(X))^2 \big] =
+\underbrace{\mathbb{V}ar[\hat{f}(X)]}_{\text{variance}}
++ \underbrace{(\mathbb{E}[\hat{f}(X)] - f(X))^2}_{\text{biais}^2}
++ \underbrace{\sigma^2}_{\text{bruit}}
+\]
+
+\subsection{Illustration (k-NN sur German Credit)}
+
+Avec $k$ petit (mod\`ele complexe)~: erreur train faible,
+erreur test \'elev\'ee (surapprentissage).
+Avec $k$ optimal ($k\approx10$)~: meilleur compromis.
+Au-del\`a~: erreur test augmente (biais trop fort).
+
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.7\textwidth}{\centering
+  \textbf{Taux de mauvais classement} $\downarrow$\\
+  \begin{tabular}{lcc}
+  $k$ & Erreur train & Erreur test \\
+  \midrule
+  1   & 0\%          & $\sim$45\% \\
+  10  & $\sim$25\%   & $\sim$30\% \\
+  50  & $\sim$35\%   & $\sim$35\% \\
+  \end{tabular}
+}}
+\caption{Compromis biais-variance pour k-NN sur German Credit}
+\end{figure}
+
+% ===================================================================
+\section{Choix de mod\`eles}
+% ===================================================================
+
+\subsection{Crit\`eres p\'enalis\'es}
+
+On ajoute une p\'enalit\'e de complexit\'e au risque empirique~:
+\[
+\mathcal{L}(\hat{f}) = \frac{1}{n}\sum_{i=1}^n
+\gamma(\hat{f}, (\mathbf{x}_i, y_i)) + \text{p\'enalit\'e}
+\]
+
+\paragraph{AIC (Akaike Information Criterion)}~:
+\[
+\text{AIC} = -2\ln L(\hat{\theta}) + 2k
+\]
+\noindent o\`u $k$ est le nombre de param\`etres.
+\'A privil\'egier pour la \textbf{pr\'ediction}.
+
+\paragraph{BIC (Bayesian Information Criterion)}~:
+\[
+\text{BIC} = -2\ln L(\hat{\theta}) + \ln(n)\,k
+\]
+P\'enalit\'e plus forte que l'AIC ($\ln(n) > 2$ pour $n \ge 8$).
+\'A privil\'egier pour l'\textbf{estimation} (s\'election du vrai
+mod\`ele asymptotiquement).
+
+\paragraph{M\'ethodes pas-\`a-pas~:}
+\begin{itemize}
+  \item \textbf{Descendante}~: part du mod\`ele complet, \'elimine
+    les variables une \`a une.
+  \item \textbf{Ascendante}~: part du mod\`ele vide, ajoute les
+    variables une \`a une.
+  \item \textbf{Progressive}~: ascendante avec possibilit\'e
+    d'\'elimination.
+\end{itemize}
+
+\paragraph{Limites des crit\`eres p\'enalis\'es~:}
+\begin{itemize}
+  \item N\'ecessitent un mod\`ele param\'etrique (vraisemblance).
+  \item Ne comparent pas des mod\`eles de familles diff\'erentes.
+  \item Le nombre de param\`etres ne refl\`ete pas toujours la
+    complexit\'e (ex.~r\'egression ridge).
+\end{itemize}
+
+\subsection{Approches empiriques}
+
+\paragraph{D\'ecoupage test/apprentissage~:}
+\begin{enumerate}
+  \item S\'eparer les donn\'ees en $\mathcal{A}$ (apprentissage)
+    et $\mathcal{T}$ (test).
+  \item Ajuster chaque mod\`ele sur $\mathcal{A}$.
+  \item Choisir celui qui minimise l'erreur sur $\mathcal{T}$.
+  \item R\'e-ajuster le mod\`ele retenu sur
+    $\mathcal{A} \cup \mathcal{T}$.
+\end{enumerate}
+
+\paragraph{Validation crois\'ee $K$-fold~:}
+\begin{enumerate}
+  \item D\'ecouper l'\'echantillon en $K$ blocs de m\^eme taille.
+  \item Pour chaque bloc~: les $K-1$ autres servent
+    d'apprentissage, le bloc sert de test.
+  \item Moyenner les $K$ erreurs de test.
+\end{enumerate}
+$K=10$ est le choix usuel. $K=n$ = \textbf{leave-one-out} (LOO).
+
+\paragraph{Mesure objective de la perte~:}
+3 \'echantillons~: \textbf{apprentissage} (ajuster),
+\textbf{validation} (choisir), \textbf{test} (mesure finale).
+Proportion typique~: $1/2$, $1/4$, $1/4$.
+
+\subsection{Compl\'ement pour la classification~: ROC et AUC}
+
+Pour une variable binaire, on peut faire varier le seuil $s$ de
+d\'ecision $\hat{p}(Y=1|X) > s$.
+
+\textbf{Courbe ROC}~: taux de vrais positifs en fonction du taux
+de faux positifs pour tous les seuils $s \in [0,1]$.
+
+\textbf{AUC (Area Under the Curve)}~:
+\begin{itemize}
+  \item AUC $=0.5$~: mod\`ele al\'eatoire (aucun pouvoir pr\'edicif).
+  \item AUC $=1$~: mod\`ele parfait.
+  \item En pratique~: AUC $>0.7$ acceptable, $>0.8$ excellent.
+\end{itemize}
+
+% ===================================================================
+\section{Code Python}
+% ===================================================================
+
+\subsection{Validation crois\'ee avec scikit-learn}
+
+\begin{lstlisting}[language=Python]
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import make_classification
+import numpy as np
+
+X, y = make_classification(n_samples=200, n_features=2,
+                           n_redundant=0, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.33, random_state=42)
+
+for k in [1, 5, 10, 15, 30]:
+    model = KNeighborsClassifier(n_neighbors=k)
+    scores = cross_val_score(model, X_train, y_train, cv=10)
+    model.fit(X_train, y_train)
+    test_score = model.score(X_test, y_test)
+    print(f"k={k:2d} | CV: {scores.mean():.3f} (+/-{scores.std():.2f}) "
+          f"| Test: {test_score:.3f}")
+\end{lstlisting}
+
+\subsection{SMOTE avec imbalanced-learn}
+
+\begin{lstlisting}[language=Python]
+from imblearn.over_sampling import SMOTE
+from collections import Counter
+
+smote = SMOTE(random_state=42)
+X_res, y_res = smote.fit_resample(X_train, y_train)
+print("Avant SMOTE:", Counter(y_train))
+print("Apres SMOTE:", Counter(y_res))
+\end{lstlisting}
+
+\subsection{Courbe ROC et AUC}
+
+\begin{lstlisting}[language=Python]
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+
+model = KNeighborsClassifier(n_neighbors=10)
+model.fit(X_train, y_train)
+y_prob = model.predict_proba(X_test)[:, 1]
+fpr, tpr, _ = roc_curve(y_test, y_prob)
+roc_auc = auc(fpr, tpr)
+
+plt.plot(fpr, tpr, label=f"AUC = {roc_auc:.3f}")
+plt.plot([0,1], [0,1], 'k--')
+plt.xlabel("Taux faux positifs")
+plt.ylabel("Taux vrais positifs")
+plt.legend()
+plt.show()
+\end{lstlisting}
+
+% ===================================================================
+\section{Code R}
+% ===================================================================
+
+\subsection{Validation crois\'ee avec caret}
+
+\begin{lstlisting}[language=R]
+library(caret)
+library(class)
+
+data(GermanCredit)
+train_idx <- createDataPartition(GermanCredit$Class,
+                                 p = 0.67, list = FALSE)
+train <- GermanCredit[train_idx, ]
+test  <- GermanCredit[-train_idx, ]
+
+ctrl <- trainControl(method = "cv", number = 10)
+for (k in c(1, 5, 10, 15, 30)) {
+  model <- train(Class ~ ., data = train, method = "knn",
+                 trControl = ctrl, tuneGrid = data.frame(k = k))
+  cat(sprintf("k=%2d | CV: %.3f | Test: %.3f\n",
+              k, max(model$results$Accuracy),
+              predict(model, test) |> (\(x)
+                mean(x == test$Class))()))
+}
+\end{lstlisting}
+
+\subsection{SMOTE avec le package UBL}
+
+\begin{lstlisting}[language=R]
+library(UBL)
+smote_train <- SmoteClassif(Class ~ ., train, C.perc = "balance")
+table(smote_train$Class)
+\end{lstlisting}
+
+\subsection{Courbe ROC}
+
+\begin{lstlisting}[language=R]
+library(pROC)
+model <- knn3(Class ~ ., train, k = 10)
+prob  <- predict(model, test)[, 2]
+roc_obj <- roc(test$Class, prob)
+plot(roc_obj, print.auc = TRUE)
+\end{lstlisting}
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quelle est la fonction de contraste usuelle en r\'egression~?
+    \begin{enumerate}
+      \item Contraste 0-1
+      \item Contraste des moindres carr\'es
+      \item Contraste log-vraisemblance
+      \item Contraste asym\'etrique
+    \end{enumerate}
+    \textbf{R\'eponse~: b (moindres carr\'es).}
+
+  \item En classification, la perte $P_\gamma(\hat{f}) =
+    \mathbb{P}(\hat{f}(X) \neq Y)$ correspond \`a~:
+    \begin{enumerate}
+      \item L'AUC
+      \item Le taux de mauvais classement
+      \item La somme des carr\'es r\'esiduels
+      \item Le BIC
+    \end{enumerate}
+    \textbf{R\'eponse~: b (taux d'erreur).}
+
+  \item Que se passe-t-il quand $k=1$ en k-NN sur l'erreur
+    d'apprentissage~?
+    \begin{enumerate}
+      \item Erreur maximale
+      \item Erreur nulle (sur-apprentissage)
+      \item Erreur \'egale \`a l'erreur de test
+      \item Le mod\`ele ne converge pas
+    \end{enumerate}
+    \textbf{R\'eponse~: b (erreur nulle, chaque point est son propre
+    plus proche voisin).}
+
+  \item La proc\'edure SMOTE permet de~:
+    \begin{enumerate}
+      \item R\'eduire la dimension
+      \item G\'en\'erer des individus fictifs pour la classe
+        minoritaire
+      \item S\'electionner des variables
+      \item Calculer l'AUC
+    \end{enumerate}
+    \textbf{R\'eponse~: b (sur-\'echantillonnage synth\'etique).}
+
+  \item Dans la d\'ecomposition biais-variance, un mod\`ele trop
+    simple a~:
+    \begin{enumerate}
+      \item Un biais \'elev\'e, une variance faible
+      \item Un biais faible, une variance \'elev\'ee
+      \item Un biais \'elev\'e, une variance \'elev\'ee
+      \item Un biais nul, une variance nulle
+    \end{enumerate}
+    \textbf{R\'eponse~: a (sous-apprentissage).}
+
+  \item Le crit\`ere AIC p\'enalise la log-vraisemblance par~:
+    \begin{enumerate}
+      \item $2k$
+      \item $\ln(n)\,k$
+      \item $k$
+      \item $\sqrt{k}$
+    \end{enumerate}
+    \textbf{R\'eponse~: a (AIC = $-2\ln L + 2k$).}
+
+  \item Pour $n=100$, quel crit\`ere p\'enalise le plus la
+    complexit\'e~?
+    \begin{enumerate}
+      \item AIC
+      \item BIC
+      \item Les deux p\'enalisent autant
+      \item Aucun des deux
+    \end{enumerate}
+    \textbf{R\'eponse~: b (BIC~: $\ln(100) \approx 4.6 > 2$).}
+
+  \item En validation crois\'ee $K$-fold, que vaut $K$ pour le
+    leave-one-out~?
+    \begin{enumerate}
+      \item $K=10$
+      \item $K=5$
+      \item $K=n$
+      \item $K=1$
+    \end{enumerate}
+    \textbf{R\'eponse~: c ($K=n$, chaque individu est son propre
+    bloc de test).}
+
+  \item Une AUC de 0.5 signifie que le mod\`ele~:
+    \begin{enumerate}
+      \item Est parfait
+      \item Est al\'eatoire (aucun pouvoir pr\'edictif)
+      \item Est excellent
+      \item A un biais nul
+    \end{enumerate}
+    \textbf{R\'eponse~: b (AUC=0.5 = pr\'ediction al\'eatoire).}
+
+  \item Quel est l'ordre des 3 \'echantillons pour une mesure
+    objective de la perte~?
+    \begin{enumerate}
+      \item Test $\to$ Validation $\to$ Apprentissage
+      \item Apprentissage $\to$ Validation $\to$ Test
+      \item Apprentissage $\to$ Test $\to$ Validation
+      \item Validation $\to$ Apprentissage $\to$ Test
+    \end{enumerate}
+    \textbf{R\'eponse~: b (apprentissage~: ajuster, validation~:
+    choisir, test~: mesurer).}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{9}
+% ===================================================================
+
+\bibitem{Chawla2002}
+  N.~V.~Chawla, K.~W.~Bowyer, L.~O.~Hall, W.~P.~Kegelmeyer.
+  \newblock \emph{SMOTE: Synthetic Minority Over-sampling Technique}.
+  \newblock J.~Artif.~Intell.~Res., 16:321--357, 2002.
+
+\bibitem{Hastie2009}
+  T.~Hastie, R.~Tibshirani, J.~Friedman.
+  \newblock \emph{The Elements of Statistical Learning}.
+  \newblock Springer, 2009.
+
+\bibitem{Saporta2006}
+  G.~Saporta.
+  \newblock \emph{Probabilit\'es, analyse des donn\'ees et
+    statistique}.
+  \newblock Editions Technip, 2006.
+
+\bibitem{Cornillon2010}
+  P.-A.~Cornillon, E.~Matzner-Lober.
+  \newblock \emph{R\'egression avec R}.
+  \newblock Springer, 2010.
+
+\bibitem{Tuffery2007}
+  S.~Tuff\'ery.
+  \newblock \emph{Data Mining et Statistique d\'ecisionnelle}.
+  \newblock Editions Technip, 2007.
+
+\end{thebibliography}
+
+\end{document}

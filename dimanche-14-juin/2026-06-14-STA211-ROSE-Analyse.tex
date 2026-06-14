@@ -1,0 +1,540 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\definecolor{codebg}{gray}{0.95}
+\definecolor{codeframe}{gray}{0.80}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\usepackage{listings}
+\lstdefinestyle{rmono}{
+  frame=single,
+  numbers=none,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{codebg},
+  rulecolor=\color{codeframe},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  language=R
+}
+\lstset{style=rmono}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Analyse critique --- ROSE (Lunardon, Menardi, Torelli, 2014)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Analyse critique -- ROSE: A Package for Binary Imbalanced Learning}\\[4pt]
+\large Lunardon, Menardi, Torelli (R Journal, 6(1), 2014)\\[2pt]
+\small Package R pour l'apprentissage sur donn\'ees d\'es\'equilibr\'ees}
+\author{\'Etudiant STA211}
+\date{14 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Cet article pr\'esente le package R \textbf{ROSE} (Random Over-Sampling
+Examples), d\'edi\'e \`a la classification binaire en pr\'esence de
+classes d\'es\'equilibr\'ees. La m\'ethode g\'en\`ere des
+\'echantillons artificiels \'equilibr\'es par bootstrap liss\'e,
+facilitant \`a la fois l'estimation du mod\`ele et l'\'evaluation de
+sa performance. Cette fiche propose une analyse critique structur\'ee,
+avec illustrations num\'eriques, extraits de code R et
+QCM.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Pr\'esentation g\'en\'erale}
+% ===================================================================
+
+\subsection{Contexte}
+
+Les donn\'ees d\'es\'equilibr\'ees (ex.~2\% de positifs, 98\% de
+n\'egatifs) posent un probl\`eme majeur en classification supervis\'ee.
+Un classifieur na\"if qui pr\'edit toujours la classe majoritaire
+atteint 98\% de bonne classification, mais ne d\'etecte aucun cas rare.
+
+L'article propose le package \textbf{ROSE} qui impl\'emente une
+m\'ethode unifi\'ee pour~:
+\begin{itemize}
+  \item \textbf{Estimer} un classifieur malgr\'e le d\'es\'equilibre
+    (via des donn\'ees artificielles \'equilibr\'ees)
+  \item \textbf{\'Evaluer} la performance de fa\c con fiable
+    (via des estimateurs sp\'ecifiques : holdout, bootstrap,
+    validation crois\'ee)
+\end{itemize}
+
+\subsection{R\'ef\'erence}
+
+\begin{itemize}
+  \item Lunardon N., Menardi G., Torelli N. (2014).
+    \emph{ROSE: A Package for Binary Imbalanced Learning}.
+    The R Journal, 6(1), 79--89.
+  \item M\'ethode sous-jacente~: Menardi G., Torelli N. (2014).
+    \emph{Training and assessing classification rules with imbalanced
+    data}. Data Mining and Knowledge Discovery, 28(1), 92--122.
+\end{itemize}
+
+% ===================================================================
+\section{Probl\`eme du d\'es\'equilibre de classes}
+% ===================================================================
+
+\subsection{Cons\'equences}
+
+\begin{enumerate}
+  \item \textbf{Estimation}~: les r\`egles de classification sont
+    \guillemotleft submerg\'ees \guillemotright par la classe
+    majoritaire~; la classe rare est ignor\'ee.
+  \item \textbf{\'Evaluation}~: le taux d'erreur global (accuracy)
+    est trompeur~; on utilise plut\^ot pr\'ecision, rappel,
+    $F$-mesure, ou AUC.
+  \item \textbf{Seuil}~: le seuil par d\'efaut ($\hat{p} > 0,5$)
+    peut ne jamais \^etre d\'epass\'e~; la courbe ROC \'evite ce
+    choix arbitraire.
+\end{enumerate}
+
+\subsection{Rem\`edes traditionnels}
+
+\begin{itemize}
+  \item \textbf{Sur-\'echantillonnage} (over)~: tirage avec remise
+    dans la classe minoritaire. Risque de sur-ajustement (doublons).
+  \item \textbf{Sous-\'echantillonnage} (under)~: tirage sans remise
+    dans la classe majoritaire. Perte d'information.
+  \item \textbf{Combinaison} (both)~: sur- et sous-\'echantillonnage
+    simultan\'es.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Impact de l'\'equilibrage sur l'AUC (hacide, arbre rpart)}
+\begin{tabular}{lcc}
+\toprule
+M\'ethode & AUC & Commentaire \\
+\midrule
+Aucun (arbre brut) & 0,600 & Mauvais, classe rare ignor\'ee \\
+Oversampling & 0,798 & Am\'elioration significative \\
+Undersampling & 0,749 & Moindre que l'over \\
+Both & 0,798 & \'Equivalent \`a l'over \\
+\textbf{ROSE} & \textbf{0,989} & \textbf{Excellente g\'en\'eralisation} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ===================================================================
+\section{La m\'ethode ROSE}
+% ===================================================================
+
+\subsection{Algorithme}
+
+ROSE g\'en\`ere un nouvel exemple artificiel $(x^*, y^*)$ en trois
+\'etapes~:
+
+\begin{enumerate}
+  \item Choisir $y^* = Y_j$ avec probabilit\'e $\pi_j$.
+  \item S\'electionner $(x_i, y_i)$ tel que $y_i = y^*$,
+    avec probabilit\'e $1/n_j$.
+  \item G\'en\'erer $x^* \sim K_{H_j}(\cdot, x_i)$, o\`u $K_{H_j}$
+    est un noyau centr\'e en $x_i$ de matrice de lissage $H_j$.
+\end{enumerate}
+
+\subsection{Propri\'et\'es}
+
+\begin{itemize}
+  \item \'Equivalent \`a tirer de l'estimateur \`a noyau de
+    $f(x|Y_j)$ (densit\'e conditionnelle).
+  \item Quand $H_j \to 0$, ROSE se r\'eduit \`a une combinaison
+    over/under-sampling.
+  - Pas de doublons (contrairement au sur-\'echantillonnage simple).
+  \item Les param\`etres de lissage $H_0$, $H_1$ sont choisis de
+    fa\c con optimale sous hypoth\`ese de normalit\'e.
+  \item Ajustables via \texttt{hmult.majo} et \texttt{hmult.mino}.
+\end{itemize}
+
+\subsection{ROSE pour l'\'evaluation}
+
+ROSE peut \^etre utilis\'e pour estimer la pr\'ecision d'un
+classifieur selon trois sch\'emas~:
+
+\begin{itemize}
+  \item \textbf{Holdout}~: entra\^inement sur $\mathcal{T}^*_m$
+    (ROSE), test sur $\mathcal{T}_n$ (original).
+  \item \textbf{Bootstrap}~: $B$ \'echantillons ROSE, test sur
+    l'original, distribution bootstrap de la m\'etrique.
+  \item \textbf{Leave-$K$-out CV}~: $Q = n/K$ groupes, entra\^inement
+    ROSE sur $\mathcal{T}_n \setminus \mathcal{T}^K_i$, test sur
+    $\mathcal{T}^K_i$.
+\end{itemize}
+
+\subsection{Analyse critique}
+
+\textbf{Forces~:}
+\begin{itemize}
+  \item Approche unifi\'ee (estimation + \'evaluation).
+  \item Pas de doublons, meilleure g\'en\'eralisation.
+  \item Flexible (tout classifieur R standard ou sur mesure).
+  \item Interface bien con\c cue, documentation claire.
+\end{itemize}
+
+\textbf{Faiblesses~:}
+\begin{itemize}
+  \item Param\`etres de lissage $H_j$ choisis sous hypoth\`ese de
+    normalit\'e (potentiellement sous-optimaux pour d'autres
+    distributions).
+  \item Co\^ut calculatoire pour bootstrap $B=50$ (50 entra\^\i nements
+    + pr\'edictions).
+  \item Pas de parall\'elisation native.
+  \item M\'ethode limit\'ee \`a la classification binaire.
+  \item Holdout ROSE tend \`a surestimer l'AUC (biais optimiste),
+    mais avec un MSE plus faible qu'un holdout standard.
+\end{itemize}
+
+% ===================================================================
+\section{Illustrations num\'eriques}
+% ===================================================================
+
+\subsection{Donn\'ees hacide}
+
+Les donn\'ees \texttt{hacide} sont fournies avec le package~:
+\begin{itemize}
+  \item \texttt{hacide.train}~: $n=1000$, 2\% de positifs (20/980).
+  \item \texttt{hacide.test}~: $n=250$.
+  \item 2 variables explicatives $x_1$, $x_2$.
+  \item La classe rare forme un demi-cercle bruit\'e au sein de la
+    classe majoritaire (ellipse normale).
+\end{itemize}
+
+\subsection{R\'esultats comparatifs}
+
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.85\textwidth}{\centering
+\textbf{AUC sur l'\'echantillon de test hacide.test} \\
+\vspace{0.3cm}
+\begin{tabular}{lcc}
+\toprule
+Strat\'egie & AUC & \'Ecart / base \\
+\midrule
+Arbre brut (d\'es\'equilibr\'e) & 0,600 & --- \\
+Arbre + oversampling & 0,798 & $+0,198$ \\
+Arbre + undersampling & 0,749 & $+0,149$ \\
+Arbre + both & 0,798 & $+0,198$ \\
+\textbf{Arbre + ROSE} & \textbf{0,989} & $\mathbf{+0,389}$ \\
+\midrule
+ROSE holdout (AUC estim\'ee) & 0,985 & --- \\
+ROSE bootstrap (m\'ediane) & 0,984 & --- \\
+ROSE L5OCV & 0,973 & --- \\
+\bottomrule
+\end{tabular}
+}}
+\caption{Performances compar\'ees des strat\'egies d'\'equilibrage
+sur les donn\'ees hacide (Lunardon et al., 2014)}
+\end{figure}
+
+\newpage
+% ===================================================================
+\section{Extraits de code R}
+% ===================================================================
+
+\subsection{Installation et chargement}
+
+\begin{lstlisting}
+install.packages("ROSE")
+library(ROSE)
+data(hacide)
+str(hacide.train)
+table(hacide.train$cls)  # 0: 980, 1: 20
+\end{lstlisting}
+
+\subsection{Arbre na\"if (ignorant le d\'es\'equilibre)}
+
+\begin{lstlisting}
+library(rpart)
+treeimb <- rpart(cls ~ ., data = hacide.train)
+pred.treeimb <- predict(treeimb, newdata = hacide.test)
+
+# Metriques
+accuracy.meas(hacide.test$cls, pred.treeimb[,2])
+# precision: 1.000, recall: 0.200, F: 0.167
+
+roc.curve(hacide.test$cls, pred.treeimb[,2], plotit = FALSE)
+# AUC: 0.600
+\end{lstlisting}
+
+\subsection{Sur-\'echantillonnage (ovun.sample)}
+
+\begin{lstlisting}
+# Oversampling
+data.bal.ov <- ovun.sample(cls ~ ., data = hacide.train,
+                            method = "over", p = 0.5, seed = 1)$data
+table(data.bal.ov$cls)
+
+# Undersampling
+data.bal.un <- ovun.sample(cls ~ ., data = hacide.train,
+                            method = "under", p = 0.5, seed = 1)$data
+table(data.bal.un$cls)
+
+# Combinaison
+data.bal.ou <- ovun.sample(cls ~ ., data = hacide.train,
+                            method = "both", N = 1000, p = 0.5,
+                            seed = 1)$data
+table(data.bal.ou$cls)
+\end{lstlisting}
+
+\subsection{M\'ethode ROSE}
+
+\begin{lstlisting}
+# Generation de donnees equilibrees
+data.rose <- ROSE(cls ~ ., data = hacide.train, seed = 1)$data
+table(data.rose$cls)
+
+# Ajustement et prediction
+tree.rose <- rpart(cls ~ ., data = data.rose)
+pred.tree.rose <- predict(tree.rose, newdata = hacide.test)
+roc.curve(hacide.test$cls, pred.tree.rose[,2])
+# AUC: 0.989
+
+# Ajustement des parametres de lissage
+data.rose.h <- ROSE(cls ~ ., data = hacide.train, seed = 1,
+                    hmult.majo = 0.25, hmult.mino = 0.5)$data
+\end{lstlisting}
+
+\subsection{ROSE pour l'\'evaluation}
+
+\begin{lstlisting}
+# Holdout ROSE
+ROSE.holdout <- ROSE.eval(cls ~ ., data = hacide.train,
+    learner = rpart, method.assess = "holdout",
+    extr.pred = function(obj) obj[,2], seed = 1)
+# AUC: 0.985
+
+# Bootstrap ROSE (B=50)
+ROSE.boot <- ROSE.eval(cls ~ ., data = hacide.train,
+    learner = rpart, method.assess = "BOOT", B = 50,
+    extr.pred = function(obj) obj[,2], seed = 1)
+summary(ROSE.boot)
+# Mediane AUC: 0.984
+
+# L5OCV ROSE
+ROSE.l5ocv <- ROSE.eval(cls ~ ., data = hacide.train,
+    learner = rpart, method.assess = "LKOCV", K = 5,
+    extr.pred = function(obj) obj[,2], seed = 1)
+# L5OCV AUC: 0.973
+\end{lstlisting}
+
+\subsection{Utilisation d'un classifieur non-standard (k-NN)}
+
+\begin{lstlisting}
+library(class)
+knn.wrap <- function(data, newdata, ...) {
+  knn(train = data[,-1], test = newdata, cl = data[,1], ...)
+}
+
+rose.holdout.knn <- ROSE.eval(cls ~ ., data = hacide.train,
+    learner = knn.wrap, control.learner = list(k = 2, prob = TRUE),
+    method.assess = "holdout", seed = 1)
+\end{lstlisting}
+
+% ===================================================================
+\section{Conclusion}
+% ===================================================================
+
+Le package \textbf{ROSE} est un outil complet et bien con\c cu pour
+la classification binaire sur donn\'ees d\'es\'equilibr\'ees. Ses
+points forts~:
+\begin{itemize}
+  \item M\'ethode unifi\'ee couvrant estimation et \'evaluation.
+  \item G\'en\'eration de donn\'ees artificielles sans doublons
+    (bootstrap liss\'e).
+  \item Interface souple acceptant tout classifieur R.
+  \item Plusieurs m\'ethodes d'\'evaluation (holdout, bootstrap, CV).
+\end{itemize}
+
+Ses limites~:
+\begin{itemize}
+  \item Classification binaire uniquement.
+  \item Param\'etrisation du noyau sous hypoth\`ese de normalit\'e.
+  \item Co\^ut calculatoire non n\'egligeable (surtout bootstrap).
+  \item L\'eg\`ere surestimation de l'AUC en holdout.
+\end{itemize}
+
+\textbf{Note~:} Depuis 2014, d'autres packages ont \'emerg\'e
+(\texttt{themis} pour le tidyverse, \texttt{smotefamily},
+\texttt{UBL}), mais ROSE reste une solution de r\'ef\'erence,
+p\'edagogique et robuste.
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+
+  \item Quel est le principal probl\`eme pos\'e par les donn\'ees
+    d\'es\'equilibr\'ees en classification~?
+    \begin{enumerate}
+      \item Le mod\`ele converge trop vite
+      \item La classe rare est ignor\'ee par le classifieur
+      \item Les variables explicatives sont corr\'el\'ees
+      \item L'AUC est toujours de 0,5
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Dans l'exemple hacide, quel est le pourcentage d'exemples
+    positifs dans l'\'echantillon d'apprentissage~?
+    \begin{enumerate}
+      \item 10\%
+      \item 5\%
+      \item 2\%
+      \item 20\%
+    \end{enumerate}
+    \textbf{R\'eponse~: c (20/1000 = 2\%).}
+
+  \item Quelle est la principale diff\'erence entre ROSE et le
+    sur-\'echantillonnage simple~?
+    \begin{enumerate}
+      \item ROSE est plus lent
+      \item ROSE g\'en\`ere des donn\'ees synth\'etiques sans
+        doublons
+      \item ROSE n\'ecessite la library caret
+      \item ROSE ne fonctionne qu'avec rpart
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Dans l'algorithme ROSE, \`a quoi correspond la matrice
+    $H_j$~?
+    \begin{enumerate}
+      \item \`A la matrice de covariance des donn\'ees
+      \item \`A la matrice de lissage du noyau
+      \item \`A la matrice des poids du classifieur
+      \item \`A la matrice de confusion
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Quelle AUC obtient-on avec un arbre de d\'ecision
+    (\texttt{rpart}) entra\^\i n\'e sur des donn\'ees \'equilibr\'ees
+    par ROSE (donn\'ees hacide)~?
+    \begin{enumerate}
+      \item 0,600
+      \item 0,798
+      \item 0,989
+      \item 0,500
+    \end{enumerate}
+    \textbf{R\'eponse~: c.}
+
+  \item Quelle fonction du package ROSE permet d'obtenir une
+    estimation de l'AUC par validation crois\'ee~?
+    \begin{enumerate}
+      \item \texttt{ROSE()}
+      \item \texttt{ovun.sample()}
+      \item \texttt{ROC.eval()}
+      \item \texttt{ROSE.eval()}
+    \end{enumerate}
+    \textbf{R\'eponse~: d.}
+
+  \item Quelle est la m\'etrique d'\'evaluation recommand\'ee par
+    les auteurs pour \'eviter le choix arbitraire d'un
+    seuil~?
+    \begin{enumerate}
+      \item Le $F$-mesure
+      \item La pr\'ecision
+      \item Le rappel
+      \item L'AUC (aire sous la courbe ROC)
+    \end{enumerate}
+    \textbf{R\'eponse~: d.}
+
+  \item Quel argument permet de r\'eduire la largeur du noyau dans
+    \texttt{ROSE()}~?
+    \begin{enumerate}
+      \item \texttt{hmult.majo} et \texttt{hmult.mino}
+      \item \texttt{kernel.width}
+      \item \texttt{smoothing.factor}
+      \item \texttt{bandwidth}
+    \end{enumerate}
+    \textbf{R\'eponse~: a.}
+
+  \item Que se passe-t-il quand $H_j \to 0$ dans la m\'ethode
+    ROSE~?
+    \begin{enumerate}
+      \item La m\'ethode diverge
+      \item ROSE se r\'eduit \`a over/under-sampling standard
+      \item Le noyau devient gaussien
+      \item AUC devient 1
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+  \item Selon l'article, comment peut-on adapter un classifieur
+    non-standard (ex.~\texttt{knn}) pour l'utiliser dans
+    \texttt{ROSE.eval()}~?
+    \begin{enumerate}
+      \item Ce n'est pas possible
+      \item En \'ecrivant une fonction wrapper avec arguments
+        \texttt{data} et \texttt{newdata}
+      \item En modifiant le code source de ROSE
+      \item En utilisant \texttt{caret::train} \`a la place
+    \end{enumerate}
+    \textbf{R\'eponse~: b.}
+
+\end{enumerate}
+
+% ===================================================================
+\begin{thebibliography}{5}
+% ===================================================================
+
+\bibitem{Lunardon2014}
+  N.~Lunardon, G.~Menardi, N.~Torelli.
+  \newblock \emph{ROSE: A Package for Binary Imbalanced Learning}.
+  \newblock The R Journal, 6(1):79--89, 2014.
+
+\bibitem{Menardi2014}
+  G.~Menardi, N.~Torelli.
+  \newblock \emph{Training and assessing classification rules with
+    imbalanced data}.
+  \newblock Data Mining and Knowledge Discovery, 28(1):92--122, 2014.
+
+\bibitem{Chawla2002}
+  N.~V.~Chawla, K.~W.~Bowyer, L.~O.~Hall, W.~P.~Kegelmeyer.
+  \newblock \emph{SMOTE: Synthetic Minority Over-sampling Technique}.
+  \newblock J.~Artif.~Intell.~Res., 16:321--357, 2002.
+
+\bibitem{Torgo2010}
+  L.~Torgo.
+  \newblock \emph{Data Mining with R, Learning with Case Studies}.
+  \newblock Chapman \& Hall/CRC, 2010.
+
+\end{thebibliography}
+
+\end{document}

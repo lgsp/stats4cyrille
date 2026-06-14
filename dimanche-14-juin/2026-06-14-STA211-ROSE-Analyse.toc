@@ -1,0 +1,24 @@
+\babel@toc {french}{}\relax 
+\contentsline {section}{\numberline {1}Pr\'esentation g\'en\'erale}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Contexte}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}R\'ef\'erence}{2}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Probl\`eme du d\'es\'equilibre de classes}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Cons\'equences}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Rem\`edes traditionnels}{2}{subsection.2.2}%
+\contentsline {section}{\numberline {3}La m\'ethode ROSE}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Algorithme}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Propri\'et\'es}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}ROSE pour l'\'evaluation}{3}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Analyse critique}{3}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Illustrations num\'eriques}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Donn\'ees hacide}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}R\'esultats comparatifs}{4}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Extraits de code R}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Installation et chargement}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Arbre na\"if (ignorant le d\'es\'equilibre)}{5}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Sur-\'echantillonnage (ovun.sample)}{5}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}M\'ethode ROSE}{5}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}ROSE pour l'\'evaluation}{6}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Utilisation d'un classifieur non-standard (k-NN)}{6}{subsection.5.6}%
+\contentsline {section}{\numberline {6}Conclusion}{6}{section.6}%
+\contentsline {section}{Questions cl\'es (QCM)}{7}{section.6}%

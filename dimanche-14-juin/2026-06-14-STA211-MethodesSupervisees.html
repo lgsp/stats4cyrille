@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Méthodes supervisées — Fondamentaux — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; M&eacute;thodes supervis&eacute;es &mdash; Fondamentaux</h1>
+<p class="subtitle">Apprentissage statistique, compromis biais-variance,
+choix de modèles et validation &mdash; 14 juin 2026 &mdash; V. Audigier, N. Niang</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#intro">Introduction</a></li>
+    <li><a href="#apprentissage">Apprentissage statistique</a></li>
+    <li><a href="#biais-variance">Compromis biais-variance</a></li>
+    <li><a href="#choix-modeles">Choix de modèles</a></li>
+    <li><a href="#code-python">Code Python</a></li>
+    <li><a href="#code-r">Code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="intro">1. Introduction</h2>
+<!-- ============================================ -->
+
+<p>Le <strong>data-mining</strong> vise à identifier des structures au sein de données. On distingue :</p>
+<ul>
+    <li><strong>Modèles</strong> : expliquent et/ou prédisent une variable réponse $Y$ à partir de variables explicatives $X$.</li>
+    <li><strong>Patterns</strong> : régularités locales sans variable cible.</li>
+</ul>
+
+<h3>1.1 Régression <em>vs</em> classification</h3>
+<ul>
+    <li><strong>Régression</strong> : $Y$ est continue.</li>
+    <li><strong>Classification supervisée (discrimination)</strong> : $Y$ est qualitative.</li>
+</ul>
+
+<h3>1.2 Paramétrique <em>vs</em> non-paramétrique</h3>
+<ul>
+    <li><strong>Paramétriques</strong> : forme a priori pour $f$, modulée par des paramètres (ex. régression linéaire, logistique).</li>
+    <li><strong>Non-paramétriques</strong> : aucune forme spécifique supposée (ex. arbres, forêts aléatoires, SVM, réseaux de neurones).</li>
+</ul>
+
+<table>
+<caption style="caption-side:bottom;font-size:0.85rem;color:#555;margin-top:0.3rem;">Typologie des méthodes supervisées</caption>
+<tr><th></th><th>Régression</th><th>Classification</th></tr>
+<tr><td><strong>Paramétrique</strong></td><td>Rég. linéaire</td><td>Rég. logistique, ALD, modèles additifs généralisés</td></tr>
+<tr><td><strong>Non-paramétrique</strong></td><td>Arbres, forêts aléatoires, réseaux de neurones, splines</td><td>Arbres, forêts aléatoires, SVM, réseaux de neurones</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="apprentissage">2. Apprentissage statistique</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Notations</h3>
+
+<p>Soit $Y$ la variable réponse et $\mathbf{X} = (X_1,\dots,X_p)$ le vecteur des $p$ variables explicatives observé sur $n$ individus :</p>
+
+<div class="formula">
+$\{(\mathbf{x}_1, y_1), \dots, (\mathbf{x}_n, y_n)\} \in \mathcal{X} \times \mathcal{Y}$
+</div>
+
+<p>Deux objectifs :</p>
+<ul>
+    <li><strong>Prédiction</strong> : pour $\mathbf{x}_0$, prédire $\hat{y}_0$ le plus proche possible de $y_0$.</li>
+    <li><strong>Estimation</strong> : approcher la fonction $f$ qui relie $Y$ à $X$.</li>
+</ul>
+
+<h3>2.2 Fonctions de perte</h3>
+
+<h4>Régression</h4>
+<p>On suppose $Y = f(X) + \varepsilon$ avec $\mathbb{E}[\varepsilon]=0$ et $\mathbb{V}\text{ar}[\varepsilon]=\sigma^2$.</p>
+
+<div class="formula">
+$\gamma(\hat{f}, (x, y)) = (\hat{f}(x) - y)^2 \qquad$ (contraste moindres carrés)
+</div>
+
+<div class="formula">
+$P_\gamma(\hat{f}) = \mathbb{E}_{X,Y}\big[ (Y - \hat{f}(X))^2 \big]$
+</div>
+
+<h4>Classification</h4>
+<p>On estime la probabilité a posteriori $\mathbb{P}(Y=m_q|X)$.</p>
+
+<div class="formula">
+$\gamma(\hat{f}, (x, y)) = 1_{\hat{f}(x) \neq y} \qquad$ (contraste 0-1)
+</div>
+
+<div class="formula">
+$P_\gamma(\hat{f}) = \mathbb{P}(\hat{f}(X) \neq Y) \qquad$ (taux d'erreur)
+</div>
+
+<h3>2.3 Sur-ajustement (overfitting)</h3>
+
+<div class="warn-box">
+<strong>Problème :</strong> un modèle trop complexe (ex. $k=1$ en k-NN) donne une erreur d'apprentissage nulle mais ne généralise pas. Il faut un échantillon <strong>indépendant</strong> pour estimer la perte.
+</div>
+
+<h3>2.4 Données déséquilibrées</h3>
+
+<p>Cas fréquent : une modalité minoritaire (ex. 30% d'impayés). Le contraste 0-1 étant symétrique, le modèle ignore la classe rare.</p>
+
+<p><strong>Solutions :</strong></p>
+<ul>
+    <li><strong>Contraste asymétrique</strong> : $\gamma = w_0 1_{\hat{f}(x)\neq0,\,y=0} + w_1 1_{\hat{f}(x)\neq1,\,y=1}$</li>
+    <li><strong>Sur-échantillonnage</strong> : tirage avec remise dans la classe minoritaire.</li>
+    <li><strong>Sous-échantillonnage</strong> : tirage dans la classe majoritaire.</li>
+    <li><strong>SMOTE</strong> : génère des individus fictifs sur des segments entre voisins minoritaires (Chawla et al., 2002).</li>
+</ul>
+
+<h4>Algorithme SMOTE</h4>
+<p>Pour chaque individu $i$ de la classe minoritaire :</p>
+<ol>
+    <li>Identifier ses $k=5$ plus proches voisins (minoritaires).</li>
+    <li>Tirer un individu $i'$ au hasard parmi les $k$.</li>
+    <li>Pour $j = 1,\dots,p$ : $x_{i''j} \leftarrow x_{ij} + u \times (x_{ij} - x_{i'j})$, avec $u \sim \mathcal{U}[0,1]$.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="biais-variance">3. Compromis biais - variance</h2>
+<!-- ============================================ -->
+
+<p>La qualité d'un modèle est liée à sa complexité. Un modèle trop simple (biais élevé) sous-ajuste, un modèle trop complexe (variance élevée) sur-ajuste.</p>
+
+<h3>3.1 Décomposition de l'erreur</h3>
+
+<p>En régression (MSE), l'erreur espérée se décompose :</p>
+
+<div class="formula">
+$\mathbb{E}\big[ (Y - \hat{f}(X))^2 \big] =
+\underbrace{\mathbb{V}\text{ar}[\hat{f}(X)]}_{\text{variance}}
++ \underbrace{(\mathbb{E}[\hat{f}(X)] - f(X))^2}_{\text{biais}^2}
++ \underbrace{\sigma^2}_{\text{bruit}}$
+</div>
+
+<h3>3.2 Illustration (k-NN sur German Credit)</h3>
+
+<table>
+<caption style="caption-side:bottom;font-size:0.85rem;color:#555;margin-top:0.3rem;">Taux de mauvais classement selon $k$</caption>
+<tr><th>$k$</th><th>Erreur train</th><th>Erreur test</th><th>Interprétation</th></tr>
+<tr><td>1</td><td>0%</td><td>~45%</td><td>Surapprentissage (variance élevée)</td></tr>
+<tr><td>5</td><td>~15%</td><td>~33%</td><td>Compromis</td></tr>
+<tr><td><strong>10</strong></td><td><strong>~25%</strong></td><td><strong>~30%</strong></td><td><strong>Optimal</strong></td></tr>
+<tr><td>15</td><td>~28%</td><td>~31%</td><td>Léger sous-apprentissage</td></tr>
+<tr><td>30</td><td>~33%</td><td>~34%</td><td>Sous-apprentissage (biais élevé)</td></tr>
+<tr><td>50</td><td>~35%</td><td>~35%</td><td>Biais dominant</td></tr>
+</table>
+
+<div class="info-box">
+<strong>À retenir :</strong> Avec $k$ petit → modèle complexe → erreur train faible, erreur test élevée. Avec $k$ optimal ($k\approx10$) → meilleur compromis. Au-delà → erreur test augmente (biais trop fort).
+</div>
+
+<!-- ============================================ -->
+<h2 id="choix-modeles">4. Choix de modèles</h2>
+<!-- ============================================ -->
+
+<h3>4.1 Critères pénalisés</h3>
+
+<p>On ajoute une pénalité de complexité au risque empirique :</p>
+
+<div class="formula">
+\[\mathcal{L}(\hat{f}) = \frac{1}{n}\sum_{i=1}^n \gamma(\hat{f}, (\mathbf{x}_i, y_i)) + \text{pénalité}\]
+</div>
+
+<h4>AIC (Akaike Information Criterion)</h4>
+<div class="formula">
+$\text{AIC} = -2\ln L(\hat{\theta}) + 2k$
+</div>
+<p>À privilégier pour la <strong>prédiction</strong>.</p>
+
+<h4>BIC (Bayesian Information Criterion)</h4>
+<div class="formula">
+$\text{BIC} = -2\ln L(\hat{\theta}) + \ln(n)\,k$
+</div>
+<p>Pénalité plus forte que l'AIC ($\ln(n) > 2$ pour $n \ge 8$). À privilégier pour l'<strong>estimation</strong> (sélection du vrai modèle asymptotiquement).</p>
+
+<h4>Méthodes pas-à-pas</h4>
+<ul>
+    <li><strong>Descendante</strong> : part du modèle complet, élimine les variables une à une.</li>
+    <li><strong>Ascendante</strong> : part du modèle vide, ajoute les variables une à une.</li>
+    <li><strong>Progressive</strong> : ascendante avec possibilité d'élimination.</li>
+</ul>
+
+<div class="warn-box">
+<strong>Limites :</strong> nécessitent un modèle paramétrique (vraisemblance), ne comparent pas des modèles de familles différentes, le nombre de paramètres ne reflète pas toujours la complexité (ex. régression ridge).
+</div>
+
+<h3>4.2 Approches empiriques</h3>
+
+<h4>Découpage test/apprentissage</h4>
+<ol>
+    <li>Séparer les données en $\mathcal{A}$ (apprentissage) et $\mathcal{T}$ (test).</li>
+    <li>Ajuster chaque modèle sur $\mathcal{A}$.</li>
+    <li>Choisir celui qui minimise l'erreur sur $\mathcal{T}$.</li>
+    <li>Ré-ajuster le modèle retenu sur $\mathcal{A} \cup \mathcal{T}$.</li>
+</ol>
+
+<h4>Validation croisée $K$-fold</h4>
+<ol>
+    <li>Découper l'échantillon en $K$ blocs de même taille.</li>
+    <li>Pour chaque bloc : les $K-1$ autres servent d'apprentissage, le bloc sert de test.</li>
+    <li>Moyenner les $K$ erreurs de test.</li>
+</ol>
+
+<table>
+<tr><th>Méthode</th><th>$K$</th><th>Avantages</th><th>Inconvénients</th></tr>
+<tr><td>$K$-fold</td><td>10 (usuel)</td><td>Bon compromis biais-variance</td><td>Coût modéré</td></tr>
+<tr><td>Leave-one-out (LOO)</td><td>$K=n$</td><td>Utilise tout l'échantillon</td><td>Très coûteux</td></tr>
+</table>
+
+<h4>Mesure objective de la perte : 3 échantillons</h4>
+<ul>
+    <li><strong>Apprentissage</strong> : ajuster le modèle.</li>
+    <li><strong>Validation</strong> : choisir le modèle (hyper-paramètres).</li>
+    <li><strong>Test</strong> : mesure finale de la performance.</li>
+</ul>
+
+<div class="formula">
+Proportion typique : $1/2$ apprentissage, $1/4$ validation, $1/4$ test
+</div>
+
+<h3>4.3 Complément : ROC et AUC</h3>
+
+<p>Pour une variable binaire, on fait varier le seuil de décision $\hat{p}(Y=1|X) > s$.</p>
+
+<div class="info-box">
+<strong>Courbe ROC</strong> : taux de vrais positifs (TPR) en fonction du taux de faux positifs (FPR) pour tous les seuils $s \in [0,1]$.
+</div>
+
+<div class="info-box">
+<strong>AUC (Area Under the Curve)</strong> : AUC $=0.5$ → modèle aléatoire, AUC $=1$ → modèle parfait. En pratique : AUC $>0.7$ acceptable, $>0.8$ excellent.
+</div>
+
+<!-- ============================================ -->
+<h2 id="code-python">5. Code Python</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Validation croisée avec scikit-learn</h3>
+<div class="code-block"><span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> cross_val_score, train_test_split
+<span class="kw">from</span> sklearn.neighbors <span class="kw">import</span> KNeighborsClassifier
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> make_classification
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+X, y = make_classification(n_samples=200, n_features=2,
+                           n_redundant=0, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.33, random_state=42)
+
+<span class="kw">for</span> k <span class="kw">in</span> [1, 5, 10, 15, 30]:
+    model = KNeighborsClassifier(n_neighbors=k)
+    scores = cross_val_score(model, X_train, y_train, cv=10)
+    model.fit(X_train, y_train)
+    test_score = model.score(X_test, y_test)
+    <span class="fn">print</span>(<span class="str">f"k={k:2d} | CV: {scores.mean():.3f} (+/-{scores.std():.2f}) | Test: {test_score:.3f}"</span>)</div>
+
+<h3>5.2 SMOTE avec imbalanced-learn</h3>
+<div class="code-block"><span class="kw">from</span> imblearn.over_sampling <span class="kw">import</span> SMOTE
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+smote = SMOTE(random_state=42)
+X_res, y_res = smote.fit_resample(X_train, y_train)
+<span class="fn">print</span>(<span class="str">"Avant SMOTE:"</span>, Counter(y_train))
+<span class="fn">print</span>(<span class="str">"Apres SMOTE:"</span>, Counter(y_res))</div>
+
+<h3>5.3 Courbe ROC et AUC</h3>
+<div class="code-block"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> roc_curve, auc
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+model = KNeighborsClassifier(n_neighbors=10)
+model.fit(X_train, y_train)
+y_prob = model.predict_proba(X_test)[:, 1]
+fpr, tpr, _ = roc_curve(y_test, y_prob)
+roc_auc = auc(fpr, tpr)
+
+plt.plot(fpr, tpr, label=<span class="str">f"AUC = {roc_auc:.3f}"</span>)
+plt.plot([0,1], [0,1], <span class="str">'k--'</span>)
+plt.xlabel(<span class="str">"Taux faux positifs"</span>)
+plt.ylabel(<span class="str">"Taux vrais positifs"</span>)
+plt.legend()
+plt.show()</div>
+
+<!-- ============================================ -->
+<h2 id="code-r">6. Code R</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Validation croisée avec caret</h3>
+<div class="code-block"><span class="kw">library</span>(caret)
+<span class="kw">library</span>(class)
+
+data(GermanCredit)
+train_idx &lt;- createDataPartition(GermanCredit$Class,
+                                 p = 0.67, list = FALSE)
+train &lt;- GermanCredit[train_idx, ]
+test  &lt;- GermanCredit[-train_idx, ]
+
+ctrl &lt;- trainControl(method = <span class="str">"cv"</span>, number = 10)
+<span class="kw">for</span> (k <span class="kw">in</span> c(1, 5, 10, 15, 30)) {
+  model &lt;- train(Class ~ ., data = train, method = <span class="str">"knn"</span>,
+                 trControl = ctrl, tuneGrid = data.frame(k = k))
+  <span class="fn">cat</span>(sprintf(<span class="str">"k=%2d | CV: %.3f | Test: %.3f\n"</span>,
+              k, max(model$results$Accuracy),
+              <span class="fn">predict</span>(model, test) |> (<span class="kw">function</span>(x)
+                <span class="fn">mean</span>(x == test$Class))()))
+}</div>
+
+<h3>6.2 SMOTE avec UBL</h3>
+<div class="code-block"><span class="kw">library</span>(UBL)
+smote_train &lt;- SmoteClassif(Class ~ ., train, C.perc = <span class="str">"balance"</span>)
+<span class="fn">table</span>(smote_train$Class)</div>
+
+<h3>6.3 Courbe ROC</h3>
+<div class="code-block"><span class="kw">library</span>(pROC)
+model &lt;- knn3(Class ~ ., train, k = 10)
+prob  &lt;- predict(model, test)[, 2]
+roc_obj &lt;- roc(test$Class, prob)
+<span class="fn">plot</span>(roc_obj, print.auc = TRUE)</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">7. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez vos connaissances. Choisissez la bonne réponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quelle est la fonction de contraste usuelle en régression ?",
+        options: ["Contraste 0-1", "Contraste des moindres carrés", "Contraste log-vraisemblance", "Contraste asymétrique"],
+        correct: 1,
+        expl: "En régression, on utilise le contraste des moindres carrés : γ(f̂,(x,y)) = (f̂(x)−y)²."
+    },
+    {
+        q: "En classification, la perte P_γ(f̂) = ℙ(f̂(X) ≠ Y) correspond à :",
+        options: ["L'AUC", "Le taux de mauvais classement", "La somme des carrés résiduels", "Le BIC"],
+        correct: 1,
+        expl: "Le taux d'erreur (mauvaise classification) est la perte associée au contraste 0-1."
+    },
+    {
+        q: "Que se passe-t-il quand k=1 en k-NN sur l'erreur d'apprentissage ?",
+        options: ["Erreur maximale", "Erreur nulle", "Erreur égale à l'erreur de test", "Le modèle ne converge pas"],
+        correct: 1,
+        expl: "Avec k=1, chaque point est son propre voisin → erreur d'apprentissage nulle (sur-apprentissage)."
+    },
+    {
+        q: "La procédure SMOTE permet de :",
+        options: ["Réduire la dimension", "Générer des individus fictifs pour la classe minoritaire", "Sélectionner des variables", "Calculer l'AUC"],
+        correct: 1,
+        expl: "SMOTE génère des individus synthétiques sur des segments entre voisins minoritaires (sur-échantillonnage)."
+    },
+    {
+        q: "Dans la décomposition biais-variance, un modèle trop simple a :",
+        options: ["Un biais élevé, variance faible", "Un biais faible, variance élevée", "Biais et variance élevés", "Biais et variance nuls"],
+        correct: 0,
+        expl: "Un modèle trop simple (sous-apprentissage) a un biais élevé mais une variance faible."
+    },
+    {
+        q: "Le critère AIC pénalise la log-vraisemblance par :",
+        options: ["2k", "ln(n)·k", "k", "√k"],
+        correct: 0,
+        expl: "AIC = −2lnL + 2k — pénalité de 2 par paramètre."
+    },
+    {
+        q: "Pour n=100, quel critère pénalise le plus la complexité ?",
+        options: ["AIC", "BIC", "Les deux également", "Aucun des deux"],
+        correct: 1,
+        expl: "BIC : ln(100) ≈ 4.6 > 2, donc pénalité plus forte que l'AIC."
+    },
+    {
+        q: "En validation croisée K-fold, que vaut K pour le leave-one-out ?",
+        options: ["K=10", "K=5", "K=n", "K=1"],
+        correct: 2,
+        expl: "Leave-one-out : K = n, chaque observation est son propre bloc de test."
+    },
+    {
+        q: "Une AUC de 0.5 signifie que le modèle :",
+        options: ["Est parfait", "Est aléatoire (aucun pouvoir prédictif)", "Est excellent", "A un biais nul"],
+        correct: 1,
+        expl: "AUC=0.5 = prédiction aléatoire, AUC=1 = modèle parfait."
+    },
+    {
+        q: "Quel est l'ordre des 3 échantillons pour une mesure objective de la perte ?",
+        options: ["Test → Validation → Apprentissage", "Apprentissage → Validation → Test", "Apprentissage → Test → Validation", "Validation → Apprentissage → Test"],
+        correct: 1,
+        expl: "Apprentissage (ajuster), validation (choisir hyper-paramètres), test (mesure finale)."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez répondu qu'à ${answered}/${qcmData.length} questions. Afficher le récapitulatif quand même ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de réponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>Félicitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre réponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>Réponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Analyse critique ROSE (Lunardon et al., 2014) — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.info-box strong { color: #1a73e8; }
+.warn-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.force-box {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.weak-box {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 4px;
+}
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+.paper-ref {
+    background: #fcf8e3;
+    border: 1px solid #faebcc;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+    text-align: center;
+}
+.paper-ref code { font-size: 0.9rem; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>STA211 &mdash; Analyse critique &mdash; ROSE</h1>
+<p class="subtitle">ROSE: A Package for Binary Imbalanced Learning &mdash;
+Lunardon, Menardi &amp; Torelli (R Journal, 6(1), 2014) &mdash; 14 juin 2026</p>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#contexte">Présentation générale</a></li>
+    <li><a href="#probleme">Problème du déséquilibre de classes</a></li>
+    <li><a href="#methode">La méthode ROSE</a></li>
+    <li><a href="#analyse">Analyse critique</a></li>
+    <li><a href="#numerique">Illustrations numériques</a></li>
+    <li><a href="#code-r">Extraites de code R</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<div class="paper-ref">
+<strong>Référence :</strong> Lunardon N., Menardi G., Torelli N. (2014).
+<em>ROSE: A Package for Binary Imbalanced Learning</em>.
+The R Journal, 6(1), 79&ndash;89.
+<a href="RJ-2014-008.pdf" target="_blank" style="margin-left:1rem;">📄 PDF original</a>
+</div>
+
+<!-- ============================================ -->
+<h2 id="contexte">1. Présentation générale</h2>
+<!-- ============================================ -->
+
+<h3>1.1 Contexte</h3>
+
+<p>Les données déséquilibrées (ex. 2% de positifs, 98% de négatifs) posent un problème majeur en classification supervisée. Un classifieur naïf qui prédit toujours la classe majoritaire atteint 98% de bonne classification, mais ne détecte aucun cas rare.</p>
+
+<p>Le package <strong>ROSE</strong> implémente une méthode unifiée pour :</p>
+<ul>
+    <li><strong>Estimer</strong> un classifieur malgré le déséquilibre (via des données artificielles équilibrées)</li>
+    <li><strong>Évaluer</strong> la performance de façon fiable (holdout, bootstrap, validation croisée)</li>
+</ul>
+
+<div class="info-box">
+<strong>Méthode sous-jacente :</strong> Menardi G., Torelli N. (2014).
+<em>Training and assessing classification rules with imbalanced data</em>.
+Data Mining and Knowledge Discovery, 28(1), 92&ndash;122.
+</div>
+
+<!-- ============================================ -->
+<h2 id="probleme">2. Problème du déséquilibre de classes</h2>
+<!-- ============================================ -->
+
+<h3>2.1 Conséquences</h3>
+<ol>
+    <li><strong>Estimation :</strong> les règles de classification sont submergées par la classe majoritaire ; la classe rare est ignorée.</li>
+    <li><strong>Évaluation :</strong> le taux d'erreur global (accuracy) est trompeur ; on utilise plutôt précision, rappel, $F$-mesure, ou AUC.</li>
+    <li><strong>Seuil :</strong> le seuil par défaut ($\hat{p} > 0,5$) peut ne jamais être dépassé ; la courbe ROC évite ce choix arbitraire.</li>
+</ol>
+
+<h3>2.2 Remèdes traditionnels</h3>
+<ul>
+    <li><strong>Sur-échantillonnage</strong> (oversampling) : tirage avec remise dans la classe minoritaire. Risque de sur-ajustement (doublons).</li>
+    <li><strong>Sous-échantillonnage</strong> (undersampling) : tirage sans remise dans la classe majoritaire. Perte d'information.</li>
+    <li><strong>Combinaison</strong> (both) : sur- et sous-échantillonnage simultanés.</li>
+</ul>
+
+<h3>2.3 Données hacide (package ROSE)</h3>
+<ul>
+    <li><code>hacide.train</code> : $n=1000$, 2% de positifs (20/980)</li>
+    <li><code>hacide.test</code> : $n=250$</li>
+    <li>2 variables explicatives $x_1$, $x_2$</li>
+    <li>La classe rare forme un demi-cercle bruité au sein de la classe majoritaire (ellipse normale)</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="methode">3. La méthode ROSE</h2>
+<!-- ============================================ -->
+
+<h3>3.1 Algorithme</h3>
+
+<p>ROSE génère un nouvel exemple artificiel $(x^*, y^*)$ en trois étapes :</p>
+
+<ol>
+    <li>Choisir $y^* = Y_j$ avec probabilité $\pi_j$.</li>
+    <li>Sélectionner $(x_i, y_i)$ tel que $y_i = y^*$, avec probabilité $1/n_j$.</li>
+    <li>Générer $x^* \sim K_{H_j}(\cdot, x_i)$, où $K_{H_j}$ est un noyau centré en $x_i$ de matrice de lissage $H_j$.</li>
+</ol>
+
+<div class="formula">
+$x^* \sim K_{H_j}(\cdot, x_i)$  avec  $H_j$ = matrice de lissage (noyau)
+</div>
+
+<h3>3.2 Propriétés</h3>
+<ul>
+    <li>Équivalent à tirer de l'estimateur à noyau de $f(x|Y_j)$ (densité conditionnelle).</li>
+    <li>Quand $H_j \to 0$, ROSE se réduit à over/under-sampling standard.</li>
+    <li>Pas de doublons (contrairement au sur-échantillonnage simple).</li>
+    <li>Paramètres de lissage $H_0$, $H_1$ choisis de façon optimale sous hypothèse de normalité.</li>
+    <li>Ajustables via <code>hmult.majo</code> et <code>hmult.mino</code>.</li>
+</ul>
+
+<h3>3.3 ROSE pour l'évaluation</h3>
+<ul>
+    <li><strong>Holdout</strong> : entraînement sur $\mathcal{T}^*_m$ (ROSE), test sur $\mathcal{T}_n$ (original)</li>
+    <li><strong>Bootstrap</strong> : $B$ échantillons ROSE, test sur l'original, distribution bootstrap de la métrique</li>
+    <li><strong>Leave-$K$-out CV</strong> : $Q = n/K$ groupes, entraînement ROSE sur $\mathcal{T}_n \setminus \mathcal{T}^K_i$, test sur $\mathcal{T}^K_i$</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="analyse">4. Analyse critique</h2>
+<!-- ============================================ -->
+
+<div class="force-box">
+<strong>Forces :</strong>
+<ul>
+    <li>Approche unifiée (estimation + évaluation)</li>
+    <li>Pas de doublons, meilleure généralisation</li>
+    <li>Flexible : tout classifieur R standard ou sur mesure</li>
+    <li>Interface bien conçue, documentation claire</li>
+    <li>Plusieurs méthodes d'évaluation (holdout, bootstrap, CV)</li>
+</ul>
+</div>
+
+<div class="weak-box">
+<strong>Faiblesses :</strong>
+<ul>
+    <li>Paramètres de lissage $H_j$ choisis sous hypothèse de normalité (potentiellement sous-optimaux)</li>
+    <li>Coût calculatoire pour bootstrap $B=50$ (50 entraînements + prédictions)</li>
+    <li>Pas de parallélisation native</li>
+    <li>Méthode limitée à la classification binaire</li>
+    <li>Holdout ROSE tend à surestimer l'AUC (biais optimiste), mais avec un MSE plus faible qu'un holdout standard</li>
+</ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="numerique">5. Illustrations numériques</h2>
+<!-- ============================================ -->
+
+<h3>5.1 Résultats comparatifs sur hacide.test</h3>
+
+<table>
+<caption style="caption-side:bottom;font-size:0.85rem;color:#555;margin-top:0.3rem;">AUC obtenues avec l'arbre rpart selon la stratégie d'équilibrage</caption>
+<tr><th>Stratégie</th><th>AUC</th><th>Écart / base</th></tr>
+<tr><td>Arbre brut (déséquilibré)</td><td>0,600</td><td>---</td></tr>
+<tr><td>Arbre + oversampling</td><td>0,798</td><td>+0,198</td></tr>
+<tr><td>Arbre + undersampling</td><td>0,749</td><td>+0,149</td></tr>
+<tr><td>Arbre + both</td><td>0,798</td><td>+0,198</td></tr>
+<tr style="font-weight:bold;background:#d4edda;"><td>Arbre + ROSE</td><td>0,989</td><td>+0,389</td></tr>
+<tr><td colspan="3" style="background:#f8f9fa;">Estimations ROSE.eval</td></tr>
+<tr><td>ROSE holdout</td><td>0,985</td><td>---</td></tr>
+<tr><td>ROSE bootstrap (médiane)</td><td>0,984</td><td>---</td></tr>
+<tr><td>ROSE L5OCV</td><td>0,973</td><td>---</td></tr>
+</table>
+
+<div class="info-box">
+<strong>Interprétation :</strong> ROSE (AUC=0,989) surpasse largement les méthodes traditionnelles (0,749&ndash;0,798) et l'arbre brut (0,600). Les estimateurs ROSE.eval (holdout=0,985, bootstrap=0,984, CV=0,973) donnent des estimations proches de la vraie performance.
+</div>
+
+<!-- ============================================ -->
+<h2 id="code-r">6. Extraits de code R</h2>
+<!-- ============================================ -->
+
+<h3>6.1 Installation et chargement</h3>
+<div class="code-block"><span class="kw">install.packages</span>(<span class="str">"ROSE"</span>)
+<span class="kw">library</span>(ROSE)
+data(hacide)
+<span class="fn">str</span>(hacide.train)
+<span class="fn">table</span>(hacide.train$cls)  <span class="cm"># 0: 980, 1: 20</span></div>
+
+<h3>6.2 Arbre naïf (ignorant le déséquilibre)</h3>
+<div class="code-block"><span class="kw">library</span>(rpart)
+treeimb &lt;- rpart(cls ~ ., data = hacide.train)
+pred.treeimb &lt;- <span class="fn">predict</span>(treeimb, newdata = hacide.test)
+
+<span class="cm"># Métriques</span>
+<span class="fn">accuracy.meas</span>(hacide.test$cls, pred.treeimb[,2])
+<span class="cm"># precision: 1.000, recall: 0.200, F: 0.167</span>
+
+<span class="fn">roc.curve</span>(hacide.test$cls, pred.treeimb[,2], plotit = FALSE)
+<span class="cm"># AUC: 0.600</span></div>
+
+<h3>6.3 Sur-/sous-échantillonnage avec ovun.sample</h3>
+<div class="code-block"><span class="cm"># Oversampling</span>
+data.bal.ov &lt;- <span class="fn">ovun.sample</span>(cls ~ ., data = hacide.train,
+                            method = <span class="str">"over"</span>, p = 0.5, seed = 1)$data
+<span class="fn">table</span>(data.bal.ov$cls)
+
+<span class="cm"># Undersampling</span>
+data.bal.un &lt;- <span class="fn">ovun.sample</span>(cls ~ ., data = hacide.train,
+                            method = <span class="str">"under"</span>, p = 0.5, seed = 1)$data
+<span class="fn">table</span>(data.bal.un$cls)
+
+<span class="cm"># Combinaison</span>
+data.bal.ou &lt;- <span class="fn">ovun.sample</span>(cls ~ ., data = hacide.train,
+                            method = <span class="str">"both"</span>, N = 1000, p = 0.5,
+                            seed = 1)$data
+<span class="fn">table</span>(data.bal.ou$cls)</div>
+
+<h3>6.4 Méthode ROSE</h3>
+<div class="code-block"><span class="cm"># Génération de données équilibrées</span>
+data.rose &lt;- ROSE(cls ~ ., data = hacide.train, seed = 1)$data
+<span class="fn">table</span>(data.rose$cls)
+
+<span class="cm"># Ajustement et prédiction</span>
+tree.rose &lt;- rpart(cls ~ ., data = data.rose)
+pred.tree.rose &lt;- <span class="fn">predict</span>(tree.rose, newdata = hacide.test)
+<span class="fn">roc.curve</span>(hacide.test$cls, pred.tree.rose[,2])
+<span class="cm"># AUC: 0.989</span>
+
+<span class="cm"># Ajustement des paramètres de lissage</span>
+data.rose.h &lt;- ROSE(cls ~ ., data = hacide.train, seed = 1,
+                    hmult.majo = 0.25, hmult.mino = 0.5)$data</div>
+
+<h3>6.5 ROSE pour l'évaluation</h3>
+<div class="code-block"><span class="cm"># Holdout ROSE</span>
+ROSE.holdout &lt;- <span class="fn">ROSE.eval</span>(cls ~ ., data = hacide.train,
+    learner = rpart, method.assess = <span class="str">"holdout"</span>,
+    extr.pred = <span class="kw">function</span>(obj) obj[,2], seed = 1)
+<span class="cm"># AUC: 0.985</span>
+
+<span class="cm"># Bootstrap ROSE (B=50)</span>
+ROSE.boot &lt;- <span class="fn">ROSE.eval</span>(cls ~ ., data = hacide.train,
+    learner = rpart, method.assess = <span class="str">"BOOT"</span>, B = 50,
+    extr.pred = <span class="kw">function</span>(obj) obj[,2], seed = 1)
+<span class="fn">summary</span>(ROSE.boot)
+<span class="cm"># Médiane AUC: 0.984</span>
+
+<span class="cm"># L5OCV ROSE</span>
+ROSE.l5ocv &lt;- <span class="fn">ROSE.eval</span>(cls ~ ., data = hacide.train,
+    learner = rpart, method.assess = <span class="str">"LKOCV"</span>, K = 5,
+    extr.pred = <span class="kw">function</span>(obj) obj[,2], seed = 1)
+<span class="cm"># L5OCV AUC: 0.973</span></div>
+
+<h3>6.6 Classifieur non-standard (k-NN)</h3>
+<div class="code-block"><span class="kw">library</span>(class)
+knn.wrap &lt;- <span class="kw">function</span>(data, newdata, ...) {
+  <span class="fn">knn</span>(train = data[,-1], test = newdata, cl = data[,1], ...)
+}
+
+rose.holdout.knn &lt;- <span class="fn">ROSE.eval</span>(cls ~ ., data = hacide.train,
+    learner = knn.wrap, control.learner = <span class="kw">list</span>(k = 2, prob = TRUE),
+    method.assess = <span class="str">"holdout"</span>, seed = 1)</div>
+
+<!-- ============================================ -->
+<h2 id="qcm">7. QCM interactif</h2>
+<!-- ============================================ -->
+
+<p>Testez votre compréhension de l'article. Choisissez la bonne réponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche d'analyse critique &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quel est le principal problème posé par les données déséquilibrées en classification ?",
+        options: ["Le modèle converge trop vite", "La classe rare est ignorée par le classifieur", "Les variables explicatives sont corrélées", "L'AUC est toujours de 0,5"],
+        correct: 1,
+        expl: "Les règles de classification sont submergées par la classe majoritaire ; la classe rare est ignorée."
+    },
+    {
+        q: "Dans l'exemple hacide, quel est le pourcentage d'exemples positifs dans l'échantillon d'apprentissage ?",
+        options: ["10%", "5%", "2%", "20%"],
+        correct: 2,
+        expl: "hacide.train contient 20 positifs sur 1000 observations, soit 2%."
+    },
+    {
+        q: "Quelle est la principale différence entre ROSE et le sur-échantillonnage simple ?",
+        options: ["ROSE est plus lent", "ROSE génère des données synthétiques sans doublons", "ROSE nécessite la library caret", "ROSE ne fonctionne qu'avec rpart"],
+        correct: 1,
+        expl: "ROSE utilise un bootstrap lissé (kernel) qui évite les répétitions observées dans l'oversampling simple."
+    },
+    {
+        q: "Dans l'algorithme ROSE, à quoi correspond la matrice H_j ?",
+        options: ["À la matrice de covariance des données", "À la matrice de lissage du noyau", "À la matrice des poids du classifieur", "À la matrice de confusion"],
+        correct: 1,
+        expl: "H_j est la matrice de lissage qui détermine la largeur du noyau K_H_j centré sur x_i."
+    },
+    {
+        q: "Quelle AUC obtient-on avec un arbre rpart entraîné sur des données équilibrées par ROSE ?",
+        options: ["0,600", "0,798", "0,989", "0,500"],
+        correct: 2,
+        expl: "ROSE + rpart donne AUC = 0,989, bien supérieur aux autres méthodes."
+    },
+    {
+        q: "Quelle fonction du package ROSE permet d'obtenir une estimation de l'AUC par validation croisée ?",
+        options: ["ROSE()", "ovun.sample()", "ROC.eval()", "ROSE.eval()"],
+        correct: 3,
+        expl: "ROSE.eval() avec method.assess = 'LKOCV' fournit une estimation par leave-K-out cross-validation."
+    },
+    {
+        q: "Quelle métrique d'évaluation est recommandée pour éviter le choix arbitraire d'un seuil ?",
+        options: ["La F-mesure", "La précision", "Le rappel", "L'AUC"],
+        correct: 3,
+        expl: "L'AUC (aire sous la courbe ROC) est indépendante du seuil de décision."
+    },
+    {
+        q: "Quel argument permet de réduire la largeur du noyau dans ROSE() ?",
+        options: ["hmult.majo et hmult.mino", "kernel.width", "smoothing.factor", "bandwidth"],
+        correct: 0,
+        expl: "hmult.majo (classe majoritaire) et hmult.mino (minoritaire) mettent à l'échelle H_j."
+    },
+    {
+        q: "Que se passe-t-il quand H_j → 0 dans la méthode ROSE ?",
+        options: ["La méthode diverge", "ROSE se réduit à over/under-sampling", "Le noyau devient gaussien", "L'AUC devient 1"],
+        correct: 1,
+        expl: "Quand H_j → 0, le noyau devient un Dirac : ROSE équivaut à un tirage avec remise (over/under standard)."
+    },
+    {
+        q: "Comment adapter un classifieur non-standard comme knn pour l'utiliser dans ROSE.eval() ?",
+        options: ["Ce n'est pas possible", "Écrire une fonction wrapper avec arguments data et newdata", "Modifier le code source de ROSE", "Utiliser caret::train à la place"],
+        correct: 1,
+        expl: "Un wrapper comme knn.wrap(data, newdata, ...) permet à ROSE.eval de l'appeler avec les bons arguments."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez répondu qu'à ${answered}/${qcmData.length} questions. Afficher le récapitulatif quand même ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de réponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>Félicitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre réponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>Réponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

@@ -144,10 +144,10 @@ MathJax = {
 <p>Soit une image $f$ et un filtre $h$ de taille impaire $d$. La convolution 2D est d&eacute;finie par :</p>
 
 <div class="formula">
-$f'(i,j) = (f \star h)(i,j) =
+\[f'(i,j) = (f \star h)(i,j) =
 \sum_{n=-\frac{d-1}{2}}^{\frac{d-1}{2}}
 \sum_{m=-\frac{d-1}{2}}^{\frac{d-1}{2}}
-f(i-n, j-m)\,h(n,m)$
+f(i-n, j-m)\,h(n,m)\]
 </div>
 
 <p>La sortie pour $1$ filtre est une carte 2D ; pour $K$ filtres on obtient $K$ cartes 2D.</p>
@@ -157,8 +157,8 @@ f(i-n, j-m)\,h(n,m)$
 <p>La corr&eacute;lation crois&eacute;e (<em>cross-correlation</em>) est similaire mais sans sym&eacute;trisation du masque :</p>
 
 <div class="formula">
-$f'(i,j) = (f \otimes h)(i,j) =
-\sum_{n}\sum_{m} f(i+n, j+m)\,h(n,m)$
+\[f'(i,j) = (f \otimes h)(i,j) =
+\sum_{n}\sum_{m} f(i+n, j+m)\,h(n,m)\]
 </div>
 
 <p>En pratique, les frameworks Deep Learning impl&eacute;mentent la corr&eacute;lation crois&eacute;e (plus simple) et les filtres sont appris.</p>
@@ -168,8 +168,8 @@ $f'(i,j) = (f \otimes h)(i,j) =
 <p>Pour une image couleur (3 canaux) ou une carte de features profonde, la convolution s&rsquo;applique sur toute la profondeur :</p>
 
 <div class="formula">
-$f'(i,j) = \sum_{k=1}^{K} \sum_{n}\sum_{m}
-f(i-n, j-m, k)\,h(n,m,k) + b$
+\[f'(i,j) = \sum_{k=1}^{K} \sum_{n}\sum_{m}
+f(i-n, j-m, k)\,h(n,m,k) + b\]
 </div>
 
 <p>Chaque filtre produit une carte 2D ; $F$ filtres produisent $F$ cartes empil&eacute;es en un <strong>tenseur</strong> de profondeur $F$.</p>
