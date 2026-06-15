@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+<title>STA211 — Complément Tanagra — Stacking (Python) — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 {
+    font-size: 1.3rem;
+    margin: 2rem 0 0.8rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #1a73e8;
+}
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+table {
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    width: 100%;
+}
+td, th {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+.info-box {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 0 4px 4px 0;
+}
+.info-box strong { color: #1a73e8; }
+.res-box {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    padding: 0.8rem 1rem;
+    margin: 0.75rem 0;
+    border-radius: 0 4px 4px 0;
+}
+.res-box strong { color: #28a745; }
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Complément Tanagra — Stacking (Python)</h1>
+<div class="subtitle">Stacking : agrégation par méta-apprentissage avec scikit-learn &mdash; STA211 &mdash; 15 juin 2026 &mdash; R. Rakotomalala</div>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#donnees">Données</a></li>
+    <li><a href="#bl">Classifieurs de base</a></li>
+    <li><a href="#stacking">Stacking avec scikit-learn</a></li>
+    <li><a href="#manuel">Stacking manuel</a></li>
+    <li><a href="#comparaison">Comparaison R vs Python</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="donnees">1. Données</h2>
+<!-- ============================================================ -->
+
+<p>Problème de discrimination binaire dans le plan. 2000 observations,
+2 variables prédictives \(X_1, X_2\). Frontière parabolique :</p>
+
+<div class="formula">
+Si \(0.1 \times X_2 > X_1^2 \implies\) pos, sinon neg
+</div>
+
+<div class="code-block"><span class="kw">import</span> <span class="nn">numpy</span> <span class="kw">as</span> <span class="nn">np</span>
+<span class="kw">import</span> <span class="nn">pandas</span> <span class="kw">as</span> <span class="nn">pd</span>
+<span class="kw">from</span> <span class="nn">sklearn.model_selection</span> <span class="kw">import</span> <span class="n">train_test_split</span>
+
+D = pd.read_csv(<span class="str">"artificial2d_data2.txt"</span>, sep=<span class="str">"\t"</span>)
+y = np.where(D[<span class="str">"Y"</span>] == <span class="str">"pos"</span>, <span class="num">1</span>, <span class="num">0</span>)
+X = D[[<span class="str">"X1"</span>, <span class="str">"X2"</span>]].values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, train_size=<span class="num">1500</span>, test_size=<span class="num">500</span>,
+    random_state=<span class="num">100</span>
+)</div>
+
+<p>1500 observations en apprentissage, 500 en test.</p>
+
+<!-- ============================================================ -->
+<h2 id="bl">2. Classifieurs de base</h2>
+<!-- ============================================================ -->
+
+<h3>2.1 Régression logistique</h3>
+<div class="code-block"><span class="kw">from</span> <span class="nn">sklearn.linear_model</span> <span class="kw">import</span> <span class="n">LogisticRegression</span>
+lr = <span class="n">LogisticRegression</span>(max_iter=<span class="num">5000</span>)
+lr.fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"LR: {lr.score(X_test, y_test):.3f}"</span>)</div>
+<p>Accuracy test : <strong>0.678</strong> (≈67.8%).</p>
+
+<h3>2.2 K plus proches voisins (KNN, k=5)</h3>
+<div class="code-block"><span class="kw">from</span> <span class="nn">sklearn.neighbors</span> <span class="kw">import</span> <span class="n">KNeighborsClassifier</span>
+knn = <span class="n">KNeighborsClassifier</span>(n_neighbors=<span class="num">5</span>)
+knn.fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"KNN: {knn.score(X_test, y_test):.3f}"</span>)</div>
+<p>Accuracy test : <strong>0.918</strong>.</p>
+
+<h3>2.3 Arbre de décision (max_depth=5)</h3>
+<div class="code-block"><span class="kw">from</span> <span class="nn">sklearn.tree</span> <span class="kw">import</span> <span class="n">DecisionTreeClassifier</span>
+tree = <span class="n">DecisionTreeClassifier</span>(max_depth=<span class="num">5</span>, random_state=<span class="num">0</span>)
+tree.fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"Tree: {tree.score(X_test, y_test):.3f}"</span>)</div>
+<p>Accuracy test : <strong>0.942</strong>.</p>
+
+<h3>2.4 SVM (noyau RBF)</h3>
+<div class="code-block"><span class="kw">from</span> <span class="nn">sklearn.svm</span> <span class="kw">import</span> <span class="n">SVC</span>
+svm = <span class="n">SVC</span>(probability=<span class="kw">True</span>, random_state=<span class="num">0</span>)
+svm.fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"SVM: {svm.score(X_test, y_test):.3f}"</span>)</div>
+<p>Accuracy test : <strong>0.968</strong>.</p>
+
+<!-- ============================================================ -->
+<h2 id="stacking">3. Stacking avec scikit-learn</h2>
+<!-- ============================================================ -->
+
+<h3>3.1 StackingClassifier</h3>
+
+<div class="code-block"><span class="kw">from</span> <span class="nn">sklearn.ensemble</span> <span class="kw">import</span> <span class="n">StackingClassifier</span>
+
+base_learners = [
+    (<span class="str">'lr'</span>,   <span class="n">LogisticRegression</span>(max_iter=<span class="num">5000</span>)),
+    (<span class="str">'knn'</span>,  <span class="n">KNeighborsClassifier</span>(n_neighbors=<span class="num">5</span>)),
+    (<span class="str">'tree'</span>, <span class="n">DecisionTreeClassifier</span>(max_depth=<span class="num">5</span>,
+                                 random_state=<span class="num">0</span>)),
+    (<span class="str">'svm'</span>,  <span class="n">SVC</span>(probability=<span class="kw">True</span>, random_state=<span class="num">0</span>))
+]
+
+meta = <span class="n">LogisticRegression</span>(max_iter=<span class="num">5000</span>)
+
+stack = <span class="n">StackingClassifier</span>(
+    estimators=base_learners,
+    final_estimator=meta,
+    cv=<span class="num">5</span>,
+    stack_method=<span class="str">'predict_proba'</span>
+)
+stack.fit(X_train, y_train)
+<span class="kw">print</span>(<span class="str">f"Stacking: {stack.score(X_test, y_test):.3f}"</span>)</div>
+
+<p>Accuracy test : <strong>0.978</strong> (97.8%).</p>
+
+<h3>3.2 Résultats comparatifs</h3>
+
+<table>
+<tr><th>Classifieur</th><th>Accuracy test</th><th>Écart au stacking</th></tr>
+<tr><td>Régression logistique</td><td>0.678</td><td>−0.300</td></tr>
+<tr><td>KNN (k=5)</td><td>0.918</td><td>−0.060</td></tr>
+<tr><td>Arbre de décision</td><td>0.942</td><td>−0.036</td></tr>
+<tr><td>SVM (RBF)</td><td>0.968</td><td>−0.010</td></tr>
+<tr><td><strong>Stacking</strong></td><td><strong>0.978</strong></td><td>—</td></tr>
+</table>
+
+<div class="res-box">
+<strong>Résultat :</strong> Le stacking (0.978) surpasse le meilleur
+classifieur individuel (SVM 0.968). Le méta-modèle apprend à compenser
+les erreurs résiduelles du SVM grâce aux autres classifieurs.
+L'amélioration est modeste ici car le SVM est déjà très performant
+sur ces données.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="manuel">4. Stacking manuel (compréhension)</h2>
+<!-- ============================================================ -->
+
+<p>À titre pédagogique, on peut décomposer le stacking en trois
+étapes : (1) prédictions hors-pli par CV, (2) entraînement du
+méta-modèle sur la matrice $Z$, (3) ré-entraînement des base
+learners sur tout $X$.</p>
+
+<div class="code-block"><span class="kw">from</span> <span class="nn">sklearn.model_selection</span> <span class="kw">import</span> <span class="n">KFold</span>
+<span class="kw">import</span> <span class="nn">numpy</span> <span class="kw">as</span> <span class="nn">np</span>
+
+<span class="kw">def</span> <span class="fn">stacking_manual</span>(X, y, base_learners, meta_learner, n_folds=<span class="num">5</span>):
+    kf = <span class="n">KFold</span>(n_splits=n_folds, shuffle=<span class="kw">True</span>,
+              random_state=<span class="num">0</span>)
+    Z = np.zeros((len(y), len(base_learners)))
+
+    <span class="cm"># Etape 1 : predictions hors-pli (CV)</span>
+    <span class="kw">for</span> train_idx, val_idx <span class="kw">in</span> kf.split(X):
+        X_fold, X_val = X[train_idx], X[val_idx]
+        y_fold = y[train_idx]
+
+        <span class="kw">for</span> k, (_, model) <span class="kw">in</span> enumerate(base_learners):
+            model.fit(X_fold, y_fold)
+            Z[val_idx, k] = model.predict_proba(X_val)[:, <span class="num">1</span>]
+
+    <span class="cm"># Etape 2 : meta-modele sur Z</span>
+    meta_learner.fit(Z, y)
+
+    <span class="cm"># Etape 3 : re-entrainer les base learners sur tout X</span>
+    <span class="kw">for</span> _, model <span class="kw">in</span> base_learners:
+        model.fit(X, y)
+
+    <span class="kw">return</span> meta_learner, base_learners</div>
+
+<!-- ============================================================ -->
+<h2 id="comparaison">5. Comparaison R vs Python</h2>
+<!-- ============================================================ -->
+
+<table>
+<tr><th>Aspect</th><th>R</th><th>Python</th></tr>
+<tr><td>Stacking</td><td><code>stacking::stacking()</code></td><td><code>ensemble.StackingClassifier</code></td></tr>
+<tr><td>Méta-modèle</td><td><code>glm</code> / <code>rpart</code></td><td><code>LogisticRegression</code> / <code>Ridge</code></td></tr>
+<tr><td>CV</td><td>param. <code>cv</code> (défaut 5)</td><td>param. <code>cv</code> (défaut 5)</td></tr>
+<tr><td>Syntaxe</td><td><code>%&gt;%</code> (pipe)</td><td>API orientée objet</td></tr>
+</table>
+
+<div class="info-box">
+<strong>À retenir :</strong> La logique métier est identique entre R et
+Python : générer les prédictions niveau 1 par CV, puis appliquer le
+méta-modèle. Seule la syntaxe diffère.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="qcm">6. QCM interactif</h2>
+<!-- ============================================================ -->
+
+<p>Testez vos connaissances sur le stacking. Choisissez la bonne réponse.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quelle classe scikit-learn implémente le stacking ?",
+        options: ["VotingClassifier", "StackingClassifier", "BaggingClassifier", "GradientBoostingClassifier"],
+        correct: 1,
+        expl: "StackingClassifier (et StackingRegressor) dans sklearn.ensemble depuis la version 0.22."
+    },
+    {
+        q: "Combien de classifieurs de base sont utilisés dans ce tutoriel ?",
+        options: ["2", "3", "4", "5"],
+        correct: 2,
+        expl: "4 classifieurs : régression logistique, KNN, arbre de décision et SVM."
+    },
+    {
+        q: "Quelle est l'accuracy du stacking sur les données de test ?",
+        options: ["0.678", "0.918", "0.968", "0.978"],
+        correct: 3,
+        expl: "Le stacking atteint 0.978 (97.8%), surpassant le SVM (0.968)."
+    },
+    {
+        q: "Quel classifieur individuel a la meilleure performance sur ces données ?",
+        options: ["Régression logistique", "KNN", "Arbre de décision", "SVM"],
+        correct: 3,
+        expl: "Le SVM (noyau RBF) atteint 0.968, meilleur que KNN (0.918) et Tree (0.942)."
+    },
+    {
+        q: "Quelle méthode génère les prédictions d'entrée du méta-modèle ?",
+        options: ["Bootstrap", "Validation croisée (CV)", "Tirage aléatoire simple", "ACP"],
+        correct: 1,
+        expl: "Les prédictions niveau 1 sont générées par CV (défaut 5-fold) pour éviter le surapprentissage."
+    },
+    {
+        q: "Quel méta-modèle est utilisé par défaut dans StackingClassifier ?",
+        options: ["Régression logistique", "KNN", "SVM", "Arbre de décision"],
+        correct: 0,
+        expl: "La régression logistique est le final_estimator par défaut de StackingClassifier."
+    },
+    {
+        q: "À quoi sert le paramètre stack_method='predict_proba' ?",
+        options: ["Utiliser les classes prédites", "Utiliser les probabilités", "Utiliser les résidus", "Utiliser les écart-types"],
+        correct: 1,
+        expl: "stack_method='predict_proba' utilise les probabilités a posteriori des base learners."
+    },
+    {
+        q: "Le stacking réduit-il le biais ou la variance ?",
+        options: ["Biais uniquement", "Variance uniquement", "Les deux", "Aucun des deux"],
+        correct: 2,
+        expl: "Le stacking réduit à la fois le biais (via correction des erreurs) et la variance (via combinaison)."
+    },
+    {
+        q: "Quelle est la principale différence entre VotingClassifier et StackingClassifier ?",
+        options: ["Voting est plus rapide", "Stacking apprend à combiner les prédictions", "Stacking utilise moins de mémoire", "Voting nécessite plus de données"],
+        correct: 1,
+        expl: "Voting combine par moyenne/vote, Stacking apprend les poids via un méta-modèle."
+    },
+    {
+        q: "Que fait le paramètre passthrough=True dans StackingClassifier ?",
+        options: ["Ajoute X original aux prédictions niveau 1", "Supprime les prédictions nulles", "Ignore les modèles défaillants", "Normalise les entrées"],
+        correct: 0,
+        expl: "passthrough=True concatène les variables originales X aux prédictions pour le méta-modèle."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered
+            ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545')
+            : '#ddd';
+        html += `<div class="qcm-question" data-idx="${i}" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ${borderColor}; border-radius:6px;">`;
+        html += `<p style="font-weight:600; margin-bottom:0.4rem;">${i+1}. ${item.q}</p>`;
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered
+                ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : ''))
+                : '';
+            html += `<label class="qcm-option ${cls}" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:${disabled ? 'default' : 'pointer'};">`;
+            html += `<input type="radio" name="qcm_${i}" value="${j}" ${checked} ${disabled}> `;
+            html += `${letters[j]}) ${item.options[j]}`;
+            html += `</label>`;
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += `<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ${item.expl}</p>`;
+        }
+        html += `</div>`;
+    }
+    qcmContainer.innerHTML = html;
+    const answeredCount = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmAnswered').textContent = answeredCount;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', (e) => {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const name = e.target.name;
+    const idx = parseInt(name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    const val = parseInt(e.target.value);
+    userAnswers[idx] = val;
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', () => {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm(`Vous n'avez répondu qu'à ${answered}/${qcmData.length} questions. Afficher le récapitulatif quand même ?`)) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? `${letters[userAnswers[i]]}) ${qcmData[i].options[userAnswers[i]]}` : 'Pas de réponse',
+                correctAns: `${letters[qcmData[i].correct]}) ${qcmData[i].options[qcmData[i].correct]}`,
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>Félicitations !</strong> Aucune erreur.</p>';
+    } else {
+        let html = `<p><strong>${errors.length}</strong> erreur(s) sur ${qcmData.length} questions :</p><ol style="margin-top:0.3rem;">`;
+        for (const e of errors) {
+            html += `<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ${e.q}<br>`;
+            html += `<strong>Votre réponse :</strong> ${e.userAns}<br>`;
+            html += `<strong>Réponse correcte :</strong> ${e.correctAns}<br>`;
+            html += `<strong>Explication :</strong> ${e.expl}</li>`;
+        }
+        html += '</ol>';
+        recapContent.innerHTML = html;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', () => {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

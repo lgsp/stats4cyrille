@@ -1,0 +1,413 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+\titleformat{\subsubsection}{\itshape\color{blue!30!black}}{}{0pt}{}
+
+\lstdefinestyle{pystyle}{
+  frame=single,
+  numbers=left,
+  numbersep=5pt,
+  breaklines=true,
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{gray!5},
+  rulecolor=\color{gray!40},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  language=Python
+}
+\lstset{style=pystyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Stacking (Python)}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{D\'efinition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remarque}
+\newtheorem*{important}{\`A retenir}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Stacking : agr\'egation par m\'eta-apprentissage \\[2pt]
+\small Impl\'ementation Python avec scikit-learn}
+\author{Vincent Audigier, Nd\`eye Niang (CNAM)}
+\date{15 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Le \textbf{stacking} (ou \textit{stacked generalization}) est une
+m\'ethode d'ensemble qui combine plusieurs mod\`eles de base
+(\textit{base learners}) via un m\'eta-mod\`ele (\textit{meta-learner})
+appris sur les pr\'edictions des mod\`eles de base. Contrairement au
+bagging ou au boosting, le stacking n'est pas un algorithme unique mais
+un cadre g\'en\'eral permettant de combiner des mod\`eles
+h\'et\'erog\`enes.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Principe du stacking}
+% ===================================================================
+
+\subsection{Architecture g\'en\'erale}
+
+Le stacking proc\`ede en deux niveaux :
+
+\begin{enumerate}
+  \item \textbf{Niveau 0 (base learners)}~: $K$ mod\`eles
+    h\'et\'erog\`enes $f_1,\dots,f_K$ sont entra\^\i n\'es
+    ind\'ependamment sur les donn\'ees d'apprentissage.
+  \item \textbf{Niveau 1 (meta-learner)}~: un m\'eta-mod\`ele $g$ est
+    entra\^\i n\'e sur les pr\'edictions des $K$ mod\`eles de base.
+\end{enumerate}
+
+Pour une observation $x$, la pr\'ediction finale est~:
+\[
+\hat y = g\bigl(f_1(x), f_2(x), \dots, f_K(x)\bigr).
+\]
+
+\begin{important}
+La force du stacking r\'eside dans la diversit\'e des mod\`eles de base.
+Chaque apprenant capture des aspects diff\'erents des donn\'ees ; le
+m\'eta-mod\`ele apprend \`a corriger leurs erreurs respectives.
+\end{important}
+
+\subsection{Pourquoi \c ca marche~?}
+
+\begin{itemize}
+  \item \textbf{Compl\'ementarit\'e}~: des mod\`eles de familles
+    diff\'erentes (arbres, r\'eseaux, r\'egression lin\'eaire, SVM)
+    g\'en\`erent des pr\'edictions diversifi\'ees.
+  \item \textbf{Correction des biais}~: le m\'eta-mod\`ele apprend les
+    motifs d'erreur des mod\`eles de base.
+  \item \textbf{R\'eduction de variance}~: la combinaison de multiples
+    estimateurs lisse les pr\'edictions individuelles.
+\end{itemize}
+
+\subsection{Proc\'edure de g\'en\'eration des donn\'ees niveau 1}
+
+Pour \'eviter le surapprentissage, les pr\'edictions niveau 1 sont
+g\'en\'er\'ees par validation crois\'ee (souvent 5-fold)~:
+
+\begin{enumerate}
+  \item Diviser les donn\'ees d'apprentissage $D$ en $V$ plis.
+  \item Pour chaque pli $v$~: entra\^\i ner chaque $f_k$ sur
+    $D\setminus D_v$, pr\'edire sur $D_v$.
+  \item Les pr\'edictions hors-pli pour tous les $K$ mod\`eles forment
+    la matrice $Z$ ($N\times K$) d'entr\'ee du m\'eta-mod\`ele.
+  \item Entra\^\i ner chaque $f_k$ sur $D$ complet (optionnel).
+  \item Entra\^\i ner $g$ sur $(Z, y)$.
+\end{enumerate}
+
+% ===================================================================
+\section{Impl\'ementation Python avec scikit-learn}
+% ===================================================================
+
+\subsection{StackingClassifier}
+
+Scikit-learn propose \texttt{StackingClassifier} et
+\texttt{StackingRegressor} depuis la version 0.22.
+
+\begin{lstlisting}
+from sklearn.ensemble import StackingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import cross_val_score
+import numpy as np
+
+# Donnees
+X, y = load_breast_cancer(return_X_y=True)
+
+# Modeles de base heterogenes
+base_learners = [
+    ('lr',  LogisticRegression(max_iter=5000)),
+    ('knn', KNeighborsClassifier(n_neighbors=5)),
+    ('svm', SVC(probability=True, random_state=0))
+]
+
+# Meta-modele (regression logistique)
+meta_learner = LogisticRegression(max_iter=5000)
+
+# Stacking
+stack = StackingClassifier(
+    estimators=base_learners,
+    final_estimator=meta_learner,
+    cv=5  # validation croisee 5-fold pour Z
+)
+
+# Evaluation
+scores = cross_val_score(stack, X, y, cv=5)
+print(f"Stacking: {scores.mean():.3f} +/- {scores.std():.3f}")
+\end{lstlisting}
+
+\subsection{Param\`etres importants}
+
+\begin{itemize}
+  \item \texttt{estimators}~: liste de tuples \texttt{(nom, mod\`ele)}.
+  \item \texttt{final\_estimator}~: le m\'eta-mod\`ele (d\'efaut~:
+    r\'egression logistique pour classification, Ridge pour
+    r\'egression).
+  \item \texttt{cv}~: nombre de plis pour g\'en\'erer les
+    pr\'edictions niveau 1 (d\'efaut~: 5).
+  \item \texttt{stack\_method}~: \texttt{'auto'} (probabilit\'es si
+    disponibles, sinon pr\'edictions brutes), \texttt{'predict\_proba'},
+    \texttt{'predict'}.
+  \item \texttt{passthrough}~: si \texttt{True}, ajoute les
+    caract\'eristiques originales $X$ aux pr\'edictions niveau~1.
+\end{itemize}
+
+\subsection{StackingRegressor}
+
+\begin{lstlisting}
+from sklearn.ensemble import StackingRegressor
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.datasets import load_diabetes
+
+X, y = load_diabetes(return_X_y=True)
+
+base_learners = [
+    ('ridge', Ridge(alpha=1.0)),
+    ('lasso', Lasso(alpha=0.1)),
+    ('rf',    RandomForestRegressor(n_estimators=100,
+                                    random_state=0))
+]
+
+stack = StackingRegressor(
+    estimators=base_learners,
+    final_estimator=Ridge(alpha=1.0),
+    cv=5
+)
+
+scores = cross_val_score(stack, X, y, cv=5,
+                         scoring='neg_mean_squared_error')
+print(f"RMSE: {np.sqrt(-scores.mean()):.3f}")
+\end{lstlisting}
+
+% ===================================================================
+\section{Comparaison avec d'autres méthodes d'ensemble}
+% ===================================================================
+
+\begin{tabular}{lccc}
+\toprule
+M\'ethode & Base learners & Entra\^\i nement & R\'eduction \\
+\midrule
+Bagging    & m\^eme type & parall\`ele     & variance \\
+Boosting   & m\^eme type & s\'equentiel    & biais + variance \\
+Voting     & h\'et\'erog\`enes & ind\'ependant & variance \\
+Stacking   & h\'et\'erog\`enes & ind\'ependant & biais + variance \\
+\bottomrule
+\end{tabular}
+
+\subsection{Voting vs Stacking}
+
+Le \texttt{VotingClassifier} combine les pr\'edictions par vote
+majoritaire (classification) ou moyenne (r\'egression). Le stacking
+apprend \emph{comment} combiner les pr\'edictions, ce qui offre plus de
+flexibilit\'e mais risque le surapprentissage.
+
+% ===================================================================
+\section{Stratégies avancées}
+% ===================================================================
+
+\subsection{Stacking multi-niveaux}
+
+On peut empiler plusieurs couches de m\'eta-mod\`eles~:
+\[
+\text{Niveau 0} \to \text{Niveau 1} \to \text{Niveau 2}
+\]
+Attention au surapprentissage~: \`a chaque niveau, les pr\'edictions
+doivent \^etre g\'en\'er\'ees par CV.
+
+\subsection{Stacking avec caractéristiques originales}
+
+Avec \texttt{passthrough=True}, le m\'eta-mod\`ele re\c coit les
+pr\'edictions \textbf{et} les variables originales $X$, ce qui lui
+permet d'apprendre des corrections contextuelles.
+
+\subsection{Feature-weighted stacking}
+
+On peut pond\'erer chaque mod\`ele de base par sa performance estim\'ee
+sur un pli de validation plut\^ot que de laisser le m\'eta-mod\`ele
+apprendre tous les poids.
+
+% ===================================================================
+\section{Exercices}
+% ===================================================================
+
+\subsection{Exercice 1 : Stacking manuel}
+
+Impl\'ementer \`a la main un stacking avec 3 classifieurs (KNN,
+DecisionTree, SVM) et une r\'egression logistique comme
+m\'eta-mod\`ele, sans utiliser \texttt{StackingClassifier}~:
+
+\begin{lstlisting}
+from sklearn.model_selection import KFold
+import numpy as np
+
+def stacking_manual(X, y, base_learners, meta_learner, n_folds=5):
+    kf = KFold(n_splits=n_folds, shuffle=True, random_state=0)
+    Z = np.zeros((len(y), len(base_learners)))
+    
+    for train_idx, val_idx in kf.split(X):
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+        
+        for k, (nom, modele) in enumerate(base_learners):
+            modele.fit(X_train, y_train)
+            Z[val_idx, k] = modele.predict_proba(X_val)[:, 1]
+    
+    # Entrainer le meta-modele sur Z
+    meta_learner.fit(Z, y)
+    
+    # Re-entrainer les base learners sur tout X
+    for _, modele in base_learners:
+        modele.fit(X, y)
+    
+    return meta_learner, base_learners
+\end{lstlisting}
+
+\subsection{Exercice 2 : Comparaison exp\'erimentale}
+
+Comparer les performances de~: (a) chaque mod\`ele de base seul,
+(b) VotingClassifier, (c) StackingClassifier sur un jeu de donn\'ees
+de classification (breast cancer, iris, ou un jeu synth\'etique).
+Interpr\'eter les r\'esultats.
+
+\subsection{Exercice 3 : Stacking r\'egression}
+
+Utiliser \texttt{StackingRegressor} pour combiner Ridge, Lasso et
+RandomForest sur les donn\'ees \texttt{diabetes}. Comparer le RMSE
+avec chaque mod\`ele individuel.
+
+% ===================================================================
+\section{QCM}
+% ===================================================================
+
+\noindent
+\textbf{1.} Quelle m\'ethode g\'en\`ere les donn\'ees d'entr\'ee du
+m\'eta-mod\`ele~?\\
+A. Un \'echantillonnage bootstrap\\
+B. Une validation crois\'ee\\ 
+C. Un tirage al\'eatoire simple\\
+D. Une ACP pr\'ealable
+
+\medskip
+\noindent
+\textbf{2.} Quel est l'avantage principal du stacking par rapport au
+VotingClassifier~?\\
+A. Il est plus rapide \`a l'entra\^\i nement\\
+B. Il apprend \`a combiner les pr\'edictions\\
+C. Il utilise moins de m\'emoire\\
+D. Il ne n\'ecessite pas de base learners
+
+\medskip
+\noindent
+\textbf{3.} Quel param\`etre permet d'ajouter les variables
+originales au m\'eta-mod\`ele~?\\
+A. \texttt{add\_features}\\
+B. \texttt{passthrough}\\
+C. \texttt{original\_X}\\
+D. \texttt{include\_X}
+
+\medskip
+\noindent
+\textbf{4.} Le stacking r\'eduit principalement~:\\
+A. Le biais uniquement\\
+B. La variance uniquement\\
+C. Le biais et la variance\\
+D. Ni le biais ni la variance
+
+\medskip
+\noindent
+\textbf{5.} Quelle est la principale difficult\'e du stacking
+multi-niveaux~?\\
+A. Le temps d'ex\'ecution\\
+B. Le surapprentissage\\
+C. La parall\'elisation\\
+D. Le choix des hyper-param\`etres
+
+\medskip
+\noindent
+\textbf{6.} Que fait \texttt{stack\_method='predict\_proba'}~?\\
+A. Utilise les probabilit\'es des mod\`eles de base\\
+B. Utilise les classes pr\`edites\\
+C. Utilise les \'ecarts-types\\
+D. Utilise les r\'esidus
+
+\medskip
+\noindent
+\textbf{7.} Dans le stacking manuel, pourquoi r\'e-entra\^\i ner les
+base learners sur tout $X$ apr\`es la CV~?\\
+A. Pour \'economiser de la m\'emoire\\
+B. Pour am\'eliorer leurs performances\\
+C. Pour r\'eduire le biais\\
+D. Ce n'est pas n\'ecessaire
+
+\medskip
+\noindent
+\textbf{8.} Quel estimateur final est utilis\'e par d\'efaut dans
+\texttt{StackingClassifier}~?\\
+A. R\'egression logistique\\
+B. DecisionTreeClassifier\\
+C. SVC\\
+D. RandomForestClassifier
+
+\medskip
+\noindent
+\textbf{9.} Pourquoi les pr\'edictions niveau~1 doivent-elles \^etre
+g\'en\'er\'ees par CV~?\\
+A. Pour acc\'el\'erer l'entra\^\i nement\\
+B. Pour \'eviter le surapprentissage du m\'eta-mod\`ele\\
+C. Pour garantir la convergence\\
+D. Pour \'equilibrer les classes
+
+\medskip
+\noindent
+\textbf{10.} Quel type de mod\`eles de base le stacking
+peut-il utiliser~?\\
+A. Uniquement des arbres\\
+B. Uniquement des mod\`eles lin\'eaires\\
+C. Des mod\`eles h\'et\'erog\`enes\\
+D. Uniquement des SVM
+
+\newpage
+\section*{Corrig\'e du QCM}
+
+\medskip
+1-B, 2-B, 3-B, 4-C, 5-B, 6-A, 7-B, 8-A, 9-B, 10-C.
+
+\end{document}

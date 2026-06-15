@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STA211 — Stacking — Agrégation par méta-apprentissage — Fiche interactive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a1a;
+    line-height: 1.6;
+    padding: 1rem;
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 2rem 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+}
+@media (max-width: 700px) { .container { padding: 1rem; } }
+h1 { font-size: 1.8rem; text-align: center; margin-bottom: 0.2rem; }
+.subtitle { text-align: center; color: #555; font-style: italic; margin-bottom: 1.5rem; }
+.toc { background: #f8f9fa; border-radius: 6px; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+.toc h3 { margin-bottom: 0.5rem; }
+.toc ol { margin-left: 1.5rem; }
+.toc a { color: #1a73e8; text-decoration: none; }
+h2 { font-size: 1.3rem; margin: 2rem 0 0.8rem 0; padding-bottom: 0.3rem; border-bottom: 2px solid #1a73e8; }
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem 0; color: #2c3e50; }
+h4 { font-size: 1rem; margin: 0.8rem 0 0.3rem 0; color: #34495e; }
+.code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
+    white-space: pre;
+}
+.code-block .kw { color: #569cd6; }
+.code-block .fn { color: #dcdcaa; }
+.code-block .str { color: #ce9178; }
+.code-block .cm { color: #6a9955; }
+.code-block .num { color: #b5cea8; }
+.code-block .op { color: #d4d4d4; }
+.code-block .cn { color: #4ec9b0; }
+.code-block .kc { color: #569cd6; }
+.code-block .mi { color: #b5cea8; }
+.code-block .mf { color: #b5cea8; }
+table { border-collapse: collapse; margin: 0.75rem 0; width: 100%; }
+td, th { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: center; font-size: 0.9rem; }
+th { background: #e8f0fe; }
+.formula {
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 0.8rem;
+    margin: 0.6rem 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+.info-box { background: #e8f0fe; border-left: 4px solid #1a73e8; padding: 0.8rem 1rem; margin: 0.75rem 0; border-radius: 0 4px 4px 0; }
+.info-box strong { color: #1a73e8; }
+.warn-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 0.8rem 1rem; margin: 0.75rem 0; border-radius: 0 4px 4px 0; }
+.qcm-option:hover { background: #f0f4ff; }
+.qcm-correct { background: #d4edda !important; }
+.qcm-wrong { background: #f8d7da !important; }
+.qcm-option input { margin-right: 0.4rem; }
+.controls { margin: 1rem 0; text-align: center; }
+.controls button {
+    padding: 0.4rem 1rem;
+    border: 1px solid #1a73e8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin: 0 0.3rem;
+}
+.controls .primary { background: #1a73e8; color: #fff; }
+.controls button:not(.primary) { background: #fff; color: #1a73e8; }
+.controls button:hover { opacity: 0.85; }
+.justify { text-align: justify; }
+</style>
+<script>
+MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+    svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="container">
+
+<h1>Stacking : agrégation par méta-apprentissage</h1>
+<div class="subtitle">Implémentation Python avec scikit-learn &mdash; STA211 &mdash; 15 juin 2026</div>
+
+<div class="toc">
+<h3>Sommaire</h3>
+<ol>
+    <li><a href="#principe">Principe du stacking</a></li>
+    <li><a href="#algo">Algorithme et mathématiques</a></li>
+    <li><a href="#impl">Implémentation Python avec scikit-learn</a></li>
+    <li><a href="#param">Paramètres avancés</a></li>
+    <li><a href="#comparaison">Comparaison avec les autres méthodes d'ensemble</a></li>
+    <li><a href="#biais-variance">Analyse biais-variance du stacking</a></li>
+    <li><a href="#avance">Stratégies avancées</a></li>
+    <li><a href="#exercices">Exercices</a></li>
+    <li><a href="#qcm">QCM interactif</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="principe">1. Principe du stacking</h2>
+<!-- ============================================================ -->
+
+<h3>1.1 Architecture générale</h3>
+
+<p class="justify">Le <strong>stacking</strong> (ou <em>stacked generalization</em>, Wolpert 1992) est une méthode d'ensemble qui combine plusieurs modèles de base (<em>base learners</em>) via un méta-modèle (<em>meta-learner</em>) appris sur les prédictions des modèles de base. Contrairement au bagging ou au boosting, le stacking n'impose pas que tous les modèles de base soient de même nature : on peut mixer une régression logistique, un SVM, un arbre et un réseau de neurones.</p>
+
+<p>L'architecture se décompose en deux niveaux :</p>
+
+<ol>
+    <li><strong>Niveau 0 (base learners)</strong> : $K$ modèles hétérogènes $f_1, f_2, \dots, f_K$ sont entraînés indépendamment sur l'échantillon d'apprentissage $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n$.</li>
+    <li><strong>Niveau 1 (meta-learner)</strong> : un méta-modèle $g$ est entraîné sur les prédictions $\hat{y}_i^{(k)} = f_k(\mathbf{x}_i)$ des $K$ modèles de base.</li>
+</ol>
+
+<p>Pour une nouvelle observation $\mathbf{x}$, la prédiction finale s'écrit :</p>
+
+<div class="formula">$\displaystyle \hat{y} = g\bigl( f_1(\mathbf{x}), f_2(\mathbf{x}), \dots, f_K(\mathbf{x}) \bigr)$</div>
+
+<div class="info-box"><strong>&Agrave; retenir :</strong> La force du stacking réside dans la <strong>diversité</strong> des modèles de base. Chaque apprenant capture des aspects différents des données ; le méta-modèle apprend à corriger leurs erreurs respectives. Si tous les modèles de base font les mêmes erreurs, le stacking n'apporte aucun gain.</div>
+
+<h3>1.2 Pourquoi ça marche ?</h3>
+
+<p class="justify">Le stacking exploite le fait que des modèles de familles différentes (linéaire, à base de distances, à noyau, à base d'arbres) génèrent des prédictions diversifiées. La matrice des prédictions $Z$ (de taille $n \times K$) contient plus d'information que n'importe quelle prédiction individuelle. Le méta-modèle $g$ apprend les motifs d'erreur : si, par exemple, le SVM a tendance à sur-confier ses prédictions dans une région de l'espace, la régression logistique peut compenser.</p>
+
+<ul>
+    <li><strong>Complémentarité</strong> : des modèles de familles différentes capturent des structures distinctes dans les données.</li>
+    <li><strong>Correction des biais</strong> : le méta-modèle apprend les régions où chaque base learner se trompe et ajuste la prédiction finale en conséquence.</li>
+    <li><strong>Réduction de variance</strong> : comme toute méthode d'ensemble, la combinaison de multiples estimateurs lisse les fluctuations des prédictions individuelles.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="algo">2. Algorithme et mathématiques</h2>
+<!-- ============================================================ -->
+
+<h3>2.1 Génération des données niveau 1 par validation croisée</h3>
+
+<p class="justify">Si l'on entraînait chaque $f_k$ sur tout $\mathcal{D}$ et qu'on utilisait ses prédictions sur $\mathcal{D}$ pour entraîner $g$, le méta-modèle serait victime de <strong>surapprentissage</strong> : il apprendrait par c&oelig;ur les erreurs d'apprentissage des modèles de base, sans capacité de généralisation. La solution standard consiste à générer les prédictions niveau 1 par <strong>validation croisée</strong> (ordinary cross-validation) :</p>
+
+<div class="formula">$\displaystyle Z_{ik} = f_k^{(-v(i))}(\mathbf{x}_i)$</div>
+
+<p>où $f_k^{(-v)}$ est le modèle $f_k$ entraîné sur tout $\mathcal{D}$ <em>sauf</em> le pli $v$, et $v(i)$ est le pli contenant l'observation $i$.</p>
+
+<p>Algorithme complet :</p>
+
+<ol>
+    <li>Diviser $\mathcal{D}$ en $V$ plis (souvent $V = 5$ ou $V = 10$).</li>
+    <li>Pour chaque pli $v = 1, \dots, V$ :
+        <ol type="a">
+            <li>Soit $\mathcal{D}_{-v}$ les $V-1$ plis d'apprentissage et $\mathcal{D}_v$ le pli de validation.</li>
+            <li>Pour chaque base learner $k = 1, \dots, K$ : entraîner $f_k$ sur $\mathcal{D}_{-v}$, puis prédire $\hat{y}_i^{(k)} = f_k(\mathbf{x}_i)$ pour tout $i \in \mathcal{D}_v$.</li>
+        </ol>
+    </li>
+    <li>Les prédictions hors-pli forment la matrice $Z \in \mathbb{R}^{n \times K}$, où $Z_{ik} = \hat{y}_i^{(k)}$.</li>
+    <li>(Optionnel) Ré-entraîner chaque $f_k$ sur $\mathcal{D}$ complet pour obtenir les modèles finaux de niveau 0.</li>
+    <li>Entraîner le méta-modèle $g$ sur $(Z, \mathbf{y})$.</li>
+</ol>
+
+<div class="warn-box"><strong>Point clé :</strong> ne jamais utiliser les prédictions <em>in-sample</em> des base learners pour entraîner $g$. Cela provoquerait un surapprentissage massif et des performances dégradées en généralisation.</div>
+
+<h3>2.2 Formalisation mathématique</h3>
+
+<p>Soit $\mathcal{H} = \{f_1, \dots, f_K\}$ un ensemble de $K$ hypothèses (modèles de base). Le stacking cherche une combinaison</p>
+
+<div class="formula">$\displaystyle \hat{f}(\mathbf{x}) = g_\theta\bigl( f_1(\mathbf{x}), \dots, f_K(\mathbf{x}) \bigr)$</div>
+
+<p>où $g_\theta$ est un modèle paramétrique (typiquement linéaire) avec paramètres $\theta \in \mathbb{R}^K$ :</p>
+
+<div class="formula">$\displaystyle g_\theta(\mathbf{z}) = \sigma\left( \theta_0 + \sum_{k=1}^K \theta_k z_k \right)$</div>
+
+<p>pour une classification binaire (avec $\sigma$ la sigmoïde), ou simplement</p>
+
+<div class="formula">$\displaystyle g_\theta(\mathbf{z}) = \theta_0 + \sum_{k=1}^K \theta_k z_k$</div>
+
+<p>pour la régression. On peut aussi utiliser un modèle non linéaire comme $g$ (arbre, SVM, réseau de neurones), au risque de surapprentissage.</p>
+
+<p>L'estimation de $\theta$ se fait par minimisation du risque empirique sur $(Z, \mathbf{y})$ :</p>
+
+<div class="formula">$\displaystyle \hat{\theta} = \arg\min_\theta \frac{1}{n} \sum_{i=1}^n \ell\bigl( g_\theta(\mathbf{z}_i), y_i \bigr)$</div>
+
+<p>où $\ell$ est une fonction de perte (entropie croisée pour la classification, erreur quadratique pour la régression).</p>
+
+<h3>2.3 Matrice $Z$ et interprétation</h3>
+
+<p class="justify">La matrice $Z \in \mathbb{R}^{n \times K}$ est appelée <strong>matrice des prédictions niveau 1</strong>. Chaque colonne $k$ contient les prédictions du modèle $f_k$ générées par CV. Le méta-modèle $g$ apprend les poids $\theta_k$ à attribuer à chaque base learner. Un poids $\theta_k$ proche de zéro indique que le modèle $f_k$ n'apporte pas d'information utile ; un poids élevé indique que $f_k$ est fiable sur une large portion des données.</p>
+
+<!-- ============================================================ -->
+<h2 id="impl">3. Implémentation Python avec scikit-learn</h2>
+<!-- ============================================================ -->
+
+<h3>3.1 StackingClassifier</h3>
+
+<p class="justify">Depuis la version 0.22, scikit-learn propose <code>StackingClassifier</code> (classification) et <code>StackingRegressor</code> (régression). L'exemple ci-dessous utilise quatre classifieurs hétérogènes sur le jeu de données <strong>Breast Cancer Wisconsin</strong> (569 observations, 30 variables, 2 classes) :</p>
+
+<div class="code-block"><span class="kw">from</span> <span class="cn">sklearn.ensemble</span> <span class="kw">import</span> <span class="cn">StackingClassifier</span>
+<span class="kw">from</span> <span class="cn">sklearn.linear_model</span> <span class="kw">import</span> <span class="cn">LogisticRegression</span>
+<span class="kw">from</span> <span class="cn">sklearn.tree</span> <span class="kw">import</span> <span class="cn">DecisionTreeClassifier</span>
+<span class="kw">from</span> <span class="cn">sklearn.svm</span> <span class="kw">import</span> <span class="cn">SVC</span>
+<span class="kw">from</span> <span class="cn">sklearn.neighbors</span> <span class="kw">import</span> <span class="cn">KNeighborsClassifier</span>
+<span class="kw">from</span> <span class="cn">sklearn.datasets</span> <span class="kw">import</span> <span class="cn">load_breast_cancer</span>
+<span class="kw">from</span> <span class="cn">sklearn.model_selection</span> <span class="kw">import</span> <span class="cn">cross_val_score</span>
+<span class="kw">import</span> <span class="cn">numpy</span> <span class="kw">as</span> <span class="cn">np</span>
+
+<span class="cm"># Donnees</span>
+X, y = load_breast_cancer(return_X_y=True)
+
+<span class="cm"># Modeles de base heterogenes</span>
+base_learners = [
+    (<span class="str">'lr'</span>,   <span class="cn">LogisticRegression</span>(max_iter=<span class="mi">5000</span>)),
+    (<span class="str">'knn'</span>,  <span class="cn">KNeighborsClassifier</span>(n_neighbors=<span class="mi">5</span>)),
+    (<span class="str">'tree'</span>, <span class="cn">DecisionTreeClassifier</span>(max_depth=<span class="mi">5</span>,
+                                  random_state=<span class="mi">0</span>)),
+    (<span class="str">'svm'</span>,  <span class="cn">SVC</span>(probability=<span class="kc">True</span>, random_state=<span class="mi">0</span>))
+]
+
+<span class="cm"># Meta-modele (regression logistique)</span>
+meta = <span class="cn">LogisticRegression</span>(max_iter=<span class="mi">5000</span>)
+
+<span class="cm"># Stacking</span>
+stack = <span class="cn">StackingClassifier</span>(
+    estimators=base_learners,
+    final_estimator=meta,
+    cv=<span class="mi">5</span>,           <span class="cm"># CV 5-fold pour generer Z</span>
+    stack_method=<span class="str">'predict_proba'</span>
+)
+
+<span class="cm"># Evaluation</span>
+scores = cross_val_score(stack, X, y, cv=<span class="mi">5</span>)
+<span class="kw">print</span>(<span class="str">f"Stacking: {scores.mean():.3f} +/- {scores.std():.3f}"</span>)</div>
+
+<h3>3.2 StackingRegressor</h3>
+
+<p class="justify">Pour la régression, <code>StackingRegressor</code> fonctionne de manière analogue. Le méta-modèle par défaut est <code>Ridge</code> (régression ridge). L'exemple utilise le jeu de données <strong>diabetes</strong> (442 observations, 10 variables) :</p>
+
+<div class="code-block"><span class="kw">from</span> <span class="cn">sklearn.ensemble</span> <span class="kw">import</span> <span class="cn">StackingRegressor</span>
+<span class="kw">from</span> <span class="cn">sklearn.linear_model</span> <span class="kw">import</span> <span class="cn">Ridge</span>, <span class="cn">Lasso</span>
+<span class="kw">from</span> <span class="cn">sklearn.ensemble</span> <span class="kw">import</span> <span class="cn">RandomForestRegressor</span>
+<span class="kw">from</span> <span class="cn">sklearn.datasets</span> <span class="kw">import</span> <span class="cn">load_diabetes</span>
+
+X, y = load_diabetes(return_X_y=True)
+
+base_learners = [
+    (<span class="str">'ridge'</span>, <span class="cn">Ridge</span>(alpha=<span class="mf">1.0</span>)),
+    (<span class="str">'lasso'</span>, <span class="cn">Lasso</span>(alpha=<span class="mf">0.1</span>)),
+    (<span class="str">'rf'</span>,    <span class="cn">RandomForestRegressor</span>(n_estimators=<span class="mi">100</span>,
+                                     random_state=<span class="mi">0</span>))
+]
+
+stack = <span class="cn">StackingRegressor</span>(
+    estimators=base_learners,
+    final_estimator=<span class="cn">Ridge</span>(alpha=<span class="mf">1.0</span>),
+    cv=<span class="mi">5</span>
+)
+
+scores = cross_val_score(stack, X, y, cv=<span class="mi">5</span>,
+                         scoring=<span class="str">'neg_mean_squared_error'</span>)
+<span class="kw">print</span>(<span class="str">f"RMSE: {np.sqrt(-scores.mean()):.3f}"</span>)</div>
+
+<!-- ============================================================ -->
+<h2 id="param">4. Paramètres avancés</h2>
+<!-- ============================================================ -->
+
+<h3>4.1 Tableau des paramètres</h3>
+
+<table>
+<tr><th>Paramètre</th><th>Description</th><th>Défaut</th></tr>
+<tr><td><code>estimators</code></td><td>Liste de tuples <code>(nom, modèle)</code> pour les base learners</td><td>—</td></tr>
+<tr><td><code>final_estimator</code></td><td>Méta-modèle de niveau 1</td><td><code>LogisticRegression</code> (classif.)<br><code>Ridge</code> (régres.)</td></tr>
+<tr><td><code>cv</code></td><td>Nombre de plis (int) ou générateur CV pour produire $Z$</td><td><code>5</code></td></tr>
+<tr><td><code>stack_method</code></td><td>Type de prédiction niveau 1 : <code>'auto'</code>, <code>'predict_proba'</code>, <code>'predict'</code></td><td><code>'auto'</code></td></tr>
+<tr><td><code>passthrough</code></td><td>Si <code>True</code>, concatène $X$ aux prédictions $Z$</td><td><code>False</code></td></tr>
+<tr><td><code>verbose</code></td><td>Niveau d'affichage (0 = silence, 1 = messages, 2 = debug)</td><td><code>0</code></td></tr>
+<tr><td><code>n_jobs</code></td><td>Nombre d'unités pour paralléliser l'entraînement des folds</td><td><code>None</code></td></tr>
+</table>
+
+<h3>4.2 Le paramètre <code>stack_method</code></h3>
+
+<ul>
+    <li><code>'auto'</code> : utilise <code>predict_proba</code> si tous les modèles de base le supportent, sinon <code>predict</code> (classes brutes).</li>
+    <li><code>'predict_proba'</code> : utilise les probabilités $P(y = c \mid \mathbf{x})$. Pour $C$ classes, chaque base learner produit $C$ colonnes dans $Z$, soit $n \times (K \cdot C)$ éléments.</li>
+    <li><code>'predict'</code> : utilise les classes prédites $\hat{y} \in \{0, 1, \dots, C-1\}$. Plus rapide mais moins informatif.</li>
+</ul>
+
+<h3>4.3 <code>passthrough</code></h3>
+
+<p class="justify">Quand <code>passthrough=True</code>, le méta-modèle reçoit en entrée la matrice concaténée $[Z \;|\; X] \in \mathbb{R}^{n \times (K + p)}$ (avec probas) ou $\mathbb{R}^{n \times (K \cdot C + p)}$ (sans probas). Cela permet au méta-modèle d'apprendre des <strong>corrections contextuelles</strong> : par exemple, se fier plus au SVM quand $X_1$ est grand, plus à l'arbre quand $X_1$ est petit.</p>
+
+<!-- ============================================================ -->
+<h2 id="comparaison">5. Comparaison avec les autres méthodes d'ensemble</h2>
+<!-- ============================================================ -->
+
+<table>
+<caption style="caption-side:bottom;font-size:0.85rem;color:#555;margin-top:0.3rem;">Comparaison des méthodes d'ensemble supervisées</caption>
+<tr><th>Méthode</th><th>Base learners</th><th>Entraînement</th><th>Réduction</th></tr>
+<tr><td>Bagging</td><td>même type</td><td>parallèle</td><td>variance</td></tr>
+<tr><td>Boosting</td><td>même type</td><td>séquentiel</td><td>biais + variance</td></tr>
+<tr><td>Voting</td><td>hétérogènes</td><td>indépendant</td><td>variance</td></tr>
+<tr><td><strong>Stacking</strong></td><td>hétérogènes</td><td>indépendant</td><td>biais + variance</td></tr>
+</table>
+
+<h3>5.1 Voting vs Stacking</h3>
+
+<p class="justify">Le <code>VotingClassifier</code> combine les prédictions par vote majoritaire (classification) ou moyenne simple (régression) :</p>
+
+<div class="formula">$\displaystyle \hat{y}_{\text{Voting}} = \begin{cases} \text{mode}\{\hat{y}^{(1)}, \dots, \hat{y}^{(K)}\} & \text{classification} \\[4pt] \frac{1}{K} \sum_{k=1}^K \hat{y}^{(k)} & \text{régression} \end{cases}$</div>
+
+<p class="justify">Le stacking <strong>apprend</strong> les poids de la combinaison via le méta-modèle, ce qui offre plus de flexibilité. En contrepartie, le stacking nécessite plus de données et risque le surapprentissage si le méta-modèle est trop complexe ou si la CV n'est pas utilisée correctement.</p>
+
+<h3>5.2 Stacking vs Boosting</h3>
+
+<p class="justify">Le boosting (AdaBoost, Gradient Boosting) construit séquentiellement des modèles de base (généralement des arbres peu profonds), chaque nouveau modèle corrigeant les erreurs du précédent. Les modèles sont dépendants et de même nature. Le stacking les construit indépendamment et peut les mixer de natures différentes.</p>
+
+<!-- ============================================================ -->
+<h2 id="biais-variance">6. Analyse biais-variance du stacking</h2>
+<!-- ============================================================ -->
+
+<h3>6.1 Décomposition de l'erreur</h3>
+
+<p>Considérons le cas de la régression avec $K$ modèles de base $f_1, \dots, f_K$ et un méta-modèle linéaire $g(\mathbf{z}) = \sum_{k=1}^K \theta_k z_k$. La prédiction finale est :</p>
+
+<div class="formula">$\displaystyle \hat{f}(\mathbf{x}) = \sum_{k=1}^K \theta_k f_k(\mathbf{x})$</div>
+
+<p>L'erreur quadratique espérée se décompose (Hastie et al., 2009) :</p>
+
+<div class="formula">$\displaystyle \mathbb{E}\big[ (Y - \hat{f}(X))^2 \big] = \underbrace{\mathbb{V}\text{ar}[\hat{f}(X)]}_{\text{variance}} + \underbrace{(\mathbb{E}[\hat{f}(X)] - f(X))^2}_{\text{biais}^2} + \underbrace{\sigma^2}_{\text{bruit}}$</div>
+
+<h3>6.2 Variance du stacking</h3>
+
+<p>Si les $K$ modèles de base sont décorrélés, la variance de la combinaison est :</p>
+
+<div class="formula">$\displaystyle \mathbb{V}\text{ar}[\hat{f}(X)] = \sum_{k=1}^K \theta_k^2 \; \mathbb{V}\text{ar}[f_k(X)]$</div>
+
+<p class="justify">Si les $\theta_k$ sont contraints (ex. somme à 1) et que les $f_k$ ont des variances comparables, la variance du stacking est environ $1/K$ fois la variance individuelle moyenne — d'où la réduction de variance.</p>
+
+<h3>6.3 Biais du stacking</h3>
+
+<p class="justify">Le biais du stacking dépend de la capacité du méta-modèle à corriger les biais individuels. Si les modèles de base sont complémentaires (leurs biais sont dans des directions opposées), le méta-modèle peut les annuler partiellement. En pratique, un méta-modèle linéaire simple (régression logistique, Ridge) offre le meilleur compromis : il réduit le biais sans trop augmenter la variance.</p>
+
+<div class="info-box"><strong>&Agrave; retenir :</strong> Comme le boosting, le stacking peut réduire à la fois le biais et la variance. C'est ce qui le distingue du bagging (variance seulement) et du voting (variance seulement).</div>
+
+<!-- ============================================================ -->
+<h2 id="avance">7. Stratégies avancées</h2>
+<!-- ============================================================ -->
+
+<h3>7.1 Stacking multi-niveaux</h3>
+
+<p class="justify">On peut empiler plusieurs couches de méta-modèles :</p>
+
+<div class="formula">$\displaystyle \hat{y} = g^{(2)}\bigl( g^{(1)}_1(Z), g^{(1)}_2(Z), \dots, g^{(1)}_{K_2}(Z) \bigr)$</div>
+
+<p class="justify">où $Z$ est la matrice des prédictions niveau 0, $g^{(1)}_1, \dots, g^{(1)}_{K_2}$ sont $K_2$ méta-modèles de niveau 1, et $g^{(2)}$ est le méta-modèle de niveau 2. Attention au surapprentissage : à chaque niveau, les prédictions doivent être générées par CV.</p>
+
+<div class="warn-box"><strong>Mise en garde :</strong> Le stacking multi-niveaux augmente rapidement le nombre de paramètres et le risque de surapprentissage. Rarement bénéfique sans de très grandes masses de données.</div>
+
+<h3>7.2 Stacking avec caractéristiques originales (<code>passthrough</code>)</h3>
+
+<p class="justify">Avec <code>passthrough=True</code>, le méta-modèle reçoit les prédictions <strong>et</strong> les variables originales $X$, ce qui lui permet d'apprendre des corrections contextuelles. Formellement :</p>
+
+<div class="formula">$\displaystyle \hat{y} = g\bigl( [\;f_1(\mathbf{x}), \dots, f_K(\mathbf{x}), \mathbf{x}\;] \bigr)$</div>
+
+<h3>7.3 Feature-weighted stacking</h3>
+
+<p class="justify">Plutôt que de laisser le méta-modèle apprendre tous les poids, on peut pondérer chaque modèle de base par sa performance estimée (accuracy, AUC, ou $R^2$) sur un pli de validation. Par exemple :</p>
+
+<div class="formula">$\displaystyle \hat{y} = \sum_{k=1}^K w_k f_k(\mathbf{x}), \quad w_k = \frac{\text{AUC}_k}{\sum_{j=1}^K \text{AUC}_j}$</div>
+
+<p class="justify">Cette approche est plus robuste au surapprentissage que le stacking standard quand le nombre d'observations est faible.</p>
+
+<h3>7.4 Stacking probabiliste</h3>
+
+<p class="justify">Au lieu de transmettre les classes prédites, on transmet les probabilités a posteriori $P(y = c \mid \mathbf{x})$ de chaque base learner. Pour un problème à $C$ classes, la matrice $Z$ a $n \times (K \cdot C)$ éléments, ce qui donne plus d'information au méta-modèle mais augmente la dimension.</p>
+
+<!-- ============================================================ -->
+<h2 id="exercices">8. Exercices</h2>
+<!-- ============================================================ -->
+
+<h3>Exercice 1 : Stacking manuel</h3>
+
+<p>Implémenter à la main un stacking avec 3 classifieurs (KNN, DecisionTree, SVM) et une régression logistique comme méta-modèle, sans utiliser <code>StackingClassifier</code> :</p>
+
+<div class="code-block"><span class="kw">from</span> <span class="cn">sklearn.model_selection</span> <span class="kw">import</span> <span class="cn">KFold</span>
+<span class="kw">import</span> <span class="cn">numpy</span> <span class="kw">as</span> <span class="cn">np</span>
+
+<span class="kw">def</span> <span class="fn">stacking_manual</span>(X, y, base_learners, meta_learner, n_folds=<span class="mi">5</span>):
+    kf = <span class="cn">KFold</span>(n_splits=n_folds, shuffle=<span class="kc">True</span>,
+              random_state=<span class="mi">0</span>)
+    Z = np.zeros((len(y), len(base_learners)))
+
+    <span class="cm"># Etape 1 : predictions hors-pli (CV)</span>
+    <span class="kw">for</span> train_idx, val_idx <span class="kw">in</span> kf.split(X):
+        X_fold, X_val = X[train_idx], X[val_idx]
+        y_fold = y[train_idx]
+
+        <span class="kw">for</span> k, (_, model) <span class="kw">in</span> enumerate(base_learners):
+            model.fit(X_fold, y_fold)
+            Z[val_idx, k] = model.predict_proba(X_val)[:, <span class="mi">1</span>]
+
+    <span class="cm"># Etape 2 : meta-modele sur Z</span>
+    meta_learner.fit(Z, y)
+
+    <span class="cm"># Etape 3 : re-entrainer les base learners sur tout X</span>
+    <span class="kw">for</span> _, model <span class="kw">in</span> base_learners:
+        model.fit(X, y)
+
+    <span class="kw">return</span> meta_learner, base_learners</div>
+
+<h3>Exercice 2 : Comparaison expérimentale</h3>
+
+<p>Comparer les performances de : (a) chaque modèle de base seul, (b) VotingClassifier, (c) StackingClassifier sur un jeu de données de classification (breast cancer, iris, ou synthétique). Interpréter les résultats à la lumière de l'analyse biais-variance.</p>
+
+<h3>Exercice 3 : Stacking régression</h3>
+
+<p>Utiliser <code>StackingRegressor</code> pour combiner Ridge, Lasso et RandomForest sur les données <code>diabetes</code>. Comparer le RMSE avec chaque modèle individuel. Essayer avec et sans <code>passthrough</code>.</p>
+
+<!-- ============================================================ -->
+<h2 id="qcm">9. QCM interactif</h2>
+<!-- ============================================================ -->
+
+<p>Testez vos connaissances sur le stacking. Choisissez la bonne réponse pour chaque question.</p>
+
+<div id="qcmRecap" style="display:none; margin-bottom:1rem; padding:0.8rem; border:2px solid #dc3545; border-radius:6px; background:#fff5f5;">
+    <h4 style="color:#dc3545; margin-bottom:0.5rem;">Récapitulatif des erreurs</h4>
+    <div id="qcmRecapContent"></div>
+</div>
+
+<div id="qcmScoreDisplay" style="margin:0.5rem 0; font-size:0.95rem; color:#555;">
+    Questions répondues : <span id="qcmAnswered">0</span> / <span id="qcmTotal">10</span>
+</div>
+
+<div id="qcmQuestions"></div>
+
+<div class="controls">
+    <button id="qcmRecapBtn" class="primary">Afficher le récapitulatif des erreurs</button>
+    <button id="qcmResetBtn">Réinitialiser</button>
+</div>
+
+<hr>
+<p style="text-align:center;color:#777;font-style:italic;margin-top:1rem;">&mdash; Fin de la fiche interactive &mdash;</p>
+
+</div>
+
+<script>
+const qcmData = [
+    {
+        q: "Quelle méthode génère les données d'entrée du méta-modèle ?",
+        options: ["Un échantillonnage bootstrap", "Une validation croisée", "Un tirage aléatoire simple", "Une ACP préalable"],
+        correct: 1,
+        expl: "Les prédictions niveau 1 sont générées par CV (souvent 5-fold) pour éviter le surapprentissage."
+    },
+    {
+        q: "Quel est l'avantage principal du stacking par rapport au VotingClassifier ?",
+        options: ["Il est plus rapide à l'entraînement", "Il apprend à combiner les prédictions", "Il utilise moins de mémoire", "Il ne nécessite pas de base learners"],
+        correct: 1,
+        expl: "Voting combine par moyenne/vote, Stacking apprend les poids via un méta-modèle entraîné."
+    },
+    {
+        q: "Quel paramètre permet d'ajouter les variables originales au méta-modèle ?",
+        options: ["add_features", "passthrough", "original_X", "include_X"],
+        correct: 1,
+        expl: "passthrough=True concatène les variables originales X aux prédictions Z pour le méta-modèle."
+    },
+    {
+        q: "Le stacking réduit principalement :",
+        options: ["Le biais uniquement", "La variance uniquement", "Le biais et la variance", "Ni le biais ni la variance"],
+        correct: 2,
+        expl: "Comme le boosting, le stacking peut réduire à la fois le biais et la variance."
+    },
+    {
+        q: "Quelle est la principale difficulté du stacking multi-niveaux ?",
+        options: ["Le temps d'exécution", "Le surapprentissage", "La parallélisation", "Le choix des hyper-paramètres"],
+        correct: 1,
+        expl: "Chaque niveau ajoute des paramètres et augmente le risque de surapprentissage."
+    },
+    {
+        q: "Que fait stack_method='predict_proba' ?",
+        options: ["Utilise les probabilités des modèles de base", "Utilise les classes prédites", "Utilise les écarts-types", "Utilise les résidus"],
+        correct: 0,
+        expl: "predict_proba transmet les probabilités a posteriori au méta-modèle (plus informatif)."
+    },
+    {
+        q: "Dans le stacking manuel, pourquoi ré-entraîner les base learners sur tout X après la CV ?",
+        options: ["Pour économiser de la mémoire", "Pour améliorer leurs performances", "Pour réduire le biais", "Ce n'est pas nécessaire"],
+        correct: 1,
+        expl: "L'entraînement sur tout X (plus de données) améliore les performances des modèles finaux."
+    },
+    {
+        q: "Quel estimateur final est utilisé par défaut dans StackingClassifier ?",
+        options: ["Régression logistique", "DecisionTreeClassifier", "SVC", "RandomForestClassifier"],
+        correct: 0,
+        expl: "LogisticRegression est le final_estimator par défaut de StackingClassifier."
+    },
+    {
+        q: "Pourquoi les prédictions niveau 1 doivent-elles être générées par CV ?",
+        options: ["Pour accélérer l'entraînement", "Pour éviter le surapprentissage du méta-modèle", "Pour garantir la convergence", "Pour équilibrer les classes"],
+        correct: 1,
+        expl: "Sans CV, le méta-modèle verrait les mêmes données que les base learners et surapprendrait leurs erreurs."
+    },
+    {
+        q: "Quel type de modèles de base le stacking peut-il utiliser ?",
+        options: ["Uniquement des arbres", "Uniquement des modèles linéaires", "Des modèles hétérogènes", "Uniquement des SVM"],
+        correct: 2,
+        expl: "Le stacking est conçu pour combiner des modèles hétérogènes de natures différentes."
+    }
+];
+
+const qcmContainer = document.getElementById('qcmQuestions');
+let userAnswers = new Array(qcmData.length).fill(null);
+let qcmLocked = new Array(qcmData.length).fill(false);
+
+function renderQCM() {
+    let html = '';
+    const letters = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < qcmData.length; i++) {
+        const item = qcmData[i];
+        const answered = qcmLocked[i];
+        const borderColor = answered ? (userAnswers[i] === item.correct ? '#28a745' : '#dc3545') : '#ddd';
+        html += '<div class="qcm-question" data-idx="' + i + '" style="margin-bottom:1.2rem; padding:0.8rem; border:1px solid ' + borderColor + '; border-radius:6px;">';
+        html += '<p style="font-weight:600; margin-bottom:0.4rem;">' + (i+1) + '. ' + item.q + '</p>';
+        for (let j = 0; j < item.options.length; j++) {
+            const disabled = answered ? 'disabled' : '';
+            const checked = userAnswers[i] === j ? 'checked' : '';
+            const cls = answered ? (j === item.correct ? 'qcm-correct' : (userAnswers[i] === j ? 'qcm-wrong' : '')) : '';
+            html += '<label class="qcm-option ' + cls + '" style="display:block; padding:0.25rem 0.5rem; border-radius:3px; cursor:' + (disabled ? 'default' : 'pointer') + ';">';
+            html += '<input type="radio" name="qcm_' + i + '" value="' + j + '" ' + checked + ' ' + disabled + '> ';
+            html += letters[j] + ') ' + item.options[j];
+            html += '</label>';
+        }
+        if (answered && userAnswers[i] !== item.correct) {
+            html += '<p style="margin-top:0.3rem;font-size:0.85rem;color:#dc3545;"><strong>Correct :</strong> ' + item.expl + '</p>';
+        }
+        html += '</div>';
+    }
+    qcmContainer.innerHTML = html;
+    document.getElementById('qcmAnswered').textContent = qcmLocked.filter(Boolean).length;
+    document.getElementById('qcmTotal').textContent = qcmData.length;
+}
+
+qcmContainer.addEventListener('change', function(e) {
+    if (!e.target.matches('input[type="radio"]')) return;
+    const idx = parseInt(e.target.name.split('_')[1]);
+    if (qcmLocked[idx]) return;
+    userAnswers[idx] = parseInt(e.target.value);
+    qcmLocked[idx] = true;
+    renderQCM();
+});
+
+document.getElementById('qcmRecapBtn').addEventListener('click', function() {
+    const answered = qcmLocked.filter(Boolean).length;
+    if (answered < qcmData.length) {
+        if (!confirm("Vous n'avez répondu qu'à " + answered + "/" + qcmData.length + " questions. Afficher le récapitulatif quand même ?")) return;
+    }
+    const letters = ['a', 'b', 'c', 'd'];
+    const errors = [];
+    for (let i = 0; i < qcmData.length; i++) {
+        if (userAnswers[i] !== qcmData[i].correct) {
+            errors.push({
+                q: qcmData[i].q,
+                userAns: userAnswers[i] !== null ? letters[userAnswers[i]] + ') ' + qcmData[i].options[userAnswers[i]] : 'Pas de réponse',
+                correctAns: letters[qcmData[i].correct] + ') ' + qcmData[i].options[qcmData[i].correct],
+                expl: qcmData[i].expl
+            });
+        }
+    }
+    const recapDiv = document.getElementById('qcmRecap');
+    const recapContent = document.getElementById('qcmRecapContent');
+    recapDiv.style.display = 'block';
+    if (errors.length === 0) {
+        recapContent.innerHTML = '<p style="color:#28a745;"><strong>Félicitations !</strong> Aucune erreur.</p>';
+    } else {
+        let h = '<p><strong>' + errors.length + '</strong> erreur(s) sur ' + qcmData.length + ' questions :</p><ol style="margin-top:0.3rem;">';
+        for (const e of errors) {
+            h += '<li style="margin-bottom:0.5rem;"><strong>Question :</strong> ' + e.q + '<br>';
+            h += '<strong>Votre réponse :</strong> ' + e.userAns + '<br>';
+            h += '<strong>Réponse correcte :</strong> ' + e.correctAns + '<br>';
+            h += '<strong>Explication :</strong> ' + e.expl + '</li>';
+        }
+        h += '</ol>';
+        recapContent.innerHTML = h;
+    }
+});
+
+document.getElementById('qcmResetBtn').addEventListener('click', function() {
+    userAnswers = new Array(qcmData.length).fill(null);
+    qcmLocked = new Array(qcmData.length).fill(false);
+    document.getElementById('qcmRecap').style.display = 'none';
+    renderQCM();
+});
+
+renderQCM();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TP Entreposage et fouille de données (STA211) \(~~~~~~~~~~~\) Réseaux de neurones et apprentissage profond &#8212; TP Cnam STA211</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/translations.js"></script>
+    <script async="async" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Deep Learning avec Keras" href="keras.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="#">TP Cnam STA211</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="keras.html" title="Deep Learning avec Keras"
+             accesskey="N">suivant</a> |
+          <a href="genindex.html" title="Index général"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="tp-entreposage-et-fouille-de-donnees-sta211-reseaux-de-neurones-et-apprentissage-profond">
+<h1>TP Entreposage et fouille de données (STA211)  <span class="math notranslate nohighlight">\(~~~~~~~~~~~\)</span> Réseaux de neurones et apprentissage profond<a class="headerlink" href="#tp-entreposage-et-fouille-de-donnees-sta211-reseaux-de-neurones-et-apprentissage-profond" title="Lien permanent vers ce titre">¶</a></h1>
+<p>Cours : <a class="reference external" href="http://cedric.cnam.fr/~thomen/cours/STA211.html">http://cedric.cnam.fr/~thomen/cours/STA211.html</a></p>
+<p><strong>Les travaux pratiques sont structurés de la manière suivante :</strong></p>
+<ul class="simple">
+<li><p>La première partie consiste en une introduction à la librairie <code class="docutils literal notranslate"><span class="pre">Keras</span></code> pour entraîner des réseaux de neurones. On abordera des modèles de niveaux croissants de complexité, depuis des réseaux très simples non profonds comme la régression logistique jusqu’à des réseaux convolutifs plus évolués.</p></li>
+<li><p>La seconde partie vise à observer l’effet de « manifold untangling » permis par les réseaux de neurones profonds, qu’on observera en visualisant la distribution des classes dans l’espace d’entrée et dans l’espace des représentations internes des réseaux de neurones.</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="keras.html">Deep Learning avec Keras</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="keras.html#exercice-0-chargement-des-donnees">Exercice 0 : Chargement des données</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keras.html#exercice-1-regression-logistique">Exercice 1 : Régression logistique</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keras.html#exercice-2-perceptron-multi-couches-mlp">Exercice 2 : Perceptron multi-couches (MLP)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keras.html#exercice-3-reseau-de-neurones-convolutif">Exercice 3 : Réseau de neurones convolutif</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="untangling.html">Deep Learning et Manifold Untangling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="untangling.html#exercice-4-visualisation-avec-t-sne">Exercice 4 : Visualisation avec t-SNE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="untangling.html#exercice-5-visualisation-des-representations-internes-des-reseaux-de-neurones">Exercice 5 : Visualisation des représentations internes des réseaux de neurones</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h2><a class="reference external" href="jupyter/DL-STA211.ipynb">Cahier Jupyter</a><a class="headerlink" href="#id1" title="Lien permanent vers ce titre">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table des matières</h3>
+          <ul>
+<li class="toctree-l1"><a class="reference internal" href="keras.html">Deep Learning avec Keras</a></li>
+<li class="toctree-l1"><a class="reference internal" href="untangling.html">Deep Learning et Manifold Untangling</a></li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Recherche</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="keras.html" title="Deep Learning avec Keras"
+              >suivant</a> |
+            <a href="genindex.html" title="Index général"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/index.rst.txt"
+                rel="nofollow">Montrer le code source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021, Nicolas Thome - Cnam.
+      Mis à jour le nov. 18, 2021.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

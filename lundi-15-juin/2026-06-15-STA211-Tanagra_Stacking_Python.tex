@@ -1,0 +1,274 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\AtBeginDocument{\shorthandoff{;:!?}}
+
+\titleformat{\section}{\large\bfseries\color{blue!60!black}}{}{0pt}{}[\vspace{-0.5ex}\rule{\textwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\color{blue!40!black}}{}{0pt}{}
+
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,aboveskip=6pt,belowskip=6pt}
+
+\newtheorem*{important}{\`A retenir}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small STA211 -- Compl\'ement Tanagra Stacking Python}
+\fancyhead[R]{\small Fiche r\'ecapitulative}
+\fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{Fiche r\'ecapitulative -- STA211}\\[4pt]
+\large Compl\'ement \texttt{fr\_Tanagra\_Stacking\_Python} \\[2pt]
+\small Stacking -- Agr\'egation par m\'eta-apprentissage avec Python}
+\author{Tanagra Data Mining -- R. Rakotomalala}
+\date{15 juin 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+Le stacking combine plusieurs classifieurs h\'et\'erog\`enes via un
+m\'eta-classifieur qui apprend \`a corriger leurs erreurs. Ce tutoriel
+l'impl\'emente en Python avec scikit-learn sur un probl\`eme de
+discrimination binaire dans le plan.
+\end{abstract}
+
+\vfill
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Donn\'ees}
+% ===================================================================
+
+Probl\`eme de discrimination binaire dans le plan. 2000 observations,
+2 variables pr\'edicatives $X_1, X_2$. Fronti\`ere parabolique~:
+
+\[
+\text{Si } 0.1 \times X_2 > X_1^2 \implies \text{pos, sinon neg}
+\]
+
+Pr\'eparation~:
+\begin{lstlisting}
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+D = pd.read_csv("artificial2d_data2.txt", sep="\t")
+y = np.where(D["Y"] == "pos", 1, 0)
+X = D[["X1", "X2"]].values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, train_size=1500, test_size=500,
+    random_state=100
+)
+\end{lstlisting}
+
+\noindent 1500 observations en apprentissage, 500 en test.
+
+% ===================================================================
+\section{Classifieurs de base}
+% ===================================================================
+
+\subsection{R\'egression logistique}
+
+\begin{lstlisting}
+from sklearn.linear_model import LogisticRegression
+lr = LogisticRegression(max_iter=5000)
+lr.fit(X_train, y_train)
+print(f"LR: {lr.score(X_test, y_test):.3f}")
+\end{lstlisting}
+
+\noindent Accuracy test~: \textbf{0.678} ($\approx$67.8\,\%).
+
+\subsection{K plus proches voisins (KNN)}
+
+\begin{lstlisting}
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train, y_train)
+print(f"KNN: {knn.score(X_test, y_test):.3f}")
+\end{lstlisting}
+
+\noindent Accuracy test~: \textbf{0.918}.
+
+\subsection{Arbre de d\'ecision}
+
+\begin{lstlisting}
+from sklearn.tree import DecisionTreeClassifier
+tree = DecisionTreeClassifier(max_depth=5, random_state=0)
+tree.fit(X_train, y_train)
+print(f"Tree: {tree.score(X_test, y_test):.3f}")
+\end{lstlisting}
+
+\noindent Accuracy test~: \textbf{0.942}.
+
+\subsection{SVM (noyau RBF)}
+
+\begin{lstlisting}
+from sklearn.svm import SVC
+svm = SVC(probability=True, random_state=0)
+svm.fit(X_train, y_train)
+print(f"SVM: {svm.score(X_test, y_test):.3f}")
+\end{lstlisting}
+
+\noindent Accuracy test~: \textbf{0.968}.
+
+% ===================================================================
+\section{Stacking avec scikit-learn}
+% ===================================================================
+
+\subsection{StackingClassifier}
+
+\begin{lstlisting}
+from sklearn.ensemble import StackingClassifier
+
+base_learners = [
+    ('lr',   LogisticRegression(max_iter=5000)),
+    ('knn',  KNeighborsClassifier(n_neighbors=5)),
+    ('tree', DecisionTreeClassifier(max_depth=5, random_state=0)),
+    ('svm',  SVC(probability=True, random_state=0))
+]
+
+meta = LogisticRegression(max_iter=5000)
+
+stack = StackingClassifier(
+    estimators=base_learners,
+    final_estimator=meta,
+    cv=5,
+    stack_method='predict_proba'
+)
+stack.fit(X_train, y_train)
+print(f"Stacking: {stack.score(X_test, y_test):.3f}")
+\end{lstlisting}
+
+\noindent Accuracy test~: \textbf{0.978}.
+
+\subsection{Interpr\'etation}
+
+Le stacking am\'eliore la performance par rapport aux classifieurs
+individuels~:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Classifieur & Accuracy test & \'Ecart au stacking \\
+\midrule
+R\'egression logistique & 0.678 & $-$0.300 \\
+KNN ($k=5$) & 0.918 & $-$0.060 \\
+Arbre de d\'ecision & 0.942 & $-$0.036 \\
+SVM (RBF) & 0.968 & $-$0.010 \\
+\midrule
+\textbf{Stacking} & \textbf{0.978} & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{important}
+Le stacking (\textbf{0.978}) surpasse le meilleur classifieur
+individuel (\textbf{SVM 0.968}). Le m\'eta-mod\`ele apprend \`a
+compenser les erreurs r\'esiduelles du SVM gr\^ace aux autres
+classifieurs. L'am\'elioration est modeste ici car le SVM est
+d\'ej\`a tr\`es performant sur ces donn\'ees.
+\end{important}
+
+% ===================================================================
+\section{Stacking manuel (compréhension)}
+% ===================================================================
+
+\`A titre p\'edagogique, on peut d\'ecomposer le stacking~:
+
+\begin{lstlisting}
+from sklearn.model_selection import KFold
+import numpy as np
+
+def stacking_manual(X, y, base_learners, meta_learner, n_folds=5):
+    kf = KFold(n_splits=n_folds, shuffle=True, random_state=0)
+    Z = np.zeros((len(y), len(base_learners)))
+    
+    # Etape 1 : predictions hors-pli (CV)
+    for train_idx, val_idx in kf.split(X):
+        X_fold, X_val = X[train_idx], X[val_idx]
+        y_fold = y[train_idx]
+        
+        for k, (_, model) in enumerate(base_learners):
+            model.fit(X_fold, y_fold)
+            Z[val_idx, k] = model.predict_proba(X_val)[:, 1]
+    
+    # Etape 2 : meta-modele sur Z
+    meta_learner.fit(Z, y)
+    
+    # Etape 3 : re-entrainer les base learners sur tout X
+    for _, model in base_learners:
+        model.fit(X, y)
+    
+    return meta_learner, base_learners
+\end{lstlisting}
+
+\noindent Cette impl\'ementation manuelle reproduit exactement le
+comportement de \texttt{StackingClassifier}.
+
+% ===================================================================
+\section{Comparaison R vs Python}
+% ===================================================================
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Aspect & R & Python \\
+\midrule
+Stacking & \texttt{stacking::stacking()} & \texttt{ensemble.StackingClassifier} \\
+M\'eta-mod\`ele & \texttt{glm} / \texttt{rpart} & \texttt{LogisticRegression} / \texttt{Ridge} \\
+CV & param. \texttt{cv} (d\'efaut 5) & param. \texttt{cv} (d\'efaut 5) \\
+Syntaxe & \texttt{\%\textgreater{}\%} & API orient\'ee objet \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent En R, le package \texttt{stacking} de Tanagra offre une
+interface similaire. La logique m\'etier est identique~: g\'en\'erer
+les pr\'edictions niveau~1 par CV, puis appliquer le m\'eta-mod\`ele.
+
+% ===================================================================
+\newpage
+\section*{Questions cl\'es (QCM)}
+\addcontentsline{toc}{section}{Questions cl\'es (QCM)}
+
+\begin{enumerate}
+  \item Quelle classe scikit-learn impl\'emente le stacking~?
+    \textbf{R. \texttt{StackingClassifier}.}
+  \item Combien de classifieurs de base sont utilis\'es dans ce
+    tutoriel~? \textbf{R. 4 (LR, KNN, Tree, SVM).}
+  \item Quelle est l'accuracy du stacking en test~?
+    \textbf{R. 0.978 (97.8\,\%).}
+  \item Quel classifieur individuel a la meilleure performance~?
+    \textbf{R. SVM (0.968).}
+  \item Quelle m\'ethode g\'en\`ere les donn\'ees d'entr\'ee du
+    m\'eta-mod\`ele~? \textbf{R. La validation crois\'ee (CV).}
+  \item Quel m\'eta-mod\`ele est utilis\'e par d\'efaut~?
+    \textbf{R. R\'egression logistique.}
+  \item \`A quoi sert le param\`etre \texttt{stack\_method}~?
+    \textbf{R. \`A choisir entre probas et classes pr\'edites.}
+  \item Le stacking r\'eduit-il le biais ou la variance~?
+    \textbf{R. Les deux (biais + variance).}
+  \item Quelle est la principale diff\'erence entre Voting et
+    Stacking~? \textbf{R. Stacking apprend \`a combiner.}
+  \item Que fait \texttt{passthrough=True}~?
+    \textbf{R. Ajoute $X$ original aux pr\'edictions niveau~1.}
+\end{enumerate}
+
+\vfill
+
+\end{document}

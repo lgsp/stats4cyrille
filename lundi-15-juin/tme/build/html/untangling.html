@@ -1,0 +1,313 @@
+
+<!DOCTYPE html>
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deep Learning et Manifold Untangling &#8212; TP Cnam STA211</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/translations.js"></script>
+    <script async="async" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="prev" title="Deep Learning avec Keras" href="keras.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">TP Cnam STA211</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="keras.html" title="Deep Learning avec Keras"
+             accesskey="P">précédent</a> |
+          <a href="genindex.html" title="Index général"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="deep-learning-et-manifold-untangling">
+<span id="untangling"></span><h1>Deep Learning et Manifold Untangling<a class="headerlink" href="#deep-learning-et-manifold-untangling" title="Lien permanent vers ce titre">¶</a></h1>
+<p><strong>On va maintenant illustrer la capacité des réseaux de neurones profonds à apprendre des représentations internes capables de résoudre le problème connu
+sous le nom de « manifold untangling » en neuroscience, c’est à dire de séparer les exemples des différentes classes dans l’espace de représentations appris.</strong></p>
+<p>Pour cela, on va utiliser des outils de visualisation qui vont vont permettre de représenter chaque donnée (par exemple une image de la base MNIST) par un point dans l’espace 2D.
+Ces même outils vont permettre de projeter en 2D les représentations internes des réseaux de neurones, ce qui va permettre d’analyser la séparabilité des points et des classes
+dans l’espace d’entrée et dans les espaces de représentions appris par les modèles.</p>
+<p><strong>On aura besoin des modules suivants qu’on pourra importer en début de script :</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib</span> <span class="kn">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="kn">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">ConvexHull</span>
+<span class="kn">from</span> <span class="nn">sklearn.mixture</span> <span class="kn">import</span> <span class="n">GaussianMixture</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">linalg</span>
+<span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="kn">import</span> <span class="n">NearestNeighbors</span>
+<span class="kn">from</span> <span class="nn">sklearn.manifold</span> <span class="kn">import</span> <span class="n">TSNE</span>
+</pre></div>
+</div>
+<div class="section" id="exercice-4-visualisation-avec-t-sne">
+<h2>Exercice 4 : Visualisation avec t-SNE<a class="headerlink" href="#exercice-4-visualisation-avec-t-sne" title="Lien permanent vers ce titre">¶</a></h2>
+<p>La méthode <em>t-Distributed Stochastic Neighbor Embedding</em> (t-SNE) <a class="bibtex reference internal" href="#tsne08" id="id1">[vdMH08]</a> est une réduction de dimension non linéaire, dont l’objectif est d’assurer que des points proches dans l’espace de départ présentent des positions proches dans l’espace (2D) projeté. Dit autrement, la mesure de distance entre points dans l’espace 2D doit refléter la mesure de distance dans l’espace initial.</p>
+<p>On va appliquer la méthode t-SNE sur les données brutes <strong>de la base de test de MNIST</strong> en utilisant la classe <code class="docutils literal notranslate"><span class="pre">TSNE</span></code> du module <code class="docutils literal notranslate"><span class="pre">sklearn.manifold</span></code> : <a class="reference external" href="http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html">http://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html</a>  .</p>
+<p><strong>Créer un script</strong> <code class="docutils literal notranslate"><span class="pre">exo1.py</span></code> <strong>dont l’objectif va être d’effectuer une réduction de dimension en 2D des données de la base de test de MNIST en utilisant la méthode t-SNE.</strong></p>
+<ul class="simple">
+<li><p>Créer une instance de type <code class="docutils literal notranslate"><span class="pre">TSNE</span></code>. <strong>N.B :</strong> on choisira 2 composantes et les paramètres suivants : <code class="docutils literal notranslate"><span class="pre">init='pca'</span></code> (réduire la dimension préalablement avec une ACP), <code class="docutils literal notranslate"><span class="pre">perplexity=30</span></code> (lié au nombre de voisins dans le calcul des distances), <code class="docutils literal notranslate"><span class="pre">verbose=2</span></code> (pour l’affichage lors de l’apprentissage).</p></li>
+<li><p>Appliquer la transformation pour obtenir les données projetées en 2D (fonction <code class="docutils literal notranslate"><span class="pre">fit_transform</span></code>). <strong>N.B :</strong> essayer tout d’abord avec un sous-ensemble de la base (<em>e.g.</em> 1000 exemples) pour tester l’algorithme, l’apprentissage avec l’ensemble de la base de test pouvant être long.</p></li>
+</ul>
+<div class="section" id="metrique-de-separation-des-classes">
+<h3>Métrique de séparation des classes<a class="headerlink" href="#metrique-de-separation-des-classes" title="Lien permanent vers ce titre">¶</a></h3>
+<p>On va maintenant compléter le script <code class="docutils literal notranslate"><span class="pre">exo4.py</span></code> précédent afin de visualiser l’ensemble des points projetés en 2D, et de définir
+des critères pour analyser la séparabilité des classes dans l’espace projeté.</p>
+<p>1. <strong>Calcul de l’enveloppe convexe des points projetés pour chacune des classe classe.</strong>
+On utilisera pour cela la la classe <code class="docutils literal notranslate"><span class="pre">ConvexHull</span></code> du module <code class="docutils literal notranslate"><span class="pre">scipy.spatial</span></code> <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html</a>.
+Sur la base MNIST, on pourra donc utiliser le code suivant pour calculer les enveloppes convexes des points pour les 10 classes :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">convexHulls</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+  <span class="c1"># computing convex hulls for a set of points with asscoiated labels</span>
+  <span class="n">convex_hulls</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">convex_hulls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ConvexHull</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="n">labels</span><span class="o">==</span><span class="n">i</span><span class="p">,:]))</span>
+  <span class="k">return</span> <span class="n">convex_hulls</span>
+<span class="c1"># Function Call</span>
+<span class="n">convex_hulls</span><span class="o">=</span> <span class="n">convexHulls</span><span class="p">(</span><span class="n">x2d</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>où <code class="docutils literal notranslate"><span class="pre">points</span></code> (<em>resp.</em> <code class="docutils literal notranslate"><span class="pre">labels</span></code>) dans la méthode <code class="docutils literal notranslate"><span class="pre">convexHulls(points,</span> <span class="pre">labels)</span></code> correspond aux images projetées dans le plan 2D avec la méthode t-SNE de l’exercice 1 (<em>resp.</em> aux labels, <em>i.e.</em> classes, des images).</p>
+<p>2.  <strong>Calcul de l’ellipse de meilleure approximation des points.</strong>
+On utilisera pour cela la classe <code class="docutils literal notranslate"><span class="pre">GaussianMixture</span></code> du module <code class="docutils literal notranslate"><span class="pre">sklearn.mixture</span></code> <a class="reference external" href="http://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html#sklearn.mixture.GaussianMixture">http://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html#sklearn.mixture.GaussianMixture</a>.
+On pourra donc utiliser le code suivant pour calculer les ellipses de meilleure approximation pour les 10 classes :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">best_ellipses</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+  <span class="c1"># computing best fiiting ellipse for a set of points with asscoiated labels</span>
+  <span class="n">gaussians</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">gaussians</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GaussianMixture</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">covariance_type</span><span class="o">=</span><span class="s1">&#39;full&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="n">labels</span><span class="o">==</span><span class="n">i</span><span class="p">,</span> <span class="p">:]))</span>
+  <span class="k">return</span> <span class="n">gaussians</span>
+<span class="c1"># Function Call</span>
+<span class="n">ellipses</span> <span class="o">=</span> <span class="n">best_ellipses</span><span class="p">(</span><span class="n">x2d</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>3. <strong>Calcul du « Neighborhood Hit » (NH)</strong> <a class="bibtex reference internal" href="#dblp-journals-tvcg-paulovichnml08" id="id2">[PNML08]</a>.
+Pour chaque point, la métrique NH consiste à calculer, pour les k plus proches voisins (<code class="docutils literal notranslate"><span class="pre">k-nn</span></code>) de ce point, le taux des voisins qui sont de la même classe que le point considéré. La métrique NH est ensuite moyennée sur l’ensemble de la base.
+Le code suivant permet de calculer la métrique NH, en utilisant la classe <code class="docutils literal notranslate"><span class="pre">NearestNeighbors</span></code> du module <code class="docutils literal notranslate"><span class="pre">sklearn.neighbors</span></code> :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">neighboring_hit</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+  <span class="n">k</span> <span class="o">=</span> <span class="mi">6</span>
+  <span class="n">nbrs</span> <span class="o">=</span> <span class="n">NearestNeighbors</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;ball_tree&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+  <span class="n">distances</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">nbrs</span><span class="o">.</span><span class="n">kneighbors</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+  <span class="n">txs</span> <span class="o">=</span> <span class="mf">0.0</span>
+  <span class="n">txsc</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+  <span class="n">nppts</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)):</span>
+    <span class="n">tx</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]]</span><span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+      <span class="n">tx</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">tx</span> <span class="o">/=</span> <span class="n">k</span>
+    <span class="n">txsc</span><span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">tx</span>
+    <span class="n">nppts</span><span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">txs</span> <span class="o">+=</span> <span class="n">tx</span>
+
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">txsc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/=</span> <span class="n">nppts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+  <span class="k">return</span> <span class="n">txs</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<p>En quoi les trois métriques ci-dessus sont-elles liées au problème de la séparabilité des classes ? Qu’est-ce qui les diffère ?</p>
+</div>
+<p><strong>Compléter le script</strong> <code class="docutils literal notranslate"><span class="pre">exo4.py</span></code> <strong>pour calculer les différentes métriques.</strong></p>
+<ul class="simple">
+<li><p>Vous pouvez ensuite utiliser la fonction <code class="docutils literal notranslate"><span class="pre">visualization</span></code> suivante pour afficher les points ainsi que leur labels, et de visualiser les trois métriques précédentes :</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">visualization</span><span class="p">(</span><span class="n">points2D</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">convex_hulls</span><span class="p">,</span> <span class="n">ellipses</span> <span class="p">,</span><span class="n">projname</span><span class="p">,</span> <span class="n">nh</span><span class="p">):</span>
+
+ <span class="n">points2D_c</span><span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+      <span class="n">points2D_c</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">points2D</span><span class="p">[</span><span class="n">labels</span><span class="o">==</span><span class="n">i</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="c1"># Data Visualization</span>
+  <span class="n">cmap</span> <span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">tab10</span>
+
+  <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">3.841</span><span class="p">,</span> <span class="mf">7.195</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">set_cmap</span><span class="p">(</span><span class="n">cmap</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">hspace</span><span class="o">=</span><span class="mf">0.4</span> <span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">311</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">points2D</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">points2D</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>  <span class="n">s</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="n">edgecolors</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ticks</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+
+  <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;2D &quot;</span><span class="o">+</span><span class="n">projname</span><span class="o">+</span><span class="s2">&quot; - NH=&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nh</span><span class="o">*</span><span class="mf">100.0</span><span class="p">))</span>
+
+  <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span> <span class="n">i</span><span class="o">/</span><span class="mf">10.0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
+  <span class="n">sp2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">312</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+      <span class="n">ch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">convex_hulls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">vertices</span><span class="p">,</span><span class="n">convex_hulls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">sp2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">points2D_c</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">ch</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">points2D_c</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">ch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;$</span><span class="si">%i</span><span class="s1">$&#39;</span><span class="o">%</span><span class="n">i</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ticks</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">projname</span><span class="o">+</span><span class="s2">&quot; Convex Hulls&quot;</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">plot_results</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y_</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">covariances</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">color</span><span class="p">):</span>
+      <span class="n">splot</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">covar</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="n">covariances</span><span class="p">)):</span>
+          <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">covar</span><span class="p">)</span>
+          <span class="n">v</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+          <span class="n">u</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+          <span class="c1"># as the DP will not use every component it has access to</span>
+          <span class="c1"># unless it needs it, we shouldn&#39;t plot the redundant</span>
+          <span class="c1"># components.</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">Y_</span> <span class="o">==</span> <span class="n">i</span><span class="p">):</span>
+              <span class="k">continue</span>
+          <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">Y_</span> <span class="o">==</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">X</span><span class="p">[</span><span class="n">Y_</span> <span class="o">==</span> <span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="o">.</span><span class="mi">8</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">)</span>
+
+          <span class="c1"># Plot an ellipse to show the Gaussian component</span>
+          <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+          <span class="n">angle</span> <span class="o">=</span> <span class="mf">180.</span> <span class="o">*</span> <span class="n">angle</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>  <span class="c1"># convert to degrees</span>
+          <span class="n">ell</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">patches</span><span class="o">.</span><span class="n">Ellipse</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">180.</span> <span class="o">+</span> <span class="n">angle</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+          <span class="n">ell</span><span class="o">.</span><span class="n">set_clip_box</span><span class="p">(</span><span class="n">splot</span><span class="o">.</span><span class="n">bbox</span><span class="p">)</span>
+          <span class="n">ell</span><span class="o">.</span><span class="n">set_alpha</span><span class="p">(</span><span class="mf">0.6</span><span class="p">)</span>
+          <span class="n">splot</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">ell</span><span class="p">)</span>
+
+      <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">313</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+      <span class="n">plot_results</span><span class="p">(</span><span class="n">points2D</span><span class="p">[</span><span class="n">labels</span><span class="o">==</span><span class="n">i</span><span class="p">,</span> <span class="p">:],</span> <span class="n">ellipses</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">points2D</span><span class="p">[</span><span class="n">labels</span><span class="o">==</span><span class="n">i</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">ellipses</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">means_</span><span class="p">,</span>
+      <span class="n">ellipses</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">covariances_</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span><span class="n">projname</span><span class="o">+</span><span class="s2">&quot; fitting ellipses&quot;</span><span class="p">,</span> <span class="n">cmap</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+
+  <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">projname</span><span class="o">+</span><span class="s2">&quot;.png&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Comparer la méthode t-SNE à une Analyse en Composantes Principales (ACP) <a class="bibtex reference internal" href="#hotelling1933analysis" id="id3">[Hot33]</a>. On pourra utiliser la classe <code class="docutils literal notranslate"><span class="pre">PCA</span></code> du module <code class="docutils literal notranslate"><span class="pre">sklearn.decomposition</span></code> <a class="reference external" href="http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html">http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html</a>.</p></li>
+<li><p>L’application de la méthode visualisation sur les données de test de la base MNIST doit produire le résultat suivant (à gauche le résultat de la t-SNE à droite de l’ACP) :</p></li>
+</ul>
+<div class="line-block">
+<div class="line"><a class="reference internal" href="_images/tsne.png"><img alt="logo1" src="_images/tsne.png" style="width: 350px;" /></a>   <a class="reference internal" href="_images/PCA.png"><img alt="logo2" src="_images/PCA.png" style="width: 350px;" /></a></div>
+</div>
+<ul class="simple">
+<li><p>Analyser la distribution des points et des classes : que peut-on en conclure ?</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="exercice-5-visualisation-des-representations-internes-des-reseaux-de-neurones">
+<h2>Exercice 5 : Visualisation des représentations internes des réseaux de neurones<a class="headerlink" href="#exercice-5-visualisation-des-representations-internes-des-reseaux-de-neurones" title="Lien permanent vers ce titre">¶</a></h2>
+<p>On va maintenant s’intéresser à visualisation de l’effet de « manifold untangling » permis par les réseaux de neurones.</p>
+<p><strong>Créer un script</strong> <code class="docutils literal notranslate"><span class="pre">exo5.py</span></code> <strong>dont l’objectif va être d’utiliser la méthode t-SNE de l’exercice 2 pour projeter les couches cachés des réseaux de neurones dans un espace de dimension 2, ce qui permettra de visualiser la distribution des représentations internes et des labels.</strong></p>
+<ul class="simple">
+<li><p>Commencer par charger le Perceptron entraîné avec <code class="docutils literal notranslate"><span class="pre">Keras</span></code> dans la partie précédente, en utilisant la méthode <code class="docutils literal notranslate"><span class="pre">loadModel(savename)</span></code> suivante:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">model_from_yaml</span>
+<span class="k">def</span> <span class="nf">loadModel</span><span class="p">(</span><span class="n">savename</span><span class="p">):</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">savename</span><span class="o">+</span><span class="s2">&quot;.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">yaml_file</span><span class="p">:</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model_from_yaml</span><span class="p">(</span><span class="n">yaml_file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+  <span class="k">print</span> <span class="s2">&quot;Yaml Model &quot;</span><span class="p">,</span><span class="n">savename</span><span class="p">,</span><span class="s2">&quot;.yaml loaded &quot;</span>
+  <span class="n">model</span><span class="o">.</span><span class="n">load_weights</span><span class="p">(</span><span class="n">savename</span><span class="o">+</span><span class="s2">&quot;.h5&quot;</span><span class="p">)</span>
+  <span class="k">print</span> <span class="s2">&quot;Weights &quot;</span><span class="p">,</span><span class="n">savename</span><span class="p">,</span><span class="s2">&quot;.h5 loaded &quot;</span>
+  <span class="k">return</span> <span class="n">model</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>On pourra vérifier l’architecture du modèle chargé avec la méthode <code class="docutils literal notranslate"><span class="pre">summary()</span></code>.</p></li>
+<li><p>On pourra également évaluer les performances du modèle chargé sur la base de test de MNIST pour vérifier son comportement. <strong>N.B :</strong> il faudra avoir compilé le modèle au préalable.</p></li>
+</ul>
+<p>On veut maintenant extraire la couche cachée (donc un vecteur de dimension 100) pour chacune des images de la base de test.</p>
+<ul class="simple">
+<li><p>Pour cela,on va utiliser la méthode <code class="docutils literal notranslate"><span class="pre">model.pop()</span></code> (permettant de supprimer la couche au sommet du modèle) deux fois (on supprime la couche d’activation softmax et la couche complètement connectée). Ensuite on peut appliquer la méthode <code class="docutils literal notranslate"><span class="pre">model.predict(X_test)</span></code> sur l’ensemble des données de test.</p></li>
+<li><p>Finalement, on va utiliser la méthode t-SNE mise en place à l’exercice 2 pour visualiser les représentations internes des données.</p></li>
+</ul>
+<p><strong>Conclure sur la capacité des réseaux de neurones à résoudre le problème du Manifold Untangling.</strong></p>
+<p>En plus du Perceptron précédent, on pourra visualiser les représentations internes apprises par un réseau convolutif de type LeNet de la partie précédente.
+Le résultat ci-dessous montre un résultat de visualisation obtenu avec un Perceptron (à gauche), et un réseau convolutif (à droite) :</p>
+<div class="line-block">
+<div class="line"><a class="reference internal" href="_images/MLP_100_t-SNE.png"><img alt="logo3" src="_images/MLP_100_t-SNE.png" style="width: 350px;" /></a>   <a class="reference internal" href="_images/CNN_100_t-SNE.png"><img alt="logo4" src="_images/CNN_100_t-SNE.png" style="width: 350px;" /></a></div>
+</div>
+<p id="bibtex-bibliography-untangling-0"><dl class="citation">
+<dt class="bibtex label" id="hotelling1933analysis"><span class="brackets"><a class="fn-backref" href="#id3">Hot33</a></span></dt>
+<dd><p>H. Hotelling. <em>Analysis of a Complex of Statistical Variables Into Principal Components</em>. Warwick &amp; York, 1933. URL: <a class="reference external" href="https://books.google.fr/books?id=qJfXAAAAMAAJ">https://books.google.fr/books?id=qJfXAAAAMAAJ</a>.</p>
+</dd>
+<dt class="bibtex label" id="dblp-journals-tvcg-paulovichnml08"><span class="brackets"><a class="fn-backref" href="#id2">PNML08</a></span></dt>
+<dd><p>Fernando Vieira Paulovich, Luis Gustavo Nonato, Rosane Minghim, and Haim Levkowitz. Least square projection: A fast high-precision multidimensional projection technique and its application to document mapping. <em>IEEE Trans. Vis. Comput. Graph.</em>, 14(3):564–575, 2008.</p>
+</dd>
+<dt class="bibtex label" id="tsne08"><span class="brackets"><a class="fn-backref" href="#id1">vdMH08</a></span></dt>
+<dd><p>Laurens van der Maaten and Geoffrey E. Hinton. Visualizing high-dimensional data using t-sne. <em>Journal of Machine Learning Research</em>, 9:2579–2605, 2008.</p>
+</dd>
+</dl>
+</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table des matières</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="keras.html">Deep Learning avec Keras</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Deep Learning et Manifold Untangling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#exercice-4-visualisation-avec-t-sne">Exercice 4 : Visualisation avec t-SNE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exercice-5-visualisation-des-representations-internes-des-reseaux-de-neurones">Exercice 5 : Visualisation des représentations internes des réseaux de neurones</a></li>
+</ul>
+</li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Recherche</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="keras.html" title="Deep Learning avec Keras"
+              >précédent</a> |
+            <a href="genindex.html" title="Index général"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/untangling.rst.txt"
+                rel="nofollow">Montrer le code source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021, Nicolas Thome - Cnam.
+      Mis à jour le nov. 18, 2021.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,408 @@
+
+<!DOCTYPE html>
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deep Learning avec Keras &#8212; TP Cnam STA211</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/agogo.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/translations.js"></script>
+    <script async="async" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Deep Learning et Manifold Untangling" href="untangling.html" />
+    <link rel="prev" title="TP Entreposage et fouille de données (STA211) \(~~~~~~~~~~~\) Réseaux de neurones et apprentissage profond" href="index.html" /> 
+  </head><body>
+    <div class="header-wrapper" role="banner">
+      <div class="header">
+        <div class="headertitle"><a
+          href="index.html">TP Cnam STA211</a></div>
+        <div class="rel" role="navigation" aria-label="related navigation">
+          <a href="index.html" title="TP Entreposage et fouille de données (STA211) \(~~~~~~~~~~~\) Réseaux de neurones et apprentissage profond"
+             accesskey="P">précédent</a> |
+          <a href="untangling.html" title="Deep Learning et Manifold Untangling"
+             accesskey="N">suivant</a> |
+          <a href="genindex.html" title="Index général"
+             accesskey="I">index</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="deep-learning-avec-keras">
+<span id="keras"></span><h1>Deep Learning avec Keras<a class="headerlink" href="#deep-learning-avec-keras" title="Lien permanent vers ce titre">¶</a></h1>
+<p><strong>L’objectif de cette première partie de travaux pratiques est de prendre en main la librairie</strong> <code class="docutils literal notranslate"><span class="pre">Keras</span></code> <a class="reference external" href="https://keras.io/">https://keras.io/</a> <strong>pour utiliser et entraîner des réseaux de neurones profonds.</strong></p>
+<div class="section" id="exercice-0-chargement-des-donnees">
+<h2>Exercice 0 : Chargement des données<a class="headerlink" href="#exercice-0-chargement-des-donnees" title="Lien permanent vers ce titre">¶</a></h2>
+<p>On va travailler avec la base de données image MNIST, constituée d’images de
+caractères manuscrits (60000 images en apprentissage, 10000 en test).</p>
+<p>Voici un bout de code pour récupérer les données  :</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.datasets</span> <span class="kn">import</span> <span class="n">mnist</span>
+<span class="c1"># the data, shuffled and split between train and test sets</span>
+<span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">),</span> <span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span> <span class="o">=</span> <span class="n">mnist</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">60000</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="mi">784</span><span class="p">)</span>
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+<span class="n">X_train</span> <span class="o">/=</span> <span class="mi">255</span>
+<span class="n">X_test</span> <span class="o">/=</span> <span class="mi">255</span>
+<span class="k">print</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;train samples&#39;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;test samples&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl>
+<dt>On va commencer par afficher les 200 premières images de la base d’apprentissage.</dt><dd><ul class="simple">
+<li><p>Écrire un script <code class="docutils literal notranslate"><span class="pre">exo0.py</span></code> qui va récupérer les données avec le code précédent</p></li>
+<li><p>Compléter <code class="docutils literal notranslate"><span class="pre">exo0.py</span></code> pour permettre l’affichage demandé en utilisant le code suivant :</p></li>
+</ul>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib</span> <span class="kn">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.195</span><span class="p">,</span> <span class="mf">3.841</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">):</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">X_train</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">28</span><span class="p">,</span><span class="mi">28</span><span class="p">]),</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+</dd>
+</dl>
+<p>Le script <code class="docutils literal notranslate"><span class="pre">exo0.py</span></code> doit produire l’affichage ci-dessous :</p>
+<a class="reference internal image-reference" href="_images/exo0.png"><img alt="_images/exo0.png" class="align-center" src="_images/exo0.png" style="height: 400px;" /></a>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<p>Quel est l’espace dans lequel se trouvent les images ? Quel est sa taille ?</p>
+</div>
+</div>
+<div class="section" id="exercice-1-regression-logistique">
+<h2>Exercice 1 : Régression logistique<a class="headerlink" href="#exercice-1-regression-logistique" title="Lien permanent vers ce titre">¶</a></h2>
+<p>On va d’abord commencer par créer un modèle de classification linéaire populaire, la régression logistique.</p>
+<div class="section" id="modele-de-prediction">
+<h3>Modèle de prédiction<a class="headerlink" href="#modele-de-prediction" title="Lien permanent vers ce titre">¶</a></h3>
+<p>Ce modèle correspond à un réseau de neurones à une seule couche, qui va projeter le vecteur d’entrée <span class="math notranslate nohighlight">\(\mathbf{x_i}\)</span> pour une image MNIST
+(taille <span class="math notranslate nohighlight">\(28^2=784\)</span>) avec un vecteur de de paramètres <span class="math notranslate nohighlight">\(\mathbf{w_{c}}\)</span> pour chaque classe (plus un biais <span class="math notranslate nohighlight">\(b_c\)</span>).
+Pour correspondre à la matrice des données de l’exercice précédent, on considère que chaque exemple <span class="math notranslate nohighlight">\(\mathbf{x_i}\)</span> est un vecteur ligne - taille (1,784).
+En regroupant l’ensemble des jeux de paramètres <span class="math notranslate nohighlight">\(\mathbf{w_{c}}\)</span> pour les 10 classes dans une matrice <span class="math notranslate nohighlight">\(\mathbf{W}\)</span> (taille <span class="math notranslate nohighlight">\(784\times 10\)</span>),
+et les biais dans un vecteur <span class="math notranslate nohighlight">\(\mathbf{b}\)</span>, on obtient un vecteur
+<span class="math notranslate nohighlight">\(\mathbf{\hat{s_i}} =\mathbf{x_i}  \mathbf{W}  + \mathbf{b}\)</span> de taille (1,10).
+Une fonction d’activation de type soft-max sur <span class="math notranslate nohighlight">\(\mathbf{\hat{y_i}} =\)</span> <code class="docutils literal notranslate"><span class="pre">softmax</span></code> <span class="math notranslate nohighlight">\((\mathbf{s_i})\)</span> permet d’obtenir le vecteur de sortie prédit par le modèle <span class="math notranslate nohighlight">\(\mathbf{\hat{y_i}}\)</span> - de taille (1,10) - qui représente la probabilité <em>a posteriori</em>
+<span class="math notranslate nohighlight">\(p(\mathbf{\hat{y_i}} | \mathbf{x_i})\)</span> pour chacune des 10 classes:</p>
+<div class="math notranslate nohighlight" id="equation-softmax">
+<span class="eqno">(1)<a class="headerlink" href="#equation-softmax" title="Lien permanent vers cette équation">¶</a></span>\[p(\hat{y_{c,i}} | \mathbf{x_i}) ) = \frac{e^{\langle \mathbf{x_i} ; \mathbf{w_{c}}\rangle + b_{c}}}{\sum\limits_{c'=1}^{10} e^{\langle \mathbf{x_i} ; \mathbf{w_{c'}}\rangle + b_{c'}}}\]</div>
+<p>Le schéma ci-dessous illustre le modèle de régression logistique avec un réseau de neurones.</p>
+<a class="reference internal image-reference" href="_images/LR.png"><img alt="_images/LR.png" class="align-center" src="_images/LR.png" style="height: 200px;" /></a>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<p>Quel est le nombre de paramètres du modèle ? Justifier le calcul.</p>
+</div>
+<p>Avec <code class="docutils literal notranslate"><span class="pre">Keras</span></code>, les réseaux de neurones avec une structure de chaîne (réseaux « feedforward »), s’utilisent de la manière suivante:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">Sequential</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">Sequential</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>On créé ainsi un réseau de neurones vide. On peut alors ajouter des couches avec la fonction <code class="docutils literal notranslate"><span class="pre">add</span></code>.
+Par exemple, l’ajout d’une couche de projection linéaire (couche complètement connectée) de taille 10, suivi de l’ajout d’une couche d’activation de type <code class="docutils literal notranslate"><span class="pre">softmax</span></code>, peuvent s’effectuer de la manière suivante:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Activation</span>
+<span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span>  <span class="n">input_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fc1&#39;</span><span class="p">))</span>
+<span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Activation</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>On peut ensuite visualiser l’architecture du réseau avec la méthode <code class="docutils literal notranslate"><span class="pre">summary()</span></code> du modèle.</p>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<ul class="simple">
+<li><p>Écrire un script <code class="docutils literal notranslate"><span class="pre">exo1.py</span></code> permettant de créer le réseau de neurone ci-dessus.</p></li>
+<li><p>Vérifier le nombre de paramètres du réseau à apprendre dans la méthode <code class="docutils literal notranslate"><span class="pre">summary()</span></code>.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="formulation-du-probleme-d-apprentissage">
+<h3>Formulation du problème d’apprentissage<a class="headerlink" href="#formulation-du-probleme-d-apprentissage" title="Lien permanent vers ce titre">¶</a></h3>
+<blockquote>
+<div><p>Afin d’entraîner le réseau de neurones, on va comparer, pour chaque exemple d’apprentissage, la sortie prédite <span class="math notranslate nohighlight">\(\mathbf{\hat{y_i}}\)</span> par le réseau
+- équation <a class="reference internal" href="#equation-softmax">(1)</a> - pour l’image <span class="math notranslate nohighlight">\(\mathbf{x_i}\)</span>, avec la sortie
+réelle <span class="math notranslate nohighlight">\(\mathbf{y_i^*}\)</span> issue de la supervision qui correspond à la catégorie de l’image <span class="math notranslate nohighlight">\(\mathbf{x_i}\)</span>:
+on utilisera en encodage de type « one-hot » pour <span class="math notranslate nohighlight">\(\mathbf{y_i^*}\)</span>, <em>i.e.</em> :</p>
+</div></blockquote>
+<div class="math notranslate nohighlight" id="equation-one-hot">
+<span class="eqno">(2)<a class="headerlink" href="#equation-one-hot" title="Lien permanent vers cette équation">¶</a></span>\[\begin{split}y_{c,i}^* =
+ \begin{cases}
+   1 &amp; \text{si c correspond à l'indice de la classe de } \mathbf{x_i}  \\
+   0 &amp; \text{sinon}
+ \end{cases}\end{split}\]</div>
+<p>On utilisera le code suivant pour générer des labels au format
+0-1 encoding - équation <a class="reference internal" href="#equation-one-hot">(2)</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.utils</span> <span class="kn">import</span> <span class="n">np_utils</span>
+<span class="n">K</span><span class="o">=</span><span class="mi">10</span>
+<span class="c1"># convert class vectors to binary class matrices</span>
+<span class="n">Y_train</span> <span class="o">=</span> <span class="n">np_utils</span><span class="o">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
+<span class="n">Y_test</span> <span class="o">=</span> <span class="n">np_utils</span><span class="o">.</span><span class="n">to_categorical</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Pour mesurer l’erreur de prédiction, on utilisera une fonction de coût de type entropie croisée (« cross-entropy ») entre <span class="math notranslate nohighlight">\(\mathbf{\hat{y_i}}\)</span> et <span class="math notranslate nohighlight">\(\mathbf{y_i^*}\)</span> :
+<span class="math notranslate nohighlight">\(\mathcal{L}(\mathbf{\hat{y_i}}, \mathbf{y_i^*}) = -\sum\limits_{c=1}^{10} y_{c,i}^* log(\hat{y}_{c,i}) = - log(\hat{y}_{c^*,i})\)</span>, où <span class="math notranslate nohighlight">\(c^*\)</span> correspond à l’indice de la classe donné par la supervision pour l’image <span class="math notranslate nohighlight">\(\mathbf{x_i}\)</span>.</p>
+<p>La fonction de coût finale consistera à moyenner l’entropie croisée sur l’ensemble de la base d’apprentissage <span class="math notranslate nohighlight">\(\mathcal{D}\)</span> constituée de <span class="math notranslate nohighlight">\(N=60000\)</span> images :</p>
+<div class="math notranslate nohighlight" id="equation-ce">
+<span class="eqno">(3)<a class="headerlink" href="#equation-ce" title="Lien permanent vers cette équation">¶</a></span>\[\mathcal{L}_{\mathbf{W},\mathbf{b}}(\mathcal{D})  = - \frac{1}{N}\sum_{i=1}^{N} log(\hat{y}_{c^*,i})\]</div>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<p>La fonction de coût de l’Eq. <a class="reference internal" href="#equation-ce">(3)</a> est-elle convexe par rapports aux paramètres <span class="math notranslate nohighlight">\(\mathbf{W}\)</span>, <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> du modèle ? Avec un pas de gradient bien choisi, peut-on assurer la convergence vers le minimum  global de la solution ?</p>
+</div>
+</div>
+<div class="section" id="apprentissage-du-modele">
+<h3>Apprentissage du modèle<a class="headerlink" href="#apprentissage-du-modele" title="Lien permanent vers ce titre">¶</a></h3>
+<p>Afin d’optimiser les paramètres <span class="math notranslate nohighlight">\(\mathbf{W}\)</span> et <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> pour minimiser l’équation <a class="reference internal" href="#equation-ce">(3)</a> pour notre modèle de régression logistique, nous allons utiliser l’algorithme de rétro-propagation de l’erreur du gradient.
+Avec <code class="docutils literal notranslate"><span class="pre">Keras</span></code>, la rétro-propagation de l’erreur est implémentée nativement. On va compiler le modèle en lui passant un loss (ici l” entropie croisée), une méthode d’optimisation (ici une descente de gradient stochastique, stochatic gradient descent, sgd),
+et une métrique d’évaluation (ici le taux de bonne prédiction des catégories, accuracy) :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.optimizers</span> <span class="kn">import</span> <span class="n">SGD</span>
+<span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="n">sgd</span> <span class="o">=</span> <span class="n">SGD</span><span class="p">(</span><span class="n">learning_rate</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="s1">&#39;categorical_crossentropy&#39;</span><span class="p">,</span><span class="n">optimizer</span><span class="o">=</span><span class="n">sgd</span><span class="p">,</span><span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Enfin, l’apprentissage du modèle sur des données d’apprentissage est mis en place avec la méthode <code class="docutils literal notranslate"><span class="pre">fit</span></code> :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">nb_epoch</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">Y_train</span><span class="p">,</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">nb_epoch</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>batch_size correspond au nombre d’exemples utilisé pour estimer le gradient de la fonction de coût.</p></li>
+<li><p>epochs est le nombre d’époques (<em>i.e.</em> passages sur l’ensemble des exemples de la base d’apprentissage) lors de la descente de gradient.</p></li>
+</ul>
+<p>On peut ensuite évaluer les performances du modèle dur l’ensemble de test avec la fonction <code class="docutils literal notranslate"><span class="pre">evaluate</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scores</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">Y_test</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">metrics_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">metrics_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">scores</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Le premier élément de score renvoie la fonction de coût sur la base de test, le second élément renvoie le taux de bonne détection (accuracy).</p>
+<ul class="simple">
+<li><p>Implémenter l’apprentissage du modèle sur la base de train de la base MNIST.</p></li>
+<li><p><strong>Évaluer les performances du réseau sur la base de test. Vous devez obtenir un score de l’ordre de 92% sur la base de test pour ce modèle de régression logistique.</strong></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="exercice-2-perceptron-multi-couches-mlp">
+<h2>Exercice 2 : Perceptron multi-couches (MLP)<a class="headerlink" href="#exercice-2-perceptron-multi-couches-mlp" title="Lien permanent vers ce titre">¶</a></h2>
+<p>L’objectif de ce second exercice est d’étendre le modèle de régression logistique afin de mettre en place des modèles de prédictions plus riches.
+En particulier, on va s’intéresser aux <strong>Perceptron multi-couches (Multi-Layer Percpetron, MLP)</strong>. Contrairement à la régression logistique qui se limite à des séparateurs linéaires,
+le Perceptron permet l’apprentissage de frontières de décisions non linéaires, et constituent des approximateurs universels de fonctions.</p>
+<p>L’objectif de la séance de travaux pratiques est de mettre en place le code pour effectuer des prédictions et entraîner un Perceptron à une couche cachée.</p>
+<div class="section" id="id1">
+<h3>Modèle de prédiction<a class="headerlink" href="#id1" title="Lien permanent vers ce titre">¶</a></h3>
+<p>L’architecture du perpcetron à une couche cachée est montrée à la figure ci-dessous.</p>
+<a class="reference internal image-reference" href="_images/MLP.png"><img alt="_images/MLP.png" class="align-center" src="_images/MLP.png" style="height: 250px;" /></a>
+<p>Si on considère les données de la base MNIST, chaque image est représentée par un vecteur de taille <span class="math notranslate nohighlight">\(28^2=784\)</span>.
+Le perceptron va effecteur les différentes étape de transformation pour produire la prédiction finale, <em>i.e.</em> la catégorie sémantique de l’image :</p>
+<ul class="simple">
+<li><p>Une étape de projection linéaire, qui va projeter chaque image sur un vecteur de taille <span class="math notranslate nohighlight">\((1,L)\)</span>, <em>e.g.</em> <span class="math notranslate nohighlight">\(L=100\)</span>. En considérant chaque exemple <span class="math notranslate nohighlight">\(\mathbf{x_i}\)</span> est un vecteur ligne - taille <span class="math notranslate nohighlight">\((1,784)\)</span> - la projection linéaire peut être représentée par la matrice <span class="math notranslate nohighlight">\(\mathbf{W^h}\)</span> (taille <span class="math notranslate nohighlight">\((784, L)\)</span>), et le vecteur de biais <span class="math notranslate nohighlight">\(\mathbf{b^h}\)</span> (taille <span class="math notranslate nohighlight">\((1, L)\)</span>) : <span class="math notranslate nohighlight">\(\mathbf{\hat{u_i}} =\mathbf{x_i}  \mathbf{W^h}  + \mathbf{b^h}\)</span>.</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p>Une étape de non linéarité, <em>e.g.</em> de type sigmoïde :  <span class="math notranslate nohighlight">\(\forall j \in  \left\lbrace 1; L \right\rbrace  ~ h_{i,j} = \frac{1}{1+exp(-u_{i,j})}\)</span></p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>Une seconde étape de projection linéaire, qui va projeter le vecteur latent de taille <span class="math notranslate nohighlight">\((1,L)\)</span> sur un vecteur de taille <span class="math notranslate nohighlight">\((1,K)=10\)</span> (nombre de classes). Cette opération de projection linéaire sera représentée par la matrice <span class="math notranslate nohighlight">\(\mathbf{W^y}\)</span> (taille <span class="math notranslate nohighlight">\((L, K)\)</span>), et le vecteur de biais <span class="math notranslate nohighlight">\(\mathbf{b^y}\)</span> (taille <span class="math notranslate nohighlight">\((1, K)\)</span>) : <span class="math notranslate nohighlight">\(\mathbf{\hat{v_i}} =\mathbf{h_i}  \mathbf{W^y}  + \mathbf{b^y}\)</span>.</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p>Une étape de non linéarité de type soft-max vue la semaine précédente pour la régression logistique : <span class="math notranslate nohighlight">\(\forall j \in  \left\lbrace 1; K \right\rbrace  ~ y_{i,j} = \frac{exp(v_{i,j})}{\sum\limits_{i=1}^K exp(v_{i,k})}\)</span></p></li>
+</ul>
+</div></blockquote>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<ul class="simple">
+<li><p>On va utiliser 100 neurones dans la couche cachée du nouveau réseau.  Quel est maintenant le nombre de paramètres du modèle MLP ? Justifier le calcul.</p></li>
+<li><p>Ecrire un script <code class="docutils literal notranslate"><span class="pre">exo2.py</span></code> qui va enrichir le modèle de régression logistique de l’exercice précédent afin de créer le réseau MLP. Vérifier le nombre de paramètres du modèle avec la méthode <code class="docutils literal notranslate"><span class="pre">summary()</span></code>.</p></li>
+</ul>
+</div>
+<ul class="simple">
+<li><p>Sur un réseau séquentiel vide, on va ajouter la méthode <code class="docutils literal notranslate"><span class="pre">add</span></code> pour insérer une couche cachée (de taille 100):</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">Sequential</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span>  <span class="n">input_dim</span><span class="o">=</span><span class="mi">784</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fc1&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>La non-linéarité de type sigmoïde sera obtenue de la manière suivante :</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Activation</span><span class="p">(</span><span class="s1">&#39;sigmoid&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>Apprentissage du modèle<a class="headerlink" href="#id2" title="Lien permanent vers ce titre">¶</a></h3>
+<p><strong>Une fois le modèle MLP créé, la façon de l’entraîner va être strictement identique à ce qui a été écrit dans l’exercice 1 précédent.</strong> En effet,  on peut calculer l’erreur - entropie croisée décrite à l’équation <a class="reference internal" href="#equation-ce">(3)</a> - pour chaque exemple d’apprentissage à partir de la
+sortie prédite <span class="math notranslate nohighlight">\(\mathbf{\hat{y_i}}\)</span> et de la supervision <span class="math notranslate nohighlight">\(\mathbf{y_i^*}\)</span>. <strong>L’algorithme de rétro-propagation du gradient de cette erreur permet alors de mettre à jour l’ensemble des paramètres du réseau.</strong></p>
+<div class="admonition-question admonition">
+<p class="admonition-title">Question :</p>
+<ul class="simple">
+<li><p>Compléter le script <code class="docutils literal notranslate"><span class="pre">exo2.py</span></code> afin d’effectuer l’entraînement du réseau MLP. On choisira 50 époques pour l’apprentissage.</p></li>
+<li><p>Avec ce modèle MLP à une couche cachée, la fonction de coût de l’Eq. <a class="reference internal" href="#equation-ce">(3)</a> est-elle convexe par rapports aux paramètres du modèle ? Avec un pas de gradient bien choisi, peut-on assurer la convergence vers le minimum global de la solution ?</p></li>
+<li><p>Observer la documentation <code class="docutils literal notranslate"><span class="pre">Keras</span></code> pour voir la façon dont les paramètres du modèles sont initialisés dans les différentes couches.</p></li>
+<li><p><strong>Évaluer les performances du réseau sur la base de test. Vous devez obtenir un score de l’ordre de 98% pour ce modèle MLP.</strong></p></li>
+<li><p>On pourra utiliser la méthode suivante pour sauvegarder le modèle appris :</p></li>
+</ul>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">model_from_yaml</span>
+<span class="k">def</span> <span class="nf">saveModel</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">savename</span><span class="p">):</span>
+  <span class="c1"># serialize model to YAML</span>
+  <span class="n">model_yaml</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">()</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">savename</span><span class="o">+</span><span class="s2">&quot;.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">yaml_file</span><span class="p">:</span>
+    <span class="n">yaml_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">model_yaml</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Yaml Model &quot;</span><span class="p">,</span><span class="n">savename</span><span class="p">,</span><span class="s2">&quot;.yaml saved to disk&quot;</span><span class="p">)</span>
+  <span class="c1"># serialize weights to HDF5</span>
+  <span class="n">model</span><span class="o">.</span><span class="n">save_weights</span><span class="p">(</span><span class="n">savename</span><span class="o">+</span><span class="s2">&quot;.h5&quot;</span><span class="p">)</span>
+  <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Weights &quot;</span><span class="p">,</span><span class="n">savename</span><span class="p">,</span><span class="s2">&quot;.h5 saved to disk&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="exercice-3-reseau-de-neurones-convolutif">
+<h2>Exercice 3 : Réseau de neurones convolutif<a class="headerlink" href="#exercice-3-reseau-de-neurones-convolutif" title="Lien permanent vers ce titre">¶</a></h2>
+<p>On va maintenant étendre le perceptron de l’exercice précédent pour mettre en place un réseau de neurones convolutif profond, « Convolutionnal Neural Networks », ConvNets.</p>
+<p><strong>Écrire un script ``exo3.py`` pour mettre en place un ConvNet.</strong></p>
+<p>Les réseaux convolutifs manipulent des images multi-dimensionnelles en entrée (tenseurs). On va donc commencer par reformater les données d’entrée afin que chaque exemple soit de taille <span class="math notranslate nohighlight">\(28 \times 28 \times 1\)</span>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Par rapport aux réseaux complètement connectés, les réseaux convolutifs utilisent les briques élémentaires suivantes :</p>
+<p>1. Des couches de convolution, qui transforment un tenseur d’entrée de taille <span class="math notranslate nohighlight">\(n_x \times n_y \times p\)</span> en un tenseur de sortie <span class="math notranslate nohighlight">\(n_{x'} \times n_{y'} \times n_H\)</span>, où <span class="math notranslate nohighlight">\(n_H\)</span> est le nombre de filtres choisi.
+Par exemple, une couche de convolution pour traiter les images d’entrée de MNIST peut être créée de la manière suivante :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">Sequential</span>
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Flatten</span>
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="kn">import</span> <span class="n">Conv2D</span><span class="p">,</span> <span class="n">MaxPooling2D</span>
+<span class="n">Conv2D</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span><span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span><span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span><span class="n">input_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span><span class="n">padding</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>32 est le nombre de filtres.</p></li>
+<li><p>(5, 5) est la taille spatiale de chaque filtre (masque de convolution).</p></li>
+<li><p>padding=”valid” correspond ignorer les bords lors du calcul (et donc à diminuer la taille spatiale en sortie de la convolution).</p></li>
+<li><p><strong>N.B. :</strong>  on peut directement inclure dans la couche de convolution la non-linéarité en sortie de la convolution, comme illustré ici dans l’exemple avec une fonction d’activation de type <code class="docutils literal notranslate"><span class="pre">relu</span></code>.</p></li>
+</ul>
+<ol class="arabic simple" start="2">
+<li><p>Des couches d’agrégation spatiale (pooling), afin de permettre une invariance aux translations locales. Voici par exemple la manière de déclarer une couche de max-pooling:</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pool</span> <span class="o">=</span> <span class="n">MaxPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>(2, 2) est la taille spatiale sur laquelle l’opération d’agrégation est effectuée.</p></li>
+<li><p><strong>N.B. :</strong>  par défaut, le pooling est effectué avec un décalage de 2 neurones, dans l’exemple précédent on obtient donc des cartes de sorties avec des tailles spatiales divisées par deux par rapport à la taille d’entrée.</p></li>
+</ul>
+<dl class="simple">
+<dt><strong>Compléter le script</strong> <code class="docutils literal notranslate"><span class="pre">exo3.py</span></code> <strong>pour mettre en place un ConvNet à l’architecture suivante, proche du modèle historique LeNet5</strong> <a class="bibtex reference internal" href="#lecun1989backpropagation" id="id3">[LBD+89]</a> <strong>et montré ci-dessous:</strong></dt><dd><ul class="simple">
+<li><p>Une couche de convolution avec 16 filtres de taille <span class="math notranslate nohighlight">\(5 \times 5\)</span>, suivie d’une non linéarité de type relu puis d’une couche de max pooling de taille <span class="math notranslate nohighlight">\(2 \times 2\)</span>.</p></li>
+<li><p>Une seconde couche de convolution avec 32 filtres de taille <span class="math notranslate nohighlight">\(5 \times 5\)</span>, suivie d’une non linéarité de type relu puis d’une couche de max pooling de taille <span class="math notranslate nohighlight">\(2 \times 2\)</span>.</p></li>
+<li><p>Comme dans le réseau LeNet, on considérera la sortie du second bloc convolutif comme un vecteur, ce que revient à « mettre à plat » les couches convolutives précédentes (<code class="docutils literal notranslate"><span class="pre">model.add(Flatten())</span></code>).</p></li>
+<li><p>Une couche complètement connectée de taille 100, suivie d’une non linéarité de type sigmoïde.</p></li>
+<li><p>Une couche complètement connectée de taille 10, suivie d’une non linéarité de type softmax.</p></li>
+</ul>
+</dd>
+</dl>
+<a class="reference internal image-reference" href="_images/LeNet5.png"><img alt="_images/LeNet5.png" class="align-center" src="_images/LeNet5.png" style="height: 200px;" /></a>
+<ul class="simple">
+<li><p><strong>Apprendre le modèle et évaluer les performances du réseau sur la base de test. Vous devez obtenir un score de l’ordre de 99% pour ce modèle ConvNet.</strong></p></li>
+<li><p>On pourra sauvegarder le modèle appris avec la méthode <code class="docutils literal notranslate"><span class="pre">saveModel</span></code> précédente</p></li>
+</ul>
+<p><strong>Apprentissage sur GPU</strong></p>
+<ul class="simple">
+<li><p>Quelle est le temps d’une époque avec ce modèle convolutif ?</p></li>
+<li><p>Vous pourrez tester l’apprentissage sur carte graphique du modèle, et comparer le temps d’entraînement</p></li>
+</ul>
+<p id="bibtex-bibliography-keras-0"><dl class="citation">
+<dt class="bibtex label" id="lecun1989backpropagation"><span class="brackets"><a class="fn-backref" href="#id3">LBD+89</a></span></dt>
+<dd><p>Yann LeCun, Bernhard Boser, John S Denker, Donnie Henderson, Richard E Howard, Wayne Hubbard, and Lawrence D Jackel. Backpropagation applied to handwritten zip code recognition. <em>Neural computation</em>, 1(4):541–551, 1989.</p>
+</dd>
+</dl>
+</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          
+          <h3>Table des matières</h3>
+          <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Deep Learning avec Keras</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#exercice-0-chargement-des-donnees">Exercice 0 : Chargement des données</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exercice-1-regression-logistique">Exercice 1 : Régression logistique</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exercice-2-perceptron-multi-couches-mlp">Exercice 2 : Perceptron multi-couches (MLP)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exercice-3-reseau-de-neurones-convolutif">Exercice 3 : Réseau de neurones convolutif</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="untangling.html">Deep Learning et Manifold Untangling</a></li>
+</ul>
+
+          <div role="search">
+            <h3 style="margin-top: 1.5em;">Recherche</h3>
+            <form class="search" action="search.html" method="get">
+                <input type="text" name="q" />
+                <input type="submit" value="Go" />
+            </form>
+          </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+          <div role="navigation" aria-label="related navigaton">
+            <a href="index.html" title="TP Entreposage et fouille de données (STA211) \(~~~~~~~~~~~\) Réseaux de neurones et apprentissage profond"
+              >précédent</a> |
+            <a href="untangling.html" title="Deep Learning et Manifold Untangling"
+              >suivant</a> |
+            <a href="genindex.html" title="Index général"
+              >index</a>
+          </div>
+          <div role="note" aria-label="source link">
+              <br/>
+              <a href="_sources/keras.rst.txt"
+                rel="nofollow">Montrer le code source</a>
+          </div>
+        </div>
+
+        <div class="right">
+          
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021, Nicolas Thome - Cnam.
+      Mis à jour le nov. 18, 2021.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+  </body>
+</html>
